@@ -2,1347 +2,1008 @@
 <html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Progress Tracking & Analytics System (SPTAS)</title>
-    
-    <!-- Google Fonts: Outfit for titles, Inter for body -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>SPTAS — Student Progress Tracking System</title>
+    <meta name="description" content="School management portal for students, teachers and principals.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Lucide Icons CDN -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <!-- App Container -->
-    <div class="app-container">
-        
-        <!-- 1. LOGIN / AUTHENTICATION VIEW -->
-        <main id="auth-view" class="auth-container no-print">
-            <div class="auth-card">
-                <div class="auth-header">
-                    <svg class="school-logo-svg text-primary" viewBox="0 0 100 100" width="55" height="55">
-                        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="4" />
-                        <polygon points="50,15 80,40 20,40" fill="currentColor" />
-                        <rect x="28" y="40" width="44" height="35" fill="none" stroke="currentColor" stroke-width="4" />
-                        <line x1="50" y1="40" x2="50" y2="75" stroke="currentColor" stroke-width="4" />
-                    </svg>
-                    <h2>Silverwood International School</h2>
-                    <p>Student Progress Tracking & Analytics System</p>
-                </div>
-                
-                <!-- Auth Role Tabs -->
-                <div class="auth-tabs">
-                    <button class="auth-tab-btn active" data-role="parent">Parent Portal</button>
-                    <button class="auth-tab-btn" data-role="teacher">Teacher Portal</button>
-                    <button class="auth-tab-btn" data-role="principal">Principal Portal</button>
-                </div>
-                
-                <!-- Login Forms -->
-                <div class="auth-body">
-                    <div id="login-error-msg" class="auth-error hidden"></div>
-                    
-                    <!-- Parent Login Form -->
-                    <form id="parent-login-form" class="login-form">
-                        <div class="form-group">
-                            <label for="parent-roll">Student Roll Number or ID</label>
-                            <input type="text" id="parent-roll" placeholder="Enter son's/daughter's roll number..." required>
-                        </div>
-                        <div class="form-group">
-                            <label for="parent-phone">Parent's Registered Phone Number</label>
-                            <input type="text" id="parent-phone" placeholder="Enter 10-digit contact number..." maxlength="15" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="parent-pass">Password <span class="text-muted" style="font-size:0.75rem">(Leave blank for first login)</span></label>
-                            <div class="password-wrapper">
-                                <input type="password" id="parent-pass" placeholder="Enter password (leave blank for first login)...">
-                                <button type="button" class="show-pwd-btn" data-target="parent-pass" title="Show/Hide Password"><i data-lucide="eye"></i></button>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block">Access Report Card</button>
-                    </form>
-                    
-                    <!-- Teacher Login Form (Phone-based) -->
-                    <form id="teacher-login-form" class="login-form hidden">
-                        <div class="form-group">
-                            <label for="teacher-phone">Registered Phone Number</label>
-                            <input type="text" id="teacher-phone" placeholder="Enter your 10-digit phone number..." maxlength="15" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="teacher-password">Password <span class="text-muted" style="font-size:0.75rem">(Leave blank for first login)</span></label>
-                            <div class="password-wrapper">
-                                <input type="password" id="teacher-password" placeholder="Enter password (leave blank for first login)...">
-                                <button type="button" class="show-pwd-btn" data-target="teacher-password" title="Show/Hide Password"><i data-lucide="eye"></i></button>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block">Login as Faculty</button>
-                    </form>
-                    
-                    <!-- Principal Login Form -->
-                    <form id="principal-login-form" class="login-form hidden">
-                        <div class="form-group">
-                            <label for="principal-username">Username</label>
-                            <input type="text" id="principal-username" placeholder="Enter principal username..." required>
-                        </div>
-                        <div class="form-group">
-                            <label for="principal-password">Password</label>
-                            <div class="password-wrapper">
-                                <input type="password" id="principal-password" placeholder="Enter principal password..." required>
-                                <button type="button" class="show-pwd-btn" data-target="principal-password" title="Show/Hide Password"><i data-lucide="eye"></i></button>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block">Login as Principal</button>
-                    </form>
-                </div>
-            </div>
-        </main>
+<div class="app-container">
 
-        <!-- 2. STICKY HEADER (Hidden initially) -->
-        <header class="app-header no-print hidden" id="app-nav-header">
-            <div class="header-logo">
-                <svg class="school-logo-svg" viewBox="0 0 100 100" width="38" height="38">
-                    <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="4" />
-                    <polygon points="50,15 80,40 20,40" fill="currentColor" />
-                    <rect x="28" y="40" width="44" height="35" fill="none" stroke="currentColor" stroke-width="4" />
-                    <line x1="50" y1="40" x2="50" y2="75" stroke="currentColor" stroke-width="4" />
+<!-- =====================================================
+     AUTH VIEW
+     ===================================================== -->
+<main id="auth-view" class="auth-container no-print">
+    <div class="auth-bg-overlay"></div>
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo-wrap">
+                <svg viewBox="0 0 100 100" width="52" height="52">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="4"/>
+                    <polygon points="50,15 80,40 20,40" fill="currentColor"/>
+                    <rect x="28" y="40" width="44" height="35" fill="none" stroke="currentColor" stroke-width="4"/>
+                    <line x1="50" y1="40" x2="50" y2="75" stroke="currentColor" stroke-width="4"/>
                 </svg>
-                <div class="header-titles">
-                    <h1>Silverwood School</h1>
-                    <span>Student Progress Tracking & Analytics System (SPTAS)</span>
+            </div>
+            <h2 id="auth-school-name">Silverwood International School</h2>
+            <p>Student Progress Tracking &amp; Analytics System</p>
+        </div>
+
+        <div class="auth-tabs">
+            <button class="auth-tab-btn active" data-role="parent">
+                <i data-lucide="users"></i> Parent Portal
+            </button>
+            <button class="auth-tab-btn" data-role="teacher">
+                <i data-lucide="user-check"></i> Teacher Portal
+            </button>
+            <button class="auth-tab-btn" data-role="principal">
+                <i data-lucide="shield"></i> Principal Portal
+            </button>
+        </div>
+
+        <div class="auth-body">
+            <div id="login-error-msg" class="auth-error hidden"></div>
+
+            <!-- PARENT LOGIN -->
+            <div id="parent-login-form" class="login-form">
+                <div class="form-group">
+                    <label><i data-lucide="hash" style="width:14px;height:14px;"></i> Student Roll Number</label>
+                    <input type="text" id="parent-roll" class="form-input" placeholder="Enter roll number">
+                </div>
+                <div class="form-group">
+                    <label><i data-lucide="phone" style="width:14px;height:14px;"></i> Registered Phone Number</label>
+                    <input type="text" id="parent-phone" class="form-input" placeholder="10-digit mobile number" maxlength="15">
+                </div>
+                <div class="form-group">
+                    <label><i data-lucide="lock" style="width:14px;height:14px;"></i> Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="parent-pass" class="form-input" placeholder="Enter password">
+                        <button type="button" class="show-pwd-btn" data-target="parent-pass"><i data-lucide="eye"></i></button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary full-width" id="parent-login-btn">
+                    <i data-lucide="log-in"></i> Login to Parent Portal
+                </button>
+                <button type="button" class="forgot-pwd-link" data-role="parent">
+                    <i data-lucide="key"></i> Forgot Password?
+                </button>
+            </div>
+
+            <!-- TEACHER LOGIN -->
+            <div id="teacher-login-form" class="login-form hidden">
+                <div class="form-group">
+                    <label><i data-lucide="phone" style="width:14px;height:14px;"></i> Registered Phone Number</label>
+                    <input type="text" id="teacher-phone" class="form-input" placeholder="10-digit mobile number" maxlength="15">
+                </div>
+                <div class="form-group">
+                    <label><i data-lucide="lock" style="width:14px;height:14px;"></i> Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="teacher-password" class="form-input" placeholder="Enter password">
+                        <button type="button" class="show-pwd-btn" data-target="teacher-password"><i data-lucide="eye"></i></button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary full-width" id="teacher-login-btn">
+                    <i data-lucide="log-in"></i> Login to Teacher Portal
+                </button>
+                <button type="button" class="forgot-pwd-link" data-role="teacher">
+                    <i data-lucide="key"></i> Forgot Password?
+                </button>
+            </div>
+
+            <!-- PRINCIPAL LOGIN -->
+            <div id="principal-login-form" class="login-form hidden">
+                <div class="form-group">
+                    <label><i data-lucide="user" style="width:14px;height:14px;"></i> Username</label>
+                    <input type="text" id="principal-username" class="form-input" placeholder="principal" value="principal">
+                </div>
+                <div class="form-group">
+                    <label><i data-lucide="lock" style="width:14px;height:14px;"></i> Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="principal-password" class="form-input" placeholder="Enter password">
+                        <button type="button" class="show-pwd-btn" data-target="principal-password"><i data-lucide="eye"></i></button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary full-width" id="principal-login-btn">
+                    <i data-lucide="log-in"></i> Login to Principal Portal
+                </button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- =====================================================
+     APP NAV HEADER
+     ===================================================== -->
+<header id="app-nav-header" class="app-header hidden no-print">
+    <div class="header-left">
+        <div class="header-logo">
+            <svg viewBox="0 0 100 100" width="36" height="36">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="5"/>
+                <polygon points="50,15 80,40 20,40" fill="currentColor"/>
+                <rect x="28" y="40" width="44" height="35" fill="none" stroke="currentColor" stroke-width="5"/>
+                <line x1="50" y1="40" x2="50" y2="75" stroke="currentColor" stroke-width="5"/>
+            </svg>
+        </div>
+        <div class="header-titles">
+            <h1 id="header-school-name">Silverwood School</h1>
+            <span class="current-date-str"></span>
+        </div>
+    </div>
+    <div class="header-right">
+        <span class="user-greeting" id="user-greeting-label">Logged in as: User</span>
+        <button class="header-icon-btn principal-only hidden" id="edit-principal-name-btn" title="Edit Name">
+            <i data-lucide="pencil"></i>
+        </button>
+        <button class="header-icon-btn" id="theme-toggle-btn" title="Toggle Theme">
+            <i data-lucide="moon" class="theme-icon-dark"></i>
+            <i data-lucide="sun" class="theme-icon-light hidden"></i>
+        </button>
+        <button class="header-icon-btn" id="logout-btn" title="Logout">
+            <i data-lucide="log-out"></i>
+        </button>
+    </div>
+</header>
+
+<!-- =====================================================
+     ADMIN DASHBOARD VIEW
+     ===================================================== -->
+<main id="admin-dashboard-view" class="container no-print hidden">
+    <div class="admin-hero">
+        <div class="admin-hero-content">
+            <h2 id="admin-portal-title">Academic Administration Portal</h2>
+            <p>Manage students, timetables, attendance, and view reports.</p>
+        </div>
+        <button id="admin-add-student-btn" class="btn btn-primary">
+            <i data-lucide="user-plus"></i> <span class="btn-text">Add Student</span>
+        </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="school-stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon-wrapper color-students"><i data-lucide="users"></i></div>
+            <div class="stat-content">
+                <h3 id="admin-stat-students">-</h3>
+                <p>Total Students</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon-wrapper color-attendance"><i data-lucide="calendar-check"></i></div>
+            <div class="stat-content">
+                <h3 id="admin-stat-attendance">-</h3>
+                <p>Avg Attendance</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon-wrapper color-classes"><i data-lucide="school"></i></div>
+            <div class="stat-content">
+                <h3 id="admin-stat-classes">-</h3>
+                <p>Active Classes</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon-wrapper" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);"><i data-lucide="user-check"></i></div>
+            <div class="stat-content">
+                <h3 id="admin-stat-teachers">-</h3>
+                <p>Teaching Staff</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Portal Tabs -->
+    <div class="admin-portal-tabs">
+        <button class="admin-tab-pill active" data-admin-tab="tab-students"><i data-lucide="users"></i> <span>Students</span></button>
+        <button class="admin-tab-pill" data-admin-tab="tab-attendance"><i data-lucide="clipboard-list"></i> <span>Attendance</span></button>
+        <button class="admin-tab-pill" data-admin-tab="tab-timetable"><i data-lucide="calendar-days"></i> <span>Timetable</span></button>
+        <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-teachers"><i data-lucide="user-cog"></i> <span>Teachers</span></button>
+        <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-meetings"><i data-lucide="calendar-heart"></i> <span>Meetings</span></button>
+        <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-reports"><i data-lucide="bar-chart-2"></i> <span>Reports</span></button>
+    </div>
+
+    <!-- ===== STUDENTS TAB ===== -->
+    <div class="admin-tab-content active" id="tab-students">
+        <div class="admin-search-wrapper">
+            <div class="search-input-wrapper">
+                <i data-lucide="search" class="search-input-icon"></i>
+                <input type="text" id="admin-search-input" placeholder="Search student name, roll no, admission no..." autocomplete="off">
+            </div>
+            <select id="filter-class" class="form-select"></select>
+            <select id="filter-section" class="form-select">
+                <option value="">All Sections</option>
+                <option value="A">Section A</option>
+                <option value="B">Section B</option>
+                <option value="C">Section C</option>
+                <option value="D">Section D</option>
+            </select>
+        </div>
+        <div class="section-card card-full" style="margin-top:1.2rem;padding:0;">
+            <div class="table-card-header">
+                <h3>Registered Students</h3>
+                <span id="students-count-badge" class="count-badge">0 Students</span>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="admin-students-table">
+                    <thead><tr>
+                        <th>Roll No</th><th>Student Name</th><th>Adm. No</th>
+                        <th>Class</th><th>Attendance</th><th>Trend</th>
+                        <th>Parent</th><th>Feedback</th><th>Actions</th>
+                    </tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ATTENDANCE TAB ===== -->
+    <div class="admin-tab-content hidden" id="tab-attendance">
+        <div class="section-card card-full">
+            <div class="table-card-header">
+                <h3><i data-lucide="clipboard-list" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Daily Attendance</h3>
+            </div>
+            <div style="padding:1.25rem;">
+                <div class="filter-bar">
+                    <div class="filter-item">
+                        <label>Class</label>
+                        <select id="att-class-filter" class="form-select"></select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Section</label>
+                        <select id="att-section-filter" class="form-select">
+                            <option value="">All</option>
+                            <option>A</option><option>B</option><option>C</option><option>D</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Date</label>
+                        <input type="date" id="att-date-filter" class="form-input">
+                    </div>
+                    <div class="filter-actions">
+                        <button id="att-load-btn" class="btn btn-primary"><i data-lucide="search"></i> Load</button>
+                        <button id="att-save-btn" class="btn btn-success" style="display:none;"><i data-lucide="save"></i> Save</button>
+                    </div>
+                </div>
+                <div id="attendance-list-container" style="margin-top:1rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TIMETABLE TAB ===== -->
+    <div class="admin-tab-content hidden" id="tab-timetable">
+        <div class="section-card card-full">
+            <div class="table-card-header">
+                <h3><i data-lucide="calendar-days" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Class-Wise Timetable</h3>
+            </div>
+            <div style="padding:1.25rem;">
+                <div class="filter-bar">
+                    <div class="filter-item">
+                        <label>Class</label>
+                        <select id="tt-class-select" class="form-select"></select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Section</label>
+                        <select id="tt-section-select" class="form-select">
+                            <option value="A">A</option><option value="B">B</option>
+                            <option value="C">C</option><option value="D">D</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button id="tt-load-btn" class="btn btn-primary"><i data-lucide="search"></i> Load</button>
+                        <button id="tt-save-btn" class="btn btn-success" style="display:none;"><i data-lucide="save"></i> Save &amp; Apply</button>
+                    </div>
+                </div>
+                <div id="timetable-editor-container" style="margin-top:1rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TEACHERS TAB ===== -->
+    <div class="admin-tab-content hidden" id="tab-teachers">
+        <div class="section-card card-full">
+            <div class="table-card-header">
+                <h3><i data-lucide="user-cog" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Teaching Staff</h3>
+                <button id="add-teacher-btn" class="btn btn-primary btn-sm"><i data-lucide="user-plus"></i> Add Teacher</button>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="teachers-table">
+                    <thead><tr>
+                        <th>Name</th><th>Phone</th><th>Subjects</th>
+                        <th>Classes Assigned</th><th>Today</th><th>Password</th><th>Actions</th>
+                    </tr></thead>
+                    <tbody id="teachers-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PARENT MEETINGS TAB ===== -->
+    <div class="admin-tab-content hidden" id="tab-meetings">
+        <div class="section-card card-full">
+            <div class="table-card-header">
+                <h3><i data-lucide="calendar-heart" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Parent Meetings</h3>
+                <button id="add-meeting-btn" class="btn btn-primary btn-sm"><i data-lucide="plus"></i> Schedule Meeting</button>
+            </div>
+            <div id="meetings-admin-container" style="padding:1.25rem;"></div>
+        </div>
+    </div>
+
+    <!-- ===== REPORTS TAB ===== -->
+    <div class="admin-tab-content hidden" id="tab-reports">
+        <div class="section-card card-full">
+            <div class="table-card-header">
+                <h3><i data-lucide="bar-chart-2" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Monthly Attendance Report</h3>
+                <button onclick="window.print()" class="btn btn-secondary btn-sm"><i data-lucide="printer"></i> Print</button>
+            </div>
+            <div style="padding:1.25rem;">
+                <div class="filter-bar">
+                    <div class="filter-item">
+                        <label>Month</label>
+                        <input type="month" id="report-month" class="form-input">
+                    </div>
+                    <div class="filter-item">
+                        <label>Class (Optional)</label>
+                        <select id="report-class" class="form-select"></select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Section</label>
+                        <select id="report-section" class="form-select">
+                            <option value="">All</option>
+                            <option>A</option><option>B</option><option>C</option><option>D</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button id="report-load-btn" class="btn btn-primary"><i data-lucide="bar-chart-2"></i> Generate</button>
+                    </div>
+                </div>
+                <div id="monthly-report-container" style="margin-top:1rem;"></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- =====================================================
+     STUDENT REPORT CARD / DASHBOARD
+     ===================================================== -->
+<main id="dashboard-report-page" class="container hidden">
+    <div class="dashboard-toolbar no-print">
+        <button id="back-to-search-btn" class="btn btn-secondary btn-sm">
+            <i data-lucide="arrow-left"></i> Back
+        </button>
+        <div class="toolbar-right">
+            <button id="parent-settings-btn" class="btn btn-secondary btn-sm hidden">
+                <i data-lucide="settings"></i> Settings
+            </button>
+            <button id="print-pdf-btn" class="btn btn-primary btn-sm">
+                <i data-lucide="printer"></i> Print Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Profile Card -->
+    <div class="profile-card">
+        <div class="profile-avatar-wrapper">
+            <span id="profile-initials">S</span>
+        </div>
+        <div class="profile-info">
+            <div class="profile-name-row">
+                <h2 id="profile-name">Student Name</h2>
+                <span id="profile-trend-badge" class="status-badge badge-stable">Stable</span>
+            </div>
+            <div class="profile-meta-grid">
+                <div><span class="meta-label">Admission No</span><span id="profile-admission-no" class="meta-value">—</span></div>
+                <div><span class="meta-label">Roll No</span><span id="profile-roll-no" class="meta-value">—</span></div>
+                <div><span class="meta-label">Class</span><span id="profile-class-section" class="meta-value">—</span></div>
+                <div><span class="meta-label">Academic Year</span><span id="profile-academic-year" class="meta-value">—</span></div>
+                <div><span class="meta-label">Date of Birth</span><span id="profile-dob" class="meta-value">—</span></div>
+                <div><span class="meta-label">Parent Name</span><span id="profile-parent-name" class="meta-value">—</span></div>
+                <div><span class="meta-label">Parent Contact</span><span id="profile-parent-contact" class="meta-value">—</span></div>
+                <div><span class="meta-label">Alt Contact</span><span id="profile-parent-alt" class="meta-value">—</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Classroom -->
+    <div class="live-card">
+        <div class="live-header">
+            <div class="live-dot-wrap"><span class="live-dot"></span> LIVE</div>
+            <span id="live-clock" class="live-clock">--:--</span>
+        </div>
+        <div class="live-body">
+            <div class="live-status-badge" id="live-status">Loading...</div>
+            <div class="live-meta-grid">
+                <div class="live-meta-item">
+                    <span class="live-meta-label"><i data-lucide="calendar"></i> Period</span>
+                    <span class="live-meta-val" id="live-period">—</span>
+                </div>
+                <div class="live-meta-item">
+                    <span class="live-meta-label"><i data-lucide="book-open"></i> Subject</span>
+                    <span class="live-meta-val" id="live-subject">—</span>
+                </div>
+                <div class="live-meta-item">
+                    <span class="live-meta-label"><i data-lucide="user-check"></i> Teacher</span>
+                    <span class="live-meta-val" id="live-teacher">—</span>
+                </div>
+                <div class="live-meta-item">
+                    <span class="live-meta-label"><i data-lucide="map-pin"></i> Room</span>
+                    <span class="live-meta-val" id="live-room">—</span>
+                </div>
+                <div class="live-meta-item">
+                    <span class="live-meta-label"><i data-lucide="activity"></i> Attendance</span>
+                    <span class="live-meta-val" id="live-student-attendance-status">—</span>
                 </div>
             </div>
-            
-            <div class="header-actions">
-                <!-- User Profile Label with editable name for principal -->
-                <div class="user-greeting-wrapper">
-                    <span class="user-greeting" id="user-greeting-label">Welcome, User</span>
-                    <button id="edit-principal-name-btn" class="icon-btn hidden" title="Edit Principal Name" style="padding:0.3rem;">
-                        <i data-lucide="pencil" style="width:14px;height:14px;"></i>
+        </div>
+    </div>
+
+    <!-- Attendance Ring -->
+    <div class="attendance-ring-card">
+        <div class="ring-wrap">
+            <svg viewBox="0 0 100 100" width="110" height="110">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="var(--border-color)" stroke-width="10"/>
+                <circle id="attendance-ring" cx="50" cy="50" r="40" fill="none"
+                    stroke="var(--primary)" stroke-width="10"
+                    stroke-dasharray="251.2" stroke-dashoffset="63"
+                    stroke-linecap="round" transform="rotate(-90 50 50)"/>
+            </svg>
+            <div class="ring-label">
+                <span id="attendance-percent">0%</span>
+                <small>Attendance</small>
+            </div>
+        </div>
+        <div class="ring-info">
+            <h4>Attendance Status</h4>
+            <p id="attendance-status-txt">Good standing</p>
+        </div>
+    </div>
+
+    <!-- Report Card Tabs -->
+    <div class="tabs-navigation no-print">
+        <button class="tab-btn active" data-tab="tab-overview"><i data-lucide="layout-dashboard"></i> <span>Overview</span></button>
+        <button class="tab-btn" data-tab="tab-academics"><i data-lucide="book-open"></i> <span>Academics</span></button>
+        <button class="tab-btn" data-tab="tab-behavior"><i data-lucide="heart"></i> <span>Behavior</span></button>
+        <button class="tab-btn" data-tab="tab-activities"><i data-lucide="star"></i> <span>Activities</span></button>
+        <button class="tab-btn" data-tab="tab-meetings"><i data-lucide="calendar-days"></i> <span>Meetings</span></button>
+        <button class="tab-btn" data-tab="tab-feedback"><i data-lucide="message-square"></i> <span>Feedback</span></button>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div class="tab-content active" id="tab-overview">
+        <div class="two-col-grid">
+            <div class="section-card">
+                <h3 class="section-title"><i data-lucide="bar-chart-2"></i> Current Term Marks</h3>
+                <div id="current-term-marks-list"></div>
+            </div>
+            <div class="section-card">
+                <h3 class="section-title"><i data-lucide="activity"></i> Performance Radar</h3>
+                <canvas id="overview-radar-chart" height="220"></canvas>
+            </div>
+        </div>
+        <div class="section-card card-full" style="margin-top:1rem;">
+            <h3 class="section-title"><i data-lucide="message-circle"></i> Teacher Remarks</h3>
+            <div id="term-remarks-list"></div>
+        </div>
+    </div>
+
+    <!-- ACADEMICS TAB -->
+    <div class="tab-content hidden" id="tab-academics">
+        <div class="section-card card-full">
+            <h3 class="section-title"><i data-lucide="trending-up"></i> Academic Progress</h3>
+            <canvas id="academic-history-chart" height="150"></canvas>
+        </div>
+        <div class="section-card card-full" style="margin-top:1rem;" id="exam-history-table-container"></div>
+    </div>
+
+    <!-- BEHAVIOR TAB -->
+    <div class="tab-content hidden" id="tab-behavior">
+        <div class="two-col-grid">
+            <div class="section-card">
+                <h3 class="section-title"><i data-lucide="heart"></i> Behavioral Ratings</h3>
+                <div id="behavior-ratings-list"></div>
+            </div>
+            <div class="section-card">
+                <h3 class="section-title"><i data-lucide="radar"></i> Radar Overview</h3>
+                <canvas id="behavior-radar-chart" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTIVITIES TAB -->
+    <div class="tab-content hidden" id="tab-activities">
+        <div class="two-col-grid">
+            <div class="section-card">
+                <h3 class="section-title"><i data-lucide="zap"></i> Co-Curricular Activities</h3>
+                <div id="activities-list"></div>
+            </div>
+            <div class="section-card">
+                <h3 class="section-title"><i data-lucide="award"></i> Awards &amp; Achievements</h3>
+                <div id="awards-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MEETINGS TAB -->
+    <div class="tab-content hidden" id="tab-meetings">
+        <div class="section-card card-full">
+            <h3 class="section-title"><i data-lucide="calendar-days"></i> Scheduled Parent Meetings</h3>
+            <div id="student-meetings-list"></div>
+        </div>
+        <div class="section-card card-full" style="margin-top:1rem;">
+            <h3 class="section-title"><i data-lucide="users"></i> Past Meeting Records</h3>
+            <div id="meetings-list"></div>
+        </div>
+    </div>
+
+    <!-- FEEDBACK TAB -->
+    <div class="tab-content hidden" id="tab-feedback">
+        <div class="section-card card-full">
+            <h3 class="section-title"><i data-lucide="message-square"></i> Parent Feedback</h3>
+            <textarea id="parent-feedback-text" class="form-input" rows="4"
+                placeholder="Write your feedback about your child's progress..."></textarea>
+            <button id="submit-feedback-btn" class="btn btn-primary" style="margin-top:0.75rem;">
+                <i data-lucide="send"></i> Submit Feedback
+            </button>
+        </div>
+        <div class="section-card card-full" style="margin-top:1rem;" id="principal-reply-section">
+            <h3 class="section-title"><i data-lucide="reply"></i> Principal's Reply</h3>
+            <textarea id="principal-reply-text" class="form-input" rows="3" placeholder="No reply yet." readonly></textarea>
+            <div id="admin-reply-actions" class="hidden" style="margin-top:0.75rem;">
+                <textarea id="admin-reply-input" class="form-input" rows="3" placeholder="Write reply to parent..."></textarea>
+                <button id="save-principal-reply-btn" class="btn btn-primary" style="margin-top:0.5rem;">
+                    <i data-lucide="save"></i> Save Reply
+                </button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- =====================================================
+     STUDENT MODAL
+     ===================================================== -->
+<div class="modal-overlay hidden" id="student-modal">
+    <div class="modal-container modal-large">
+        <div class="modal-header">
+            <h3 id="modal-title">Add New Student</h3>
+            <button class="modal-close-btn" id="close-student-modal"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-tabs">
+            <button class="modal-tab-btn active" data-modal-tab="modal-tab-basic"><i data-lucide="user"></i> Basic Info</button>
+            <button class="modal-tab-btn" data-modal-tab="modal-tab-exam"><i data-lucide="book-open"></i> Exam Records</button>
+            <button class="modal-tab-btn" data-modal-tab="modal-tab-behavior"><i data-lucide="heart"></i> Behavior</button>
+            <button class="modal-tab-btn" data-modal-tab="modal-tab-activities"><i data-lucide="star"></i> Activities</button>
+            <button class="modal-tab-btn" data-modal-tab="modal-tab-timetable"><i data-lucide="calendar"></i> Timetable</button>
+        </div>
+        <form id="student-form" style="overflow-y:auto;max-height:70vh;">
+            <!-- BASIC INFO -->
+            <div class="modal-tab-content" id="modal-tab-basic">
+                <div class="modal-section-title">Student Information</div>
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label>Full Name *</label>
+                        <input type="text" id="form-student-name" class="form-input" placeholder="Student full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Roll Number *</label>
+                        <input type="text" id="form-roll-no" class="form-input" placeholder="Roll number" required>
+                    </div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label>Admission Number</label>
+                        <input type="text" id="form-admission-no" class="form-input" placeholder="Manual admission no.">
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Birth</label>
+                        <input type="date" id="form-dob" class="form-input">
+                    </div>
+                </div>
+                <div class="form-row-3">
+                    <div class="form-group">
+                        <label>Class *</label>
+                        <select id="form-class" class="form-select"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Section *</label>
+                        <select id="form-section" class="form-select">
+                            <option value="A">A</option><option value="B">B</option>
+                            <option value="C">C</option><option value="D">D</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Academic Year</label>
+                        <input type="text" id="form-academic-year" class="form-input" placeholder="2025-26">
+                    </div>
+                </div>
+                <div class="modal-section-title" style="margin-top:1rem;">Parent Information</div>
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label>Parent/Guardian Name *</label>
+                        <input type="text" id="form-parent-name" class="form-input" placeholder="Parent full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Primary Phone * (10 digits)</label>
+                        <input type="text" id="form-parent-contact" class="form-input" placeholder="10-digit mobile" maxlength="15" required>
+                    </div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label>Alt. Phone</label>
+                        <input type="text" id="form-parent-alt-contact" class="form-input" placeholder="Alternate mobile" maxlength="15">
+                    </div>
+                    <div class="form-group">
+                        <label>Class Teacher</label>
+                        <input type="text" id="form-class-teacher" class="form-input" placeholder="Class teacher name">
+                    </div>
+                </div>
+                <div class="modal-section-title" style="margin-top:1rem;">Academic Status</div>
+                <div class="form-row-3">
+                    <div class="form-group">
+                        <label>Attendance %</label>
+                        <input type="number" id="form-attendance-pct" class="form-input" min="0" max="100" value="90">
+                    </div>
+                    <div class="form-group">
+                        <label>Performance Trend</label>
+                        <select id="form-performance-trend" class="form-select">
+                            <option>Improving</option><option selected>Stable</option><option>Declining</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Today's Status</label>
+                        <select id="form-attendance-status" class="form-select">
+                            <option>Present</option><option>Absent</option><option>Half Day</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EXAM RECORDS -->
+            <div class="modal-tab-content hidden" id="modal-tab-exam">
+                <div class="form-row-2" style="margin-bottom:1rem;">
+                    <div class="form-group">
+                        <label>Exam Name</label>
+                        <input type="text" id="modal-exam-name" class="form-input" placeholder="e.g. Unit Test 1, Half Yearly">
+                    </div>
+                    <div class="form-group">
+                        <label>Year</label>
+                        <input type="text" id="modal-exam-year" class="form-input" placeholder="2025">
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead><tr>
+                            <th>Subject</th><th>Obtained</th><th>Max Marks</th><th>Del</th>
+                        </tr></thead>
+                        <tbody id="modal-exam-rows"></tbody>
+                    </table>
+                </div>
+                <button type="button" id="modal-add-subject-row" class="btn btn-secondary btn-sm" style="margin-top:0.75rem;">
+                    <i data-lucide="plus"></i> Add Subject
+                </button>
+                <div class="exam-summary-bar" style="margin-top:1rem;">
+                    <div><span>Total Obtained:</span> <strong id="modal-exam-total-obtained">—</strong></div>
+                    <div><span>Max Marks:</span> <strong id="modal-exam-total-max">—</strong></div>
+                    <div><span>Percentage:</span> <strong id="modal-exam-percentage">—</strong></div>
+                    <div><span>Result:</span> <strong id="modal-exam-passfail">—</strong></div>
+                </div>
+                <div style="text-align:right;margin-top:1rem;">
+                    <button type="button" id="modal-exam-save-btn" class="btn btn-primary btn-sm">
+                        <i data-lucide="save"></i> Save Exam Scorecard
                     </button>
                 </div>
-                
-                <!-- Theme Toggle Button -->
-                <button id="theme-toggle-btn" class="icon-btn" title="Toggle Light/Dark Theme">
-                    <i data-lucide="moon" class="theme-icon-dark"></i>
-                    <i data-lucide="sun" class="theme-icon-light hidden"></i>
-                </button>
-                
-                <!-- Logout Button -->
-                <button id="logout-btn" class="btn btn-secondary" style="padding:0.4rem 0.8rem; font-size:0.85rem">
-                    <i data-lucide="log-out"></i> Logout
-                </button>
             </div>
-        </header>
 
-        <!-- 3. ADMIN DASHBOARD VIEW (Visible for Teacher / Principal) -->
-        <main id="admin-dashboard-view" class="container no-print hidden">
-            <div class="admin-hero">
-                <div class="admin-hero-content">
-                    <h2 id="admin-portal-title">Academic Administration Portal</h2>
-                    <p>Manage students, timetables, attendance, and view detailed monthly reports.</p>
+            <!-- BEHAVIOR -->
+            <div class="modal-tab-content hidden" id="modal-tab-behavior">
+                <div class="modal-section-title">Behavioral Ratings (Scale 1–5)</div>
+                <div class="form-scores-grid">
+                    <div class="form-group"><label>Discipline</label><input type="number" id="form-beh-discipline" class="form-input" min="1" max="5" value="4"></div>
+                    <div class="form-group"><label>Leadership</label><input type="number" id="form-beh-leadership" class="form-input" min="1" max="5" value="4"></div>
+                    <div class="form-group"><label>Participation</label><input type="number" id="form-beh-participation" class="form-input" min="1" max="5" value="4"></div>
+                    <div class="form-group"><label>Communication</label><input type="number" id="form-beh-communication" class="form-input" min="1" max="5" value="4"></div>
+                    <div class="form-group"><label>Teamwork</label><input type="number" id="form-beh-teamwork" class="form-input" min="1" max="5" value="4"></div>
+                    <div class="form-group"><label>Confidence</label><input type="number" id="form-beh-confidence" class="form-input" min="1" max="5" value="4"></div>
                 </div>
-                <button id="admin-add-student-btn" class="btn btn-primary">
-                    <i data-lucide="user-plus"></i> Add New Student
+                <div class="modal-section-title" style="margin-top:1.2rem;">Teacher Remarks</div>
+                <div id="remarks-list-editor"></div>
+                <button type="button" id="add-remark-btn" class="btn btn-secondary btn-sm" style="margin-top:0.5rem;">
+                    <i data-lucide="plus"></i> Add Remark
                 </button>
             </div>
 
-            <!-- School Analytics Metrics -->
-            <div class="school-stats-grid" style="margin-bottom: 1.5rem;">
-                <div class="stat-card">
-                    <div class="stat-icon-wrapper color-students"><i data-lucide="users"></i></div>
-                    <div class="stat-content">
-                        <h3 id="admin-stat-students">-</h3>
-                        <p>Total Enrolled Students</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon-wrapper color-attendance"><i data-lucide="calendar-check"></i></div>
-                    <div class="stat-content">
-                        <h3 id="admin-stat-attendance">-</h3>
-                        <p>Average School Attendance</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon-wrapper color-classes"><i data-lucide="school"></i></div>
-                    <div class="stat-content">
-                        <h3 id="admin-stat-classes">-</h3>
-                        <p>Active Class Sections</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon-wrapper" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9);"><i data-lucide="user-check"></i></div>
-                    <div class="stat-content">
-                        <h3 id="admin-stat-teachers">-</h3>
-                        <p>Teaching Staff</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Admin Portal Tabs -->
-            <div class="admin-portal-tabs">
-                <button class="admin-tab-pill active" data-admin-tab="tab-students">
-                    <i data-lucide="users"></i> Students
+            <!-- ACTIVITIES -->
+            <div class="modal-tab-content hidden" id="modal-tab-activities">
+                <div class="modal-section-title">Co-Curricular Activities</div>
+                <div id="activities-editor"></div>
+                <button type="button" id="add-activity-btn" class="btn btn-secondary btn-sm" style="margin-top:0.5rem;">
+                    <i data-lucide="plus"></i> Add Activity
                 </button>
-                <button class="admin-tab-pill" data-admin-tab="tab-attendance">
-                    <i data-lucide="clipboard-list"></i> Attendance
-                </button>
-                <button class="admin-tab-pill" data-admin-tab="tab-timetable">
-                    <i data-lucide="calendar-days"></i> Timetable
-                </button>
-                <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-teachers">
-                    <i data-lucide="user-cog"></i> Teachers
-                </button>
-                <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-reports">
-                    <i data-lucide="bar-chart-2"></i> Monthly Reports
+                <div class="modal-section-title" style="margin-top:1.2rem;">Awards &amp; Achievements</div>
+                <div id="awards-editor"></div>
+                <button type="button" id="add-award-btn" class="btn btn-secondary btn-sm" style="margin-top:0.5rem;">
+                    <i data-lucide="plus"></i> Add Award
                 </button>
             </div>
 
-            <!-- ===== TAB: STUDENTS ===== -->
-            <div class="admin-tab-content active" id="tab-students">
-                <!-- Search & Filter Bar -->
-                <div class="admin-search-wrapper">
-                    <div class="search-input-wrapper" style="flex: 1;">
-                        <i data-lucide="search" class="search-input-icon"></i>
-                        <input type="text" id="admin-search-input" placeholder="Search by student name, roll number, admission number..." autocomplete="off">
-                    </div>
-                    <select id="filter-class" class="form-select" style="width:auto;">
-                        <option value="">All Classes</option>
+            <!-- TIMETABLE -->
+            <div class="modal-tab-content hidden" id="modal-tab-timetable">
+                <div style="margin-bottom:0.75rem;display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+                    <label style="font-weight:600;font-size:0.85rem;">Day:</label>
+                    <select id="modal-timetable-day-select" class="form-select" style="width:auto;">
+                        <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+                        <option>Thursday</option><option>Friday</option><option>Saturday</option>
                     </select>
-                    <select id="filter-section" class="form-select" style="width:auto;">
-                        <option value="">All Sections</option>
-                        <option value="A">Section A</option>
-                        <option value="B">Section B</option>
-                        <option value="C">Section C</option>
-                        <option value="D">Section D</option>
-                    </select>
                 </div>
-
-                <!-- Enrolled Students Table -->
-                <div class="section-card card-full" style="margin-top: 1.5rem; padding: 0.5rem 0;">
-                    <div class="admin-table-header" style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                        <h3 style="font-size: 1.1rem;">Registered Student Records</h3>
-                        <span id="students-count-badge" class="result-badge-trend badge-stable">0 Students</span>
-                    </div>
-                    <div class="table-container">
-                        <table class="data-table" id="admin-students-table">
-                            <thead>
-                                <tr>
-                                    <th>Roll No</th>
-                                    <th>Student Name</th>
-                                    <th>Admission No</th>
-                                    <th>Class &amp; Sec</th>
-                                    <th>Attendance</th>
-                                    <th>Academic Trend</th>
-                                    <th>Parent Details</th>
-                                    <th>Feedback Status</th>
-                                    <th style="text-align: center;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- JavaScript rendered rows -->
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead><tr>
+                            <th>Period</th><th>Time</th><th>Subject</th>
+                            <th>Teacher</th><th>Room</th><th>Type</th><th>Del</th>
+                        </tr></thead>
+                        <tbody id="modal-timetable-rows"></tbody>
+                    </table>
                 </div>
-            </div>
-
-            <!-- ===== TAB: ATTENDANCE ===== -->
-            <div class="admin-tab-content hidden" id="tab-attendance">
-                <div class="section-card card-full">
-                    <div class="admin-table-header" style="padding:1rem 1.5rem; border-bottom:1px solid var(--border-color);">
-                        <h3><i data-lucide="clipboard-list" style="width:18px;vertical-align:middle;"></i> Daily Attendance Management</h3>
-                    </div>
-                    <div style="padding:1.5rem;">
-                        <div class="attendance-filter-bar">
-                            <div class="form-group" style="margin:0;">
-                                <label>Class</label>
-                                <select id="att-class-filter" class="form-select">
-                                    <option value="">Select Class</option>
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin:0;">
-                                <label>Section</label>
-                                <select id="att-section-filter" class="form-select">
-                                    <option value="">All Sections</option>
-                                    <option value="A">A</option>
-                                    <option value="B">B</option>
-                                    <option value="C">C</option>
-                                    <option value="D">D</option>
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin:0;">
-                                <label>Date</label>
-                                <input type="date" id="att-date-filter" class="form-input">
-                            </div>
-                            <button id="att-load-btn" class="btn btn-primary"><i data-lucide="search"></i> Load Students</button>
-                            <button id="att-save-btn" class="btn btn-success" style="display:none;"><i data-lucide="save"></i> Save Attendance</button>
-                        </div>
-                        <div id="attendance-list-container" style="margin-top:1.5rem;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== TAB: TIMETABLE ===== -->
-            <div class="admin-tab-content hidden" id="tab-timetable">
-                <div class="section-card card-full">
-                    <div class="admin-table-header" style="padding:1rem 1.5rem; border-bottom:1px solid var(--border-color);">
-                        <h3><i data-lucide="calendar-days" style="width:18px;vertical-align:middle;"></i> Class-Wise Timetable Manager</h3>
-                    </div>
-                    <div style="padding:1.5rem;">
-                        <div class="timetable-filter-bar">
-                            <div class="form-group" style="margin:0;">
-                                <label>Class</label>
-                                <select id="tt-class-select" class="form-select">
-                                    <option value="">Select Class</option>
-                                    <option value="1">Class 1</option>
-                                    <option value="2">Class 2</option>
-                                    <option value="3">Class 3</option>
-                                    <option value="4">Class 4</option>
-                                    <option value="5">Class 5</option>
-                                    <option value="6">Class 6</option>
-                                    <option value="7">Class 7</option>
-                                    <option value="8">Class 8</option>
-                                    <option value="9">Class 9</option>
-                                    <option value="10">Class 10</option>
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin:0;">
-                                <label>Section</label>
-                                <select id="tt-section-select" class="form-select">
-                                    <option value="A">Section A</option>
-                                    <option value="B">Section B</option>
-                                    <option value="C">Section C</option>
-                                    <option value="D">Section D</option>
-                                </select>
-                            </div>
-                            <button id="tt-load-btn" class="btn btn-primary"><i data-lucide="search"></i> Load Timetable</button>
-                            <button id="tt-save-btn" class="btn btn-success" style="display:none;"><i data-lucide="save"></i> Save &amp; Apply to Class</button>
-                        </div>
-                        <div id="timetable-editor-container" style="margin-top:1.5rem;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== TAB: TEACHERS (Principal Only) ===== -->
-            <div class="admin-tab-content hidden" id="tab-teachers">
-                <div class="section-card card-full">
-                    <div class="admin-table-header" style="padding:1rem 1.5rem; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                        <h3><i data-lucide="user-cog" style="width:18px;vertical-align:middle;"></i> Teaching Staff Management</h3>
-                        <button id="add-teacher-btn" class="btn btn-primary"><i data-lucide="user-plus"></i> Add Teacher</button>
-                    </div>
-                    <div style="padding:1.5rem;">
-                        <div class="table-container">
-                            <table class="data-table" id="teachers-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Phone</th>
-                                        <th>Subjects</th>
-                                        <th>Class &amp; Sec</th>
-                                        <th>Today Status</th>
-                                        <th>Password</th>
-                                        <th style="text-align:center;">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="teachers-table-body">
-                                    <!-- JS rendered -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== TAB: MONTHLY REPORTS (Principal Only) ===== -->
-            <div class="admin-tab-content hidden" id="tab-reports">
-                <div class="section-card card-full">
-                    <div class="admin-table-header" style="padding:1rem 1.5rem; border-bottom:1px solid var(--border-color);">
-                        <h3><i data-lucide="bar-chart-2" style="width:18px;vertical-align:middle;"></i> Monthly Attendance Reports</h3>
-                    </div>
-                    <div style="padding:1.5rem;">
-                        <div class="timetable-filter-bar">
-                            <div class="form-group" style="margin:0;">
-                                <label>Month</label>
-                                <input type="month" id="report-month" class="form-input">
-                            </div>
-                            <div class="form-group" style="margin:0;">
-                                <label>Class (Optional)</label>
-                                <select id="report-class" class="form-select">
-                                    <option value="">All Classes</option>
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin:0;">
-                                <label>Section (Optional)</label>
-                                <select id="report-section" class="form-select">
-                                    <option value="">All Sections</option>
-                                    <option value="A">A</option>
-                                    <option value="B">B</option>
-                                    <option value="C">C</option>
-                                    <option value="D">D</option>
-                                </select>
-                            </div>
-                            <button id="report-load-btn" class="btn btn-primary"><i data-lucide="bar-chart-2"></i> Generate Report</button>
-                            <button onclick="window.print()" class="btn btn-secondary"><i data-lucide="printer"></i> Print</button>
-                        </div>
-                        <div id="monthly-report-container" style="margin-top:1.5rem;"></div>
-                    </div>
-                </div>
-            </div>
-
-        </main>
-
-        <!-- 4. MAIN DASHBOARD CONTENT (Report Card View) -->
-        <main id="dashboard-report-page" class="dashboard-view container hidden">
-            
-            <!-- Dashboard Toolbar -->
-            <div class="dashboard-toolbar no-print">
-                <button id="back-to-search-btn" class="btn btn-secondary">
-                    <i data-lucide="arrow-left"></i> Back to Student Directory
+                <button type="button" id="modal-add-period-row" class="btn btn-secondary btn-sm" style="margin-top:0.75rem;">
+                    <i data-lucide="plus"></i> Add Period
                 </button>
-                <div class="toolbar-right">
-                    <!-- Parent Settings Trigger Button -->
-                    <button id="parent-settings-btn" class="btn btn-secondary hidden">
-                        <i data-lucide="key-round"></i> Change Password
-                    </button>
-                    <button id="print-pdf-btn" class="btn btn-primary">
-                        <i data-lucide="printer"></i> Print Report Card / PDF
-                    </button>
-                </div>
             </div>
 
-            <!-- Printable Only Report Card Header -->
-            <div class="print-header only-print">
-                <div class="print-school-info">
-                    <svg viewBox="0 0 100 100" width="50" height="50">
-                        <circle cx="50" cy="50" r="45" fill="none" stroke="#1e293b" stroke-width="4" />
-                        <polygon points="50,15 80,40 20,40" fill="#1e293b" />
-                        <rect x="28" y="40" width="44" height="35" fill="none" stroke="#1e293b" stroke-width="4" />
-                        <line x1="50" y1="40" x2="50" y2="75" stroke="#1e293b" stroke-width="4" />
-                    </svg>
-                    <div>
-                        <h2>SILVERWOOD INTERNATIONAL SCHOOL</h2>
-                        <p>Affiliated to Central Board of Secondary Education | Estd. 2005</p>
-                        <p class="print-subtitle">Annual Student Progress Tracker & Comprehensive Analytics Report</p>
-                    </div>
+            <div class="modal-form-actions">
+                <button type="button" class="btn btn-secondary" id="cancel-student-modal-btn">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="save-student-form-btn">
+                    <i data-lucide="save"></i> Save Student Record
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- =====================================================
+     TEACHER MODAL
+     ===================================================== -->
+<div class="modal-overlay hidden" id="teacher-modal-overlay">
+    <div class="modal-container" style="max-width:560px;">
+        <div class="modal-header">
+            <h3 id="teacher-modal-title">Add New Teacher</h3>
+            <button class="modal-close-btn" id="teacher-modal-close"><i data-lucide="x"></i></button>
+        </div>
+        <form id="teacher-form" style="padding:1.5rem;overflow-y:auto;max-height:80vh;">
+            <input type="hidden" id="teacher-form-id">
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="tf-name" class="form-input" placeholder="e.g. Mrs. Priya Sen" required>
                 </div>
-                <div class="print-report-meta">
-                    <p><strong>Report Date:</strong> <span class="current-date-str"></span></p>
-                    <p><strong>Academic Session:</strong> <span class="student-academic-year-print">2025-2026</span></p>
+                <div class="form-group">
+                    <label>Phone * (10 digits)</label>
+                    <input type="text" id="tf-phone" class="form-input" placeholder="10-digit number" maxlength="15" required>
                 </div>
             </div>
-
-            <!-- Profile & Sidebar Layout -->
-            <div class="dashboard-layout">
-                
-                <!-- Left Column: Student Card Profile -->
-                <aside class="dashboard-sidebar">
-                    <div class="profile-card">
-                        <div class="profile-avatar-wrapper">
-                            <div class="student-avatar-svg">
-                                <svg viewBox="0 0 100 100" width="100%" height="100%">
-                                    <defs>
-                                        <linearGradient id="avatarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" stop-color="var(--primary-light)" />
-                                            <stop offset="100%" stop-color="var(--primary)" />
-                                        </linearGradient>
-                                    </defs>
-                                    <circle cx="50" cy="50" r="48" fill="url(#avatarGrad)" />
-                                    <circle cx="50" cy="40" r="18" fill="#ffffff" />
-                                    <path d="M22,78 C22,60 34,56 50,56 C66,56 78,60 78,78" fill="#ffffff" />
-                                </svg>
-                            </div>
-                        </div>
-                        <h2 id="profile-name">Student Name</h2>
-                        <div class="status-badge" id="profile-trend-badge">Improving</div>
-                        
-                        <div class="profile-meta-list">
-                            <div class="meta-item">
-                                <span class="meta-label">Admission Number</span>
-                                <span class="meta-value" id="profile-admission-no">--</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">Roll Number</span>
-                                <span class="meta-value" id="profile-roll-no">--</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">Class & Section</span>
-                                <span class="meta-value" id="profile-class-section">--</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">Academic Year</span>
-                                <span class="meta-value" id="profile-academic-year">--</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">Date of Birth</span>
-                                <span class="meta-value" id="profile-dob">--</span>
-                            </div>
-                            <div class="divider"></div>
-                            <div class="meta-item">
-                                <span class="meta-label">Parent / Guardian Name</span>
-                                <span class="meta-value" id="profile-parent-name">--</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">Parent Contact No.</span>
-                                <span class="meta-value" id="profile-parent-contact">--</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">Alt Contact No.</span>
-                                <span class="meta-value" id="profile-parent-alt">--</span>
-                            </div>
-                        </div>
-                    </div>
-                </aside>
-
-                <!-- Right Column: Analytics & Report Tabs -->
-                <div class="dashboard-main-content">
-                    
-                    <!-- Top Academic Status & Timetable Cards -->
-                    <div class="top-cards-grid">
-                        <!-- Attendance card -->
-                        <div class="status-card attendance-card">
-                            <div class="status-card-header">
-                                <h3>Attendance Percentage</h3>
-                                <i data-lucide="percent" class="card-icon text-primary"></i>
-                            </div>
-                            <div class="attendance-content">
-                                <div class="progress-ring-container">
-                                    <svg class="progress-ring" width="100" height="100">
-                                        <circle class="progress-ring-circle-bg" stroke="var(--border-color)" stroke-width="8" fill="transparent" r="40" cx="50" cy="50"/>
-                                        <circle class="progress-ring-circle" id="attendance-ring" stroke="var(--primary)" stroke-width="8" fill="transparent" r="40" cx="50" cy="50" stroke-dasharray="251.2" stroke-dashoffset="0"/>
-                                    </svg>
-                                    <div class="attendance-percentage-text" id="attendance-percent">0%</div>
-                                </div>
-                                <div class="attendance-text">
-                                    <p class="attendance-label">Cumulative Attendance</p>
-                                    <p class="attendance-subtext" id="attendance-status-txt">Excellent standing</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Live Classroom Status card -->
-                        <div class="status-card live-classroom-card">
-                            <div class="status-card-header">
-                                <h3>Live Classroom Status</h3>
-                                <div class="live-pulse"></div>
-                            </div>
-                            <div class="live-classroom-content">
-                                <div class="live-header">
-                                    <div class="live-subject-wrapper">
-                                        <span class="live-label">Current Period: <strong id="live-period">--</strong></span>
-                                        <h4 id="live-subject">Mathematics</h4>
-                                    </div>
-                                    <div class="live-timer" id="live-clock">11:35 AM</div>
-                                </div>
-                                <div class="live-meta-grid">
-                                    <div class="live-meta-item">
-                                        <i data-lucide="user"></i>
-                                        <div>
-                                            <span>Teacher</span>
-                                            <p id="live-teacher">Mrs. Priya Sen</p>
-                                        </div>
-                                    </div>
-                                    <div class="live-meta-item">
-                                        <i data-lucide="map-pin"></i>
-                                        <div>
-                                            <span>Room Number</span>
-                                            <p id="live-room">302</p>
-                                        </div>
-                                    </div>
-                                    <div class="live-meta-item full-width">
-                                        <i data-lucide="activity"></i>
-                                        <div>
-                                            <span>Current Status</span>
-                                            <p id="live-status" class="status-text-highlight">Class In Progress</p>
-                                        </div>
-                                    </div>
-                                    <div class="live-meta-item full-width">
-                                        <i data-lucide="user-check"></i>
-                                        <div>
-                                            <span>Student Daily Attendance</span>
-                                            <p id="live-student-attendance-status" class="status-text-highlight">Present</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Navigation Tabs (Hidden in Print Mode) -->
-                    <div class="tabs-navigation no-print">
-                        <button class="tab-btn active" data-tab="tab-overview">Overview</button>
-                        <button class="tab-btn" data-tab="tab-academics">Academic History</button>
-                        <button class="tab-btn" data-tab="tab-behavior">Behavioral Analysis</button>
-                        <button class="tab-btn" data-tab="tab-activities">Co-Curriculars & Awards</button>
-                        <button class="tab-btn" data-tab="tab-meetings">Parent Meetings</button>
-                    </div>
-
-                    <!-- TAB CONTENT PANELS -->
-                    <div class="tabs-container">
-                        
-                        <!-- 1. OVERVIEW TAB -->
-                        <div class="tab-content active" id="tab-overview">
-                            
-                            <!-- Growth and Overview summary card -->
-                            <div class="overview-grid">
-                                <div class="overview-text-block">
-                                    <h3>Student Academic Growth Summary</h3>
-                                    <p>This comprehensive report provides parents, teachers, and school administrators with a synchronized assessment of <strong><span class="student-first-name">Aditya</span></strong>'s performance. The academic path indicates that <strong><span class="student-first-name">Aditya</span></strong> is currently <strong class="student-trend-description text-primary">Improving</strong> overall.</p>
-                                    <p>Refer to individual tabs above to inspect subject scorecard trends, behavioral radar grids, award histories, and historical logs of parental meetings.</p>
-                                </div>
-                                <div class="overview-chart-preview">
-                                    <h4>Behavior Overview</h4>
-                                    <div class="chart-wrapper small-chart">
-                                        <canvas id="overview-radar-canvas"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Strengths and Growth sections -->
-                            <div class="highlights-grid">
-                                <div class="highlight-box strength-box">
-                                    <div class="box-header">
-                                        <i data-lucide="shield-check"></i>
-                                        <h4>Key Strengths</h4>
-                                    </div>
-                                    <ul id="overview-strengths-list">
-                                        <!-- Javascript filled -->
-                                    </ul>
-                                </div>
-                                <div class="highlight-box growth-box">
-                                    <div class="box-header">
-                                        <i data-lucide="trending-up"></i>
-                                        <h4>Needs Attention / Growth Areas</h4>
-                                    </div>
-                                    <ul id="overview-improvements-list">
-                                        <!-- Javascript filled -->
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <!-- 5. PARENT FEEDBACK & PRINCIPAL REPLY VIEW CORNER -->
-                            <div class="section-card card-full" style="margin-top: 1.5rem;">
-                                <h3>Portal Interaction Corner</h3>
-                                <p class="card-subtitle">Official communications between Parents and School Management</p>
-                                
-                                <div class="interaction-split-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
-                                    
-                                    <!-- Parent Feedback Area -->
-                                    <div class="interaction-box">
-                                        <div class="box-header" style="color:var(--primary); border-bottom:1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
-                                            <i data-lucide="message-square"></i>
-                                            <h4 style="font-size:0.95rem;">Parent Feedback & Observations</h4>
-                                        </div>
-                                        
-                                        <!-- Text Area (conditional readonly in JavaScript) -->
-                                        <textarea id="parent-feedback-textarea" placeholder="Enter observations, concerns, or feedback here..." rows="4" style="width:100%; border:1px solid var(--border-color); border-radius: var(--border-radius-sm); padding:0.75rem; background: var(--bg-app); color: var(--text-main); font-family: var(--font-body); font-size: 0.9rem; resize: none;"></textarea>
-                                        
-                                        <!-- Update feedback button (only visible/enabled for parents) -->
-                                        <button id="submit-parent-feedback-btn" class="btn btn-primary" style="margin-top: 0.75rem; padding:0.4rem 1rem; font-size:0.85rem; width:100%; display:none;">
-                                            <i data-lucide="send"></i> Update Feedback
-                                        </button>
-                                        <div id="parent-feedback-update-status" class="text-success" style="font-size:0.8rem; margin-top:0.4rem; text-align:center;"></div>
-                                    </div>
-                                    
-                                    <!-- Principal Response Area -->
-                                    <div class="interaction-box">
-                                        <div class="box-header" style="color:var(--accent-success); border-bottom:1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
-                                            <i data-lucide="award"></i>
-                                            <h4 style="font-size:0.95rem;">Principal / School Coordination Reply</h4>
-                                        </div>
-                                        
-                                        <!-- Principal Reply Display or Input Area -->
-                                        <div id="principal-reply-display-wrapper">
-                                            <p id="principal-reply-text" style="font-size:0.9rem; color:var(--text-muted); font-style:italic; min-height: 50px;">
-                                                "Waiting for school review..."
-                                            </p>
-                                        </div>
-                                        
-                                        <!-- Principal Edit Panel (only visible for Principal) -->
-                                        <div id="principal-reply-edit-wrapper" class="hidden">
-                                            <textarea id="principal-reply-textarea" placeholder="Type reply as principal..." rows="4" style="width:100%; border:1px solid var(--border-color); border-radius: var(--border-radius-sm); padding:0.75rem; background: var(--bg-app); color: var(--text-main); font-family: var(--font-body); font-size: 0.9rem; resize: none;"></textarea>
-                                            <button id="submit-principal-reply-btn" class="btn btn-primary" style="margin-top: 0.75rem; padding:0.4rem 1rem; font-size:0.85rem; width:100%;">
-                                                <i data-lucide="check-circle"></i> Save Reply Response
-                                            </button>
-                                        </div>
-                                        <div id="principal-reply-update-status" class="text-success" style="font-size:0.8rem; margin-top:0.4rem; text-align:center;"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 2. ACADEMICS TAB -->
-                        <div class="tab-content" id="tab-academics">
-                            <!-- Examination scorecard filter -->
-                            <div class="section-card card-full no-print" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; padding: 1rem 1.5rem;">
-                                <div>
-                                    <h3 style="margin:0; font-size:1.1rem;">Academic Scorecard Filter</h3>
-                                    <p class="card-subtitle" style="margin:0; font-size:0.85rem;">Select an exam term to view specific subject scorecard records</p>
-                                </div>
-                                <select id="dashboard-exam-filter" style="padding: 0.5rem 1rem; border-radius: var(--border-radius-sm); border: 1.5px solid var(--border-color); background: var(--bg-card); color: var(--text-main); font-weight: 600; font-family: var(--font-body); font-size: 0.9rem;">
-                                    <option value="latest">Latest Summary (Current Term)</option>
-                                    <option value="Unit Test 1">Unit Test 1</option>
-                                    <option value="Unit Test 2">Unit Test 2</option>
-                                    <option value="Quarterly">Quarterly</option>
-                                    <option value="Half-Yearly">Half-Yearly</option>
-                                    <option value="Pre-Final">Pre-Final</option>
-                                    <option value="Final Examination">Final Examination</option>
-                                </select>
-                            </div>
-
-                            <!-- Exam Summary Bar for specific exam results -->
-                            <div id="exam-summary-banner" class="section-card card-full hidden" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--primary-light), var(--bg-card)); padding: 1.2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; border: 1.5px solid var(--border-color); text-align: center; border-radius: var(--border-radius);">
-                                <div>
-                                    <span style="font-size:0.75rem; color:var(--text-muted); display:block; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Exam Date</span>
-                                    <strong id="banner-exam-date" style="font-size:1.1rem; color:var(--text-main);">-</strong>
-                                </div>
-                                <div>
-                                    <span style="font-size:0.75rem; color:var(--text-muted); display:block; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Obtained Marks</span>
-                                    <strong id="banner-exam-obtained" style="font-size:1.1rem; color:var(--primary);">-</strong>
-                                </div>
-                                <div>
-                                    <span style="font-size:0.75rem; color:var(--text-muted); display:block; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Total Marks</span>
-                                    <strong id="banner-exam-total" style="font-size:1.1rem; color:var(--text-main);">-</strong>
-                                </div>
-                                <div>
-                                    <span style="font-size:0.75rem; color:var(--text-muted); display:block; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Percentage</span>
-                                    <strong id="banner-exam-percentage" style="font-size:1.1rem; color:var(--primary);">-</strong>
-                                </div>
-                                <div>
-                                    <span style="font-size:0.75rem; color:var(--text-muted); display:block; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Grade</span>
-                                    <strong id="banner-exam-grade" style="font-size:1.1rem; color:var(--text-main);">-</strong>
-                                </div>
-                                <div>
-                                    <span style="font-size:0.75rem; color:var(--text-muted); display:block; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Class Rank</span>
-                                    <strong id="banner-exam-rank" style="font-size:1.1rem; color:var(--primary);">-</strong>
-                                </div>
-                                <div>
-                                    <span style="font-size:0.75rem; color:var(--text-muted); display:block; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Status</span>
-                                    <strong id="banner-exam-status" class="status-tag" style="display:inline-block; font-size:0.95rem; padding:0.15rem 0.5rem; margin-top:0.15rem;">-</strong>
-                                </div>
-                            </div>
-
-                            <!-- Not Yet Started Alert Section -->
-                            <div id="exam-not-started-alert" class="section-card card-full hidden" style="text-align: center; padding: 3rem 2rem; background: var(--bg-app); border: 2px dashed var(--border-color);">
-                                <i data-lucide="calendar-clock" class="text-warning" style="width: 48px; height: 48px; margin-bottom: 1rem;"></i>
-                                <h3 style="margin:0 0 0.5rem 0; font-size: 1.3rem;">Examination Status: NOT YET STARTED</h3>
-                                <p style="color: var(--text-muted); margin: 0; max-width: 500px; margin: 0 auto;">This examination period has not yet commenced or the evaluation is not finalized. Subject scores and class rank details will appear here once submitted by the faculty.</p>
-                            </div>
-
-                            <div id="exam-started-content">
-                                <!-- Academic Line Chart -->
-                                <div class="section-card card-full">
-                                    <h3 id="academic-chart-title">Overall Performance Trend</h3>
-                                    <div class="chart-wrapper main-chart">
-                                        <canvas id="academics-trend-canvas"></canvas>
-                                    </div>
-                                </div>
-
-                                <!-- Subject-wise Scorecards -->
-                                <div class="section-title">
-                                    <h3>Subject-Wise Performance & Remarks</h3>
-                                </div>
-                            <div class="subject-cards-grid" id="subject-cards-container">
-                                <!-- Rendered dynamically -->
-                            </div>
-
-                            <!-- Subject Progress Comparisons -->
-                            <div class="section-card card-full">
-                                <h3>Academic Term Progress Comparison</h3>
-                                <div class="comparison-grid" id="comparison-bars-container">
-                                    <!-- Dynamic comparisons -->
-                                </div>
-                            </div>
-
-                            <!-- Detailed Examination Table -->
-                            <div class="section-card card-full page-break-before">
-                                <h3>Examination Progression Records</h3>
-                                <div class="table-container">
-                                    <table class="data-table" id="exam-records-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Examination</th>
-                                                <th>Date</th>
-                                                <th>Marks Obtained</th>
-                                                <th>Total Marks</th>
-                                                <th>Percentage</th>
-                                                <th>Grade</th>
-                                                <th>Class Rank</th>
-                                                <th>Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <!-- Dynamic rows -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 3. BEHAVIORAL ANALYSIS TAB -->
-                        <div class="tab-content" id="tab-behavior">
-                            <div class="behavior-split-grid">
-                                <!-- Radar Chart -->
-                                <div class="section-card behavior-chart-card">
-                                    <h3>Behavioral Skills Assessment</h3>
-                                    <div class="chart-wrapper radar-chart-wrapper">
-                                        <canvas id="behavior-radar-canvas"></canvas>
-                                    </div>
-                                </div>
-
-                                <!-- Behavior Detail Legend -->
-                                <div class="section-card behavior-details-card">
-                                    <h3>Behavioral Observation Ratings</h3>
-                                    <div class="ratings-breakdown-list" id="behavior-ratings-list">
-                                        <!-- Rendered dynamically -->
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Remarks -->
-                            <div class="section-card card-full page-break-before">
-                                <h3>Teacher Remarks History</h3>
-                                <div class="remarks-timeline" id="teacher-term-remarks-container">
-                                    <!-- Dynamic remarks -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 4. CO-CURRICULARS & AWARDS TAB -->
-                        <div class="tab-content" id="tab-activities">
-                            <div class="activities-split-grid">
-                                <div class="section-card">
-                                    <h3>Co-Curricular Participation</h3>
-                                    <div class="activities-list-container" id="co-curriculars-container">
-                                        <!-- Dynamic items -->
-                                    </div>
-                                </div>
-                                <div class="section-card">
-                                    <h3>Awards & Special Recognitions</h3>
-                                    <div class="awards-list-container" id="awards-container">
-                                        <!-- Dynamic list -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 5. PARENT MEETINGS TAB -->
-                        <div class="tab-content" id="tab-meetings">
-                            <div class="section-card card-full">
-                                <h3>Parent-Teacher Meeting History</h3>
-                                <div class="meeting-timeline" id="meetings-timeline-container">
-                                    <!-- Dynamic timelines -->
-                                </div>
-                            </div>
-                        </div>
-
-                    </div> <!-- End Tabs Container -->
-                </div> <!-- End Main Content -->
-            </div> <!-- End Dashboard Layout -->
-
-            <!-- Print Signature Layout -->
-            <div class="print-signatures only-print">
-                <div class="signature-line">
-                    <p class="signature-space"></p>
-                    <p><strong>Mrs. Priya Sen</strong></p>
-                    <p>Class Teacher</p>
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="tf-email" class="form-input" placeholder="email@school.edu">
                 </div>
-                <div class="signature-line">
-                    <p class="signature-space"></p>
-                    <p><strong>Mr. Rajesh Kumar</strong></p>
-                    <p>Academic Coordinator</p>
-                </div>
-                <div class="signature-line">
-                    <p class="signature-space"></p>
-                    <p><strong>Dr. Shanti Swaroop</strong></p>
-                    <p>School Principal</p>
+                <div class="form-group">
+                    <label>Subjects (comma-separated)</label>
+                    <input type="text" id="tf-subjects" class="form-input" placeholder="Mathematics, Physics">
                 </div>
             </div>
-            
-        </main>
-        
-        <!-- 5. DYNAMIC PASSWORD SETUP MODAL (FOR FIRST-TIME PARENTS LOGIN) -->
-        <div id="password-setup-modal" class="modal-overlay hidden">
-            <div class="modal-card modal-sm">
-                <div class="modal-header">
-                    <h3>Configure Portal Password</h3>
+            <div class="form-group">
+                <label>Classes Assigned (e.g. 5-A, 6-B, LKG-A)</label>
+                <div id="tf-classes-tags" class="tags-input-wrapper">
+                    <div id="tf-classes-tag-list" class="tags-list"></div>
+                    <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+                        <select id="tf-class-pick" class="form-select" style="flex:1;"></select>
+                        <select id="tf-section-pick" class="form-select" style="width:80px;">
+                            <option value="A">A</option><option value="B">B</option>
+                            <option value="C">C</option><option value="D">D</option>
+                        </select>
+                        <button type="button" id="tf-add-class-btn" class="btn btn-secondary btn-sm">
+                            <i data-lucide="plus"></i> Add
+                        </button>
+                    </div>
                 </div>
-                <div class="modal-body">
-                    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom: 1rem;">
-                        This is your first login. To secure your child's student records, please set a password for subsequent logins.
-                    </p>
-                    <div id="pwd-setup-error" class="auth-error hidden" style="margin-bottom: 0.75rem;"></div>
-                    <form id="pwd-setup-form">
-                        <div class="form-group">
-                            <label for="pwd-setup-val">Choose Password</label>
-                            <input type="password" id="pwd-setup-val" placeholder="Enter new password..." required autocomplete="new-password">
-                        </div>
-                        <div class="form-group">
-                            <label for="pwd-setup-confirm">Confirm Password</label>
-                            <input type="password" id="pwd-setup-confirm" placeholder="Re-enter password..." required autocomplete="new-password">
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block">Save Password & Continue</button>
-                    </form>
+            </div>
+            <div id="teacher-form-error" class="auth-error hidden" style="margin-bottom:1rem;"></div>
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem;padding-top:1rem;border-top:1px solid var(--border-color);">
+                <button type="button" class="btn btn-secondary" id="teacher-modal-cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Teacher</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- =====================================================
+     MEETING MODAL
+     ===================================================== -->
+<div class="modal-overlay hidden" id="meeting-modal-overlay">
+    <div class="modal-container" style="max-width:520px;">
+        <div class="modal-header">
+            <h3 id="meeting-modal-title">Schedule Parent Meeting</h3>
+            <button class="modal-close-btn" id="meeting-modal-close"><i data-lucide="x"></i></button>
+        </div>
+        <div style="padding:1.5rem;">
+            <input type="hidden" id="meeting-form-id">
+            <div class="form-group">
+                <label>Meeting Title *</label>
+                <input type="text" id="mtg-title" class="form-input" placeholder="e.g. Annual Parent-Teacher Meet">
+            </div>
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="mtg-date" class="form-input">
                 </div>
+                <div class="form-group">
+                    <label>Time *</label>
+                    <input type="time" id="mtg-time" class="form-input">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Venue</label>
+                <input type="text" id="mtg-venue" class="form-input" placeholder="e.g. School Auditorium">
+            </div>
+            <div class="form-group">
+                <label>For Which Classes?</label>
+                <select id="mtg-classes" class="form-select">
+                    <option value="all">All Classes</option>
+                    <option value="custom">Select Specific Classes</option>
+                </select>
+            </div>
+            <div id="mtg-class-picker" class="hidden" style="margin-top:0.5rem;">
+                <div id="mtg-class-checkboxes" class="class-checkbox-grid"></div>
+            </div>
+            <div class="form-group">
+                <label>Notes / Agenda</label>
+                <textarea id="mtg-notes" class="form-input" rows="3" placeholder="Agenda or special notes..."></textarea>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1rem;border-top:1px solid var(--border-color);padding-top:1rem;">
+                <button type="button" class="btn btn-secondary" id="meeting-modal-cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="meeting-save-btn">
+                    <i data-lucide="save"></i> Save Meeting
+                </button>
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- 6. PARENT CHANGE PASSWORD SETTINGS MODAL -->
-        <div id="parent-change-password-modal" class="modal-overlay hidden">
-            <div class="modal-card modal-sm">
-                <div class="modal-header">
-                    <h3>Change Portal Password</h3>
-                    <button class="modal-close-btn" id="close-change-pwd-btn">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div id="pwd-change-error" class="auth-error hidden" style="margin-bottom: 0.75rem;"></div>
-                    <form id="parent-change-pwd-form">
-                        <div class="form-group">
-                            <label for="pwd-change-new">New Password</label>
-                            <input type="password" id="pwd-change-new" placeholder="Enter new password..." required>
-                        </div>
-                        <div class="form-group">
-                            <label for="pwd-change-confirm">Confirm New Password</label>
-                            <input type="password" id="pwd-change-confirm" placeholder="Re-enter new password..." required>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block">Save Password</button>
-                    </form>
+<!-- =====================================================
+     PASSWORD SETUP MODAL
+     ===================================================== -->
+<div class="modal-overlay hidden" id="password-setup-overlay">
+    <div class="modal-container" style="max-width:400px;">
+        <div class="modal-header">
+            <h3 id="pwd-setup-title">Set Your Password</h3>
+        </div>
+        <div style="padding:1.5rem;">
+            <p style="color:var(--text-muted);margin-bottom:1rem;font-size:0.9rem;" id="pwd-setup-desc">
+                First login — please set a password.
+            </p>
+            <div class="form-group">
+                <label>New Password *</label>
+                <div class="password-wrapper">
+                    <input type="password" id="pwd-setup-input" class="form-input" placeholder="Enter password">
+                    <button type="button" class="show-pwd-btn" data-target="pwd-setup-input"><i data-lucide="eye"></i></button>
                 </div>
             </div>
-        </div>
-
-        <!-- 7. ADD / EDIT STUDENT PROFILE MODAL (FOR TEACHERS & PRINCIPALS) -->
-        <div id="student-modal" class="modal-overlay hidden">
-            <div class="modal-card modal-lg">
-                <div class="modal-header">
-                    <h3 id="student-modal-title">Add Enrolled Student Profile</h3>
-                    <button class="modal-close-btn" id="close-student-modal-btn">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div id="student-modal-error" class="auth-error hidden" style="margin-bottom: 1rem;"></div>
-                    <form id="student-modal-form">
-                        <input type="hidden" id="form-student-id">
-                        
-                        <!-- Modal Navigation Tabs -->
-                        <div class="tabs-navigation no-print" style="margin-bottom: 1.5rem; border-bottom: 1.5px solid var(--border-color);">
-                            <button type="button" class="tab-btn modal-tab-btn active" data-modal-tab="modal-tab-profile">Profile & Academics</button>
-                            <button type="button" class="tab-btn modal-tab-btn" data-modal-tab="modal-tab-timetable">Timetable Schedule</button>
-                            <button type="button" class="tab-btn modal-tab-btn" data-modal-tab="modal-tab-exams">Examination Marks</button>
-                        </div>
-
-                        <!-- TAB 1: PROFILE & ACADEMICS -->
-                        <div class="modal-tab-content" id="modal-tab-profile">
-                            <div class="modal-form-grid">
-                                <!-- Column 1: Biodata Info -->
-                                <div class="form-section">
-                                    <div class="form-section-title">Personal Biodata</div>
-                                    <div class="form-group">
-                                        <label for="form-student-name">Student Full Name *</label>
-                                        <input type="text" id="form-student-name" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="form-student-roll">Roll Number *</label>
-                                        <input type="text" id="form-student-roll" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="form-student-admn">Admission Number</label>
-                                        <input type="text" id="form-student-admn" placeholder="Leave empty to auto-generate">
-                                    </div>
-                                    <div class="form-row-2">
-                                        <div class="form-group">
-                                            <label for="form-student-class">Class *</label>
-                                            <select id="form-student-class" required>
-                                                <option value="Nursery">Nursery</option>
-                                                <option value="LKG">LKG</option>
-                                                <option value="UKG">UKG</option>
-                                                <option value="0">Kindergarten (0)</option>
-                                                <option value="1">Class 1</option>
-                                                <option value="2">Class 2</option>
-                                                <option value="3">Class 3</option>
-                                                <option value="4">Class 4</option>
-                                                <option value="5">Class 5</option>
-                                                <option value="6">Class 6</option>
-                                                <option value="7">Class 7</option>
-                                                <option value="8">Class 8</option>
-                                                <option value="9">Class 9</option>
-                                                <option value="10">Class 10</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="form-student-sec">Section *</label>
-                                            <input type="text" id="form-student-sec" value="A" required>
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="form-student-dob">Date of Birth</label>
-                                        <input type="date" id="form-student-dob" value="2011-01-01">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="form-student-session">Academic Session</label>
-                                        <input type="text" id="form-student-session" value="2025-26">
-                                    </div>
-                                </div>
-                                
-                                <!-- Column 2: Parent contact Info & Attendance -->
-                                <div class="form-section">
-                                    <div class="form-section-title">Guardian Records</div>
-                                    <div class="form-group">
-                                        <label for="form-parent-name">Parent/Guardian Name</label>
-                                        <input type="text" id="form-parent-name" placeholder="Rajesh Sharma" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="form-parent-contact">Parent Contact Phone * <span style="font-size:0.75rem; color:red;">(Mandatory)</span></label>
-                                        <input type="text" id="form-parent-contact" placeholder="+91 98765 43210" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="form-parent-alt">Alternate Contact Phone</label>
-                                        <input type="text" id="form-parent-alt" placeholder="+91 98765 43211">
-                                    </div>
-                                    
-                                    <div class="form-section-title" style="margin-top: 1rem;">Academics Summary</div>
-                                    <div class="form-row-2">
-                                        <div class="form-group">
-                                            <label for="form-student-attendance">Attendance %</label>
-                                            <input type="number" id="form-student-attendance" step="0.1" min="0" max="100" value="90.0">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="form-student-attendance-status">Daily Attendance</label>
-                                            <select id="form-student-attendance-status">
-                                                <option value="Present">Present</option>
-                                                <option value="Absent">Absent</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="form-student-trend">Performance Trend</label>
-                                        <select id="form-student-trend">
-                                            <option value="Improving">Improving</option>
-                                            <option value="Stable">Stable</option>
-                                            <option value="Needs Attention">Needs Attention</option>
-                                            <option value="Declining">Declining</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <!-- Column 3: Scores & Observation ratings -->
-                                <div class="form-section">
-                                    <div class="form-section-title">Latest Term Marks (Max 100)</div>
-                                    <div class="form-scores-grid">
-                                        <div class="form-group">
-                                            <label for="form-mark-math">Math</label>
-                                            <input type="number" id="form-mark-math" min="0" max="100" value="80">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="form-mark-sci">Science</label>
-                                            <input type="number" id="form-mark-sci" min="0" max="100" value="80">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="form-mark-soc">Social</label>
-                                            <input type="number" id="form-mark-soc" min="0" max="100" value="80">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="form-mark-eng">English</label>
-                                            <input type="number" id="form-mark-eng" min="0" max="100" value="80">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="form-mark-hin">Hindi</label>
-                                            <input type="number" id="form-mark-hin" min="0" max="100" value="80">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="form-mark-comp">Computer</label>
-                                            <input type="number" id="form-mark-comp" min="0" max="100" value="80">
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="form-section-title" style="margin-top: 1rem;">Behavioral Ratings (Scale 1-5)</div>
-                                    <div class="form-scores-grid">
-                                        <div class="form-group">
-                                            <label for="form-beh-discipline">Discipline</label>
-                                            <input type="number" id="form-beh-discipline" min="1" max="5" value="4">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="form-beh-leadership">Leader</label>
-                                            <input type="number" id="form-beh-leadership" min="1" max="5" value="4">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="form-beh-participation">Participation</label>
-                                            <input type="number" id="form-beh-participation" min="1" max="5" value="4">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="form-beh-communication">Comm</label>
-                                            <input type="number" id="form-beh-communication" min="1" max="5" value="4">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="form-beh-teamwork">Teamwork</label>
-                                            <input type="number" id="form-beh-teamwork" min="1" max="5" value="4">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="form-beh-confidence">Confidence</label>
-                                            <input type="number" id="form-beh-confidence" min="1" max="5" value="4">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- TAB 2: TIMETABLE SCHEDULE -->
-                        <div class="modal-tab-content hidden" id="modal-tab-timetable">
-                            <div style="margin-bottom: 1rem; display:flex; align-items:center; gap:1rem; justify-content:space-between;">
-                                <div style="display:flex; align-items:center; gap:1rem;">
-                                    <label for="modal-timetable-day-select" style="font-weight:600; font-size:0.9rem;">Select Day to Edit:</label>
-                                    <select id="modal-timetable-day-select" style="padding:0.4rem 0.8rem; border-radius: var(--border-radius-sm); border:1.5px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-family:var(--font-body);">
-                                        <option value="Monday">Monday</option>
-                                        <option value="Tuesday">Tuesday</option>
-                                        <option value="Wednesday">Wednesday</option>
-                                        <option value="Thursday">Thursday</option>
-                                        <option value="Friday">Friday</option>
-                                    </select>
-                                </div>
-                                <button type="button" id="modal-timetable-add-row-btn" class="btn btn-secondary" style="padding:0.4rem 0.8rem; font-size:0.85rem;">
-                                    <i data-lucide="plus"></i> Add Time Slot
-                                </button>
-                            </div>
-
-                            <!-- Day containers filled via script or preset in HTML -->
-                            <div id="timetable-editor-days-wrapper">
-                                <!-- Monday to Friday grids generated dynamically by JavaScript for clean management -->
-                            </div>
-                        </div>
-
-                        <!-- TAB 3: EXAMINATION MARKS -->
-                        <div class="modal-tab-content hidden" id="modal-tab-exams">
-                            <div class="modal-form-grid-exams" style="display:flex; flex-direction:column; gap:1.2rem;">
-                                <div style="display:flex; flex-wrap:wrap; gap:1rem; align-items:center; background:var(--bg-app); padding:1rem; border-radius:var(--border-radius-sm); border:1px solid var(--border-color);">
-                                    <div class="form-group" style="margin:0; flex:1; min-width:180px;">
-                                        <label for="modal-exam-term-select" style="font-weight:600; font-size:0.85rem;">Examination Term:</label>
-                                        <select id="modal-exam-term-select" style="width:100%; padding:0.45rem; border-radius:var(--border-radius-sm); border:1.5px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
-                                            <option value="Unit Test 1">Unit Test 1</option>
-                                            <option value="Unit Test 2">Unit Test 2</option>
-                                            <option value="Quarterly">Quarterly</option>
-                                            <option value="Half-Yearly">Half-Yearly</option>
-                                            <option value="Pre-Final">Pre-Final</option>
-                                            <option value="Final Examination">Final Examination</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group" style="margin:0; flex:1; min-width:180px;">
-                                        <label for="modal-exam-date" style="font-weight:600; font-size:0.85rem;">Exam Date:</label>
-                                        <input type="date" id="modal-exam-date" style="width:100%; padding:0.4rem; border-radius:var(--border-radius-sm); border:1.5px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
-                                    </div>
-                                    <div class="form-group" style="margin:0; flex:1; min-width:150px;">
-                                        <label style="font-weight:600; font-size:0.85rem;">Record Status:</label>
-                                        <div id="modal-exam-status-badge" class="result-badge-trend badge-stable" style="display:inline-block; padding:0.4rem 0.8rem; border-radius:var(--border-radius-sm); font-weight:600; text-align:center; min-width:140px; font-size:0.85rem;">NOT YET STARTED</div>
-                                    </div>
-                                </div>
-
-                                <div class="section-card card-full" style="padding:1rem;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem;">
-                                        <h4 style="margin:0; font-size:1rem;">Subject Marks Entry</h4>
-                                        <button type="button" id="modal-exam-add-subject-btn" class="btn btn-secondary" style="padding:0.35rem 0.7rem; font-size:0.8rem; display:flex; align-items:center; gap:0.3rem;">
-                                            <i data-lucide="plus" style="width:14px; height:14px;"></i> Add Subject Row
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="table-container" style="max-height: 250px; overflow-y: auto;">
-                                        <table class="data-table" id="modal-exam-subjects-table" style="width:100%;">
-                                            <thead>
-                                                <tr>
-                                                    <th>Subject Name</th>
-                                                    <th style="width: 140px;">Obtained Marks</th>
-                                                    <th style="width: 140px;">Total Marks</th>
-                                                    <th style="text-align:center; width:60px;">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <!-- Populated dynamically by script -->
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    <!-- Auto Summary Bar -->
-                                    <div style="margin-top:1.2rem; padding:0.8rem; background:var(--bg-app); border-radius:var(--border-radius-sm); display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:1rem; text-align:center; font-weight:600; border:1px solid var(--border-color); font-size:0.85rem;">
-                                        <div>
-                                            <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:0.2rem;">Total Obtained</span>
-                                            <span id="modal-exam-total-obtained" style="font-size:1.1rem; color:var(--primary);">-</span>
-                                        </div>
-                                        <div>
-                                            <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:0.2rem;">Total Max Marks</span>
-                                            <span id="modal-exam-total-max" style="font-size:1.1rem; color:var(--text-main);">-</span>
-                                        </div>
-                                        <div>
-                                            <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:0.2rem;">Percentage</span>
-                                            <span id="modal-exam-percentage" style="font-size:1.1rem; color:var(--primary);">-</span>
-                                        </div>
-                                        <div>
-                                            <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:0.2rem;">Pass/Fail Status</span>
-                                            <span id="modal-exam-passfail" style="font-size:1.1rem; color:var(--accent-success);">-</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div style="margin-top:1rem; text-align:right;">
-                                        <button type="button" id="modal-exam-save-btn" class="btn btn-primary" style="padding:0.45rem 1.2rem; font-size:0.85rem;">
-                                            <i data-lucide="save"></i> Save Exam Scorecard
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="modal-form-actions" style="margin-top:1.5rem; display:flex; justify-content:flex-end; gap:0.75rem; border-top:1.5px solid var(--border-color); padding-top:1rem;">
-                            <button type="button" class="btn btn-secondary" id="cancel-student-modal-btn">Cancel</button>
-                            <button type="submit" class="btn btn-primary" id="save-student-form-btn">Save Student Record</button>
-                        </div>
-                    </form>
+            <div class="form-group">
+                <label>Confirm Password *</label>
+                <div class="password-wrapper">
+                    <input type="password" id="pwd-setup-confirm" class="form-input" placeholder="Confirm password">
+                    <button type="button" class="show-pwd-btn" data-target="pwd-setup-confirm"><i data-lucide="eye"></i></button>
                 </div>
             </div>
+            <div id="pwd-setup-error" class="auth-error hidden" style="margin-bottom:1rem;"></div>
+            <button type="button" class="btn btn-primary full-width" id="pwd-setup-save-btn">
+                <i data-lucide="check"></i> Set Password &amp; Continue
+            </button>
         </div>
+    </div>
+</div>
 
-        <!-- =============================== -->
-        <!-- MODAL: ADD/EDIT TEACHER         -->
-        <!-- =============================== -->
-        <div class="modal-overlay hidden" id="teacher-modal-overlay">
-            <div class="modal-container" style="max-width:560px;">
-                <div class="modal-header">
-                    <h3 id="teacher-modal-title">Add New Teacher</h3>
-                    <button class="modal-close-btn" id="teacher-modal-close"><i data-lucide="x"></i></button>
+<!-- =====================================================
+     FORGOT PASSWORD / OTP MODAL
+     ===================================================== -->
+<div class="modal-overlay hidden" id="forgot-pwd-overlay">
+    <div class="modal-container" style="max-width:400px;">
+        <div class="modal-header">
+            <h3>Forgot Password</h3>
+            <button class="modal-close-btn" id="forgot-pwd-close"><i data-lucide="x"></i></button>
+        </div>
+        <div style="padding:1.5rem;">
+            <input type="hidden" id="forgot-pwd-role">
+            <!-- Step 1: Phone -->
+            <div id="otp-step-1">
+                <p style="color:var(--text-muted);margin-bottom:1rem;font-size:0.875rem;">
+                    Enter your registered phone number to receive an OTP.
+                </p>
+                <div class="form-group">
+                    <label>Registered Phone Number</label>
+                    <input type="text" id="otp-phone" class="form-input" placeholder="10-digit mobile" maxlength="15">
                 </div>
-                <form id="teacher-form" style="padding:1.5rem;">
-                    <input type="hidden" id="teacher-form-id">
-                    <div class="form-row-2">
-                        <div class="form-group">
-                            <label for="tf-name">Full Name *</label>
-                            <input type="text" id="tf-name" class="form-input" placeholder="e.g. Mrs. Priya Sen" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="tf-phone">Phone Number * (10 digits)</label>
-                            <input type="text" id="tf-phone" class="form-input" placeholder="10-digit number" maxlength="15" required>
-                        </div>
+                <div id="otp-demo-banner" class="hidden" style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:0.75rem;margin-bottom:0.75rem;font-size:0.85rem;">
+                    📱 Demo OTP: <strong id="otp-demo-code" style="font-size:1.2rem;letter-spacing:4px;"></strong>
+                </div>
+                <div id="otp-step1-error" class="auth-error hidden"></div>
+                <button type="button" class="btn btn-primary full-width" id="send-otp-btn">
+                    <i data-lucide="send"></i> Send OTP
+                </button>
+            </div>
+            <!-- Step 2: OTP + New Password -->
+            <div id="otp-step-2" class="hidden">
+                <div class="form-group">
+                    <label>Enter OTP (4-digit code)</label>
+                    <input type="text" id="otp-code-input" class="form-input" placeholder="e.g. 1234" maxlength="4"
+                        style="font-size:1.4rem;letter-spacing:8px;text-align:center;">
+                </div>
+                <div class="form-group">
+                    <label>New Password *</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="otp-new-pwd" class="form-input" placeholder="New password">
+                        <button type="button" class="show-pwd-btn" data-target="otp-new-pwd"><i data-lucide="eye"></i></button>
                     </div>
-                    <div class="form-row-2">
-                        <div class="form-group">
-                            <label for="tf-email">Email</label>
-                            <input type="email" id="tf-email" class="form-input" placeholder="email@school.edu">
-                        </div>
-                        <div class="form-group">
-                            <label for="tf-subjects">Subjects (comma-separated)</label>
-                            <input type="text" id="tf-subjects" class="form-input" placeholder="e.g. Mathematics, Physics">
-                        </div>
-                    </div>
-                    <div class="form-row-2">
-                        <div class="form-group">
-                            <label for="tf-class">Assigned Class</label>
-                            <select id="tf-class" class="form-select">
-                                <option value="">Not Assigned</option>
-                                <option value="1">Class 1</option><option value="2">Class 2</option>
-                                <option value="3">Class 3</option><option value="4">Class 4</option>
-                                <option value="5">Class 5</option><option value="6">Class 6</option>
-                                <option value="7">Class 7</option><option value="8">Class 8</option>
-                                <option value="9">Class 9</option><option value="10">Class 10</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="tf-section">Section</label>
-                            <select id="tf-section" class="form-select">
-                                <option value="">N/A</option>
-                                <option value="A">A</option><option value="B">B</option>
-                                <option value="C">C</option><option value="D">D</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="teacher-form-error" class="auth-error hidden" style="margin-bottom:1rem;"></div>
-                    <div style="display:flex; justify-content:flex-end; gap:0.75rem; padding-top:1rem; border-top:1px solid var(--border-color);">
-                        <button type="button" class="btn btn-secondary" id="teacher-modal-cancel">Cancel</button>
-                        <button type="submit" class="btn btn-primary" id="teacher-form-submit">Save Teacher</button>
-                    </div>
-                </form>
+                </div>
+                <div id="otp-step2-error" class="auth-error hidden"></div>
+                <button type="button" class="btn btn-primary full-width" id="reset-pwd-btn">
+                    <i data-lucide="check"></i> Reset Password
+                </button>
+                <button type="button" class="btn btn-secondary full-width" id="otp-back-btn" style="margin-top:0.5rem;">
+                    Back
+                </button>
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- =============================== -->
-        <!-- MODAL: PASSWORD SETUP           -->
-        <!-- =============================== -->
-        <div class="modal-overlay hidden" id="password-setup-overlay">
-            <div class="modal-container" style="max-width:420px;">
-                <div class="modal-header">
-                    <h3 id="pwd-setup-title">Set Your Password</h3>
-                </div>
-                <div style="padding:1.5rem;">
-                    <p style="color:var(--text-muted); margin-bottom:1rem; font-size:0.9rem;" id="pwd-setup-desc">This is your first login. Please set a password to secure your account.</p>
-                    <div class="form-group">
-                        <label>New Password *</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="pwd-setup-input" class="form-input" placeholder="Enter new password...">
-                            <button type="button" class="show-pwd-btn" data-target="pwd-setup-input"><i data-lucide="eye"></i></button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Confirm Password *</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="pwd-setup-confirm" class="form-input" placeholder="Re-enter new password...">
-                            <button type="button" class="show-pwd-btn" data-target="pwd-setup-confirm"><i data-lucide="eye"></i></button>
-                        </div>
-                    </div>
-                    <div id="pwd-setup-error" class="auth-error hidden" style="margin-bottom:1rem;"></div>
-                    <div style="display:flex; justify-content:flex-end; gap:0.75rem; padding-top:1rem; border-top:1px solid var(--border-color);">
-                        <button type="button" class="btn btn-primary" id="pwd-setup-save-btn">Set Password &amp; Continue</button>
-                    </div>
-                </div>
+<!-- =====================================================
+     EDIT PRINCIPAL NAME MODAL
+     ===================================================== -->
+<div class="modal-overlay hidden" id="edit-name-overlay">
+    <div class="modal-container" style="max-width:360px;">
+        <div class="modal-header">
+            <h3>Edit Principal Name</h3>
+            <button class="modal-close-btn" id="edit-name-close"><i data-lucide="x"></i></button>
+        </div>
+        <div style="padding:1.5rem;">
+            <div class="form-group">
+                <label>Principal Name *</label>
+                <input type="text" id="edit-principal-name-input" class="form-input" placeholder="Full name">
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem;padding-top:1rem;border-top:1px solid var(--border-color);">
+                <button class="btn btn-secondary" id="edit-name-cancel">Cancel</button>
+                <button class="btn btn-primary" id="edit-name-save">Save</button>
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- =============================== -->
-        <!-- MODAL: EDIT PRINCIPAL NAME      -->
-        <!-- =============================== -->
-        <div class="modal-overlay hidden" id="edit-name-overlay">
-            <div class="modal-container" style="max-width:380px;">
-                <div class="modal-header">
-                    <h3>Edit Principal Name</h3>
-                    <button class="modal-close-btn" id="edit-name-close"><i data-lucide="x"></i></button>
-                </div>
-                <div style="padding:1.5rem;">
-                    <div class="form-group">
-                        <label for="edit-principal-name-input">Principal Name *</label>
-                        <input type="text" id="edit-principal-name-input" class="form-input" placeholder="Full name...">
-                    </div>
-                    <div style="display:flex; justify-content:flex-end; gap:0.75rem; padding-top:1rem; border-top:1px solid var(--border-color);">
-                        <button type="button" class="btn btn-secondary" id="edit-name-cancel">Cancel</button>
-                        <button type="button" class="btn btn-primary" id="edit-name-save">Save Name</button>
-                    </div>
-                </div>
+<!-- =====================================================
+     CONFIRM DELETE MODAL
+     ===================================================== -->
+<div class="modal-overlay hidden" id="confirm-delete-overlay">
+    <div class="modal-container" style="max-width:360px;text-align:center;">
+        <div style="padding:2rem;">
+            <div class="delete-icon-circle">
+                <i data-lucide="trash-2"></i>
+            </div>
+            <h3 id="confirm-delete-title" style="margin-bottom:0.5rem;">Delete?</h3>
+            <p id="confirm-delete-msg" style="color:var(--text-muted);font-size:0.9rem;">This cannot be undone.</p>
+            <div style="display:flex;justify-content:center;gap:1rem;margin-top:1.5rem;">
+                <button class="btn btn-secondary" id="confirm-delete-cancel">Cancel</button>
+                <button class="btn btn-danger" id="confirm-delete-ok">Yes, Delete</button>
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- =============================== -->
-        <!-- MODAL: CONFIRM DELETE DIALOG    -->
-        <!-- =============================== -->
-        <div class="modal-overlay hidden" id="confirm-delete-overlay">
-            <div class="modal-container" style="max-width:380px; text-align:center;">
-                <div style="padding:2rem;">
-                    <div style="width:64px;height:64px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
-                        <i data-lucide="trash-2" style="color:#dc2626;width:28px;height:28px;"></i>
-                    </div>
-                    <h3 style="margin-bottom:0.5rem;" id="confirm-delete-title">Delete Student?</h3>
-                    <p style="color:var(--text-muted); font-size:0.9rem;" id="confirm-delete-msg">This action cannot be undone. The student record will be permanently removed.</p>
-                    <div style="display:flex; justify-content:center; gap:1rem; margin-top:1.5rem;">
-                        <button class="btn btn-secondary" id="confirm-delete-cancel">Cancel</button>
-                        <button class="btn" id="confirm-delete-ok" style="background:#dc2626;color:white;border-color:#dc2626;">Yes, Delete</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- Footer -->
+<footer class="app-footer no-print">
+    <p>&copy; 2026 SPTAS — Student Progress Tracking &amp; Analytics System. All Rights Reserved.</p>
+</footer>
+</div><!-- end app-container -->
 
-        <!-- Footer -->
-        <footer class="app-footer no-print">
-            <p>&copy; 2026 Silverwood School Education Group. All data encrypted and secured under Student Privacy Act guidelines.</p>
-        </footer>
-
-    </div> <!-- End App Container -->
-
-    <!-- Script File -->
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
