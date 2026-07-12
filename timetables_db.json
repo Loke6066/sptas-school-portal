@@ -1,0 +1,54 @@
+{
+  "10-A": {
+    "Monday": [
+      {"period": "1", "time": "08:30 AM - 09:30 AM", "subject": "Mathematics", "teacher": "Mrs. Priya Sen", "room": "302", "status": "Class In Progress"},
+      {"period": "2", "time": "09:30 AM - 10:30 AM", "subject": "Science", "teacher": "Mr. Amit Verma", "room": "302", "status": "Class In Progress"},
+      {"period": "Recess", "time": "10:30 AM - 10:45 AM", "subject": "Break Time", "teacher": "-", "room": "Courtyard", "status": "Recess"},
+      {"period": "3", "time": "10:45 AM - 11:45 AM", "subject": "English", "teacher": "Mrs. Anjali Roy", "room": "302", "status": "Class In Progress"},
+      {"period": "4", "time": "11:45 AM - 12:45 PM", "subject": "Computer Science", "teacher": "Mr. Vikram Dev", "room": "Lab 2", "status": "Class In Progress"},
+      {"period": "Lunch", "time": "12:45 PM - 01:30 PM", "subject": "Lunch Break", "teacher": "-", "room": "Cafeteria", "status": "Break"},
+      {"period": "5", "time": "01:30 PM - 02:30 PM", "subject": "Social Studies", "teacher": "Mr. Rohan Gupta", "room": "302", "status": "Class In Progress"},
+      {"period": "6", "time": "02:30 PM - 03:30 PM", "subject": "Hindi", "teacher": "Mrs. Kavita Joshi", "room": "302", "status": "Class In Progress"}
+    ],
+    "Tuesday": [
+      {"period": "1", "time": "08:30 AM - 09:30 AM", "subject": "Science", "teacher": "Mr. Amit Verma", "room": "302", "status": "Class In Progress"},
+      {"period": "2", "time": "09:30 AM - 10:30 AM", "subject": "Mathematics", "teacher": "Mrs. Priya Sen", "room": "302", "status": "Class In Progress"},
+      {"period": "Recess", "time": "10:30 AM - 10:45 AM", "subject": "Break Time", "teacher": "-", "room": "Courtyard", "status": "Recess"},
+      {"period": "3", "time": "10:45 AM - 11:45 AM", "subject": "Hindi", "teacher": "Mrs. Kavita Joshi", "room": "302", "status": "Class In Progress"},
+      {"period": "4", "time": "11:45 AM - 12:45 PM", "subject": "Social Studies", "teacher": "Mr. Rohan Gupta", "room": "302", "status": "Class In Progress"},
+      {"period": "Lunch", "time": "12:45 PM - 01:30 PM", "subject": "Lunch Break", "teacher": "-", "room": "Cafeteria", "status": "Break"},
+      {"period": "5", "time": "01:30 PM - 02:30 PM", "subject": "English", "teacher": "Mrs. Anjali Roy", "room": "302", "status": "Class In Progress"},
+      {"period": "6", "time": "02:30 PM - 03:30 PM", "subject": "Computer Science", "teacher": "Mr. Vikram Dev", "room": "Lab 2", "status": "Class In Progress"}
+    ],
+    "Wednesday": [
+      {"period": "1", "time": "08:30 AM - 09:30 AM", "subject": "Mathematics", "teacher": "Mrs. Priya Sen", "room": "302", "status": "Class In Progress"},
+      {"period": "2", "time": "09:30 AM - 10:30 AM", "subject": "English", "teacher": "Mrs. Anjali Roy", "room": "302", "status": "Class In Progress"},
+      {"period": "Recess", "time": "10:30 AM - 10:45 AM", "subject": "Break Time", "teacher": "-", "room": "Courtyard", "status": "Recess"},
+      {"period": "3", "time": "10:45 AM - 11:45 AM", "subject": "Science", "teacher": "Mr. Amit Verma", "room": "302", "status": "Class In Progress"},
+      {"period": "4", "time": "11:45 AM - 12:45 PM", "subject": "Computer Science", "teacher": "Mr. Vikram Dev", "room": "Lab 2", "status": "Class In Progress"},
+      {"period": "Lunch", "time": "12:45 PM - 01:30 PM", "subject": "Lunch Break", "teacher": "-", "room": "Cafeteria", "status": "Break"},
+      {"period": "5", "time": "01:30 PM - 02:30 PM", "subject": "Social Studies", "teacher": "Mr. Rohan Gupta", "room": "302", "status": "Class In Progress"},
+      {"period": "6", "time": "02:30 PM - 03:30 PM", "subject": "Hindi", "teacher": "Mrs. Kavita Joshi", "room": "302", "status": "Class In Progress"}
+    ],
+    "Thursday": [
+      {"period": "1", "time": "08:30 AM - 09:30 AM", "subject": "Social Studies", "teacher": "Mr. Rohan Gupta", "room": "302", "status": "Class In Progress"},
+      {"period": "2", "time": "09:30 AM - 10:30 AM", "subject": "Science", "teacher": "Mr. Amit Verma", "room": "302", "status": "Class In Progress"},
+      {"period": "Recess", "time": "10:30 AM - 10:45 AM", "subject": "Break Time", "teacher": "-", "room": "Courtyard", "status": "Recess"},
+      {"period": "3", "time": "10:45 AM - 11:45 AM", "subject": "Mathematics", "teacher": "Mrs. Priya Sen", "room": "302", "status": "Class In Progress"},
+      {"period": "4", "time": "11:45 AM - 12:45 PM", "subject": "English", "teacher": "Mrs. Anjali Roy", "room": "302", "status": "Class In Progress"},
+      {"period": "Lunch", "time": "12:45 PM - 01:30 PM", "subject": "Lunch Break", "teacher": "-", "room": "Cafeteria", "status": "Break"},
+      {"period": "5", "time": "01:30 PM - 02:30 PM", "subject": "Hindi", "teacher": "Mrs. Kavita Joshi", "room": "302", "status": "Class In Progress"},
+      {"period": "6", "time": "02:30 PM - 03:30 PM", "subject": "Computer Science", "teacher": "Mr. Vikram Dev", "room": "Lab 2", "status": "Class In Progress"}
+    ],
+    "Friday": [
+      {"period": "1", "time": "08:30 AM - 09:30 AM", "subject": "English", "teacher": "Mrs. Anjali Roy", "room": "302", "status": "Class In Progress"},
+      {"period": "2", "time": "09:30 AM - 10:30 AM", "subject": "Mathematics", "teacher": "Mrs. Priya Sen", "room": "302", "status": "Class In Progress"},
+      {"period": "Recess", "time": "10:30 AM - 10:45 AM", "subject": "Break Time", "teacher": "-", "room": "Courtyard", "status": "Recess"},
+      {"period": "3", "time": "10:45 AM - 11:45 AM", "subject": "Social Studies", "teacher": "Mr. Rohan Gupta", "room": "302", "status": "Class In Progress"},
+      {"period": "4", "time": "11:45 AM - 12:45 PM", "subject": "Science", "teacher": "Mr. Amit Verma", "room": "302", "status": "Class In Progress"},
+      {"period": "Lunch", "time": "12:45 PM - 01:30 PM", "subject": "Lunch Break", "teacher": "-", "room": "Cafeteria", "status": "Break"},
+      {"period": "5", "time": "01:30 PM - 02:30 PM", "subject": "Computer Science", "teacher": "Mr. Vikram Dev", "room": "Lab 2", "status": "Class In Progress"},
+      {"period": "6", "time": "02:30 PM - 03:30 PM", "subject": "Hindi", "teacher": "Mrs. Kavita Joshi", "room": "302", "status": "Class In Progress"}
+    ]
+  }
+}

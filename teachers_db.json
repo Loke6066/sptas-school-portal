@@ -1,0 +1,57 @@
+[
+  {
+    "id": "t001",
+    "name": "Mrs. Priya Sen",
+    "phone": "9876543210",
+    "password": "",
+    "subjects": ["Mathematics"],
+    "class": "10",
+    "section": "A",
+    "attendance_status": "Present",
+    "email": "priya.sen@silverwood.edu"
+  },
+  {
+    "id": "t002",
+    "name": "Mr. Amit Verma",
+    "phone": "9123456789",
+    "password": "",
+    "subjects": ["Science"],
+    "class": "10",
+    "section": "A",
+    "attendance_status": "Present",
+    "email": "amit.verma@silverwood.edu"
+  },
+  {
+    "id": "t003",
+    "name": "Mrs. Anjali Roy",
+    "phone": "9000123456",
+    "password": "",
+    "subjects": ["English"],
+    "class": "10",
+    "section": "A",
+    "attendance_status": "Present",
+    "email": "anjali.roy@silverwood.edu"
+  },
+  {
+    "id": "t004",
+    "name": "Mr. Rohan Gupta",
+    "phone": "9111222333",
+    "password": "",
+    "subjects": ["Social Studies"],
+    "class": "9",
+    "section": "B",
+    "attendance_status": "Present",
+    "email": "rohan.gupta@silverwood.edu"
+  },
+  {
+    "id": "t005",
+    "name": "Mrs. Kavita Joshi",
+    "phone": "9444555666",
+    "password": "",
+    "subjects": ["Hindi"],
+    "class": "10",
+    "section": "A",
+    "attendance_status": "Absent",
+    "email": "kavita.joshi@silverwood.edu"
+  }
+]
