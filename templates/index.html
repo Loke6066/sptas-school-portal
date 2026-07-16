@@ -789,11 +789,21 @@
                 <i data-lucide="send"></i> Submit Feedback
             </button>
         </div>
+
+        <div class="section-card card-full" style="margin-top:1rem;" id="principal-reply-section">
+            <h3 class="section-title"><i data-lucide="shield-check"></i> Principal's Reply</h3>
+            <textarea id="principal-reply-text" class="form-input" rows="3" placeholder="No reply yet from the Principal." readonly></textarea>
+            <div id="admin-reply-actions" class="hidden" style="margin-top:0.75rem;">
+                <textarea id="admin-reply-input" class="form-input" rows="3" placeholder="Write reply to parent as Principal..."></textarea>
+                <button id="save-principal-reply-btn" class="btn btn-primary" style="margin-top:0.5rem;">
+                    <i data-lucide="save"></i> Save Principal Reply
+                </button>
+            </div>
         </div>
         
         <div class="section-card card-full" style="margin-top:1rem;" id="teacher-reply-section">
-            <h3 class="section-title"><i data-lucide="reply-all"></i> Class Teacher's Reply</h3>
-            <textarea id="teacher-reply-text" class="form-input" rows="3" placeholder="No reply yet." readonly></textarea>
+            <h3 class="section-title"><i data-lucide="user-check"></i> Class Teacher's Reply</h3>
+            <textarea id="teacher-reply-text" class="form-input" rows="3" placeholder="No reply yet from the Class Teacher." readonly></textarea>
             <div id="teacher-reply-actions" class="hidden" style="margin-top:0.75rem;">
                 <textarea id="teacher-reply-input" class="form-input" rows="3" placeholder="Write reply to parent as class teacher..."></textarea>
                 <button id="save-teacher-reply-btn" class="btn btn-primary" style="margin-top:0.5rem;">

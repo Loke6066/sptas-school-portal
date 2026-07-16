@@ -1188,7 +1188,7 @@ a { text-decoration: none; }
     padding: 0.3rem 0.75rem;
     border-radius: 20px; font-size: 0.78rem; font-weight: 500;
     border: 1px solid rgba(0,0,0,0.08);
-    color: #333;
+    color: var(--text-main);
 }
 
 /* Grade Legend chips */
@@ -1447,5 +1447,20 @@ a { text-decoration: none; }
     from { opacity: 0; transform: scale(0.98); }
     to { opacity: 1; transform: scale(1); }
 }
+
+/* Readonly fields design polish */
+.form-input[readonly], textarea[readonly], select[disabled], input[readonly] {
+    background: rgba(0, 0, 0, 0.03) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+    cursor: not-allowed;
+    opacity: 0.85;
+}
+[data-theme="dark"] .form-input[readonly], [data-theme="dark"] textarea[readonly], [data-theme="dark"] select[disabled], [data-theme="dark"] input[readonly] {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+}
+
 
 
