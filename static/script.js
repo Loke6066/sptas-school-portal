@@ -1719,7 +1719,11 @@ document.addEventListener("DOMContentLoaded", function () {
     // ---- MARKS UPLOAD: Drag & Drop ----
     setupDropZone('marks-drop-zone', 'marks-file-input', uploadMarksFile);
 
-    document.getElementById('marks-file-input')?.addEventListener('chan    // ---- CONFIRM EXCEL IMPORT ACTION ----
+    document.getElementById('marks-file-input')?.addEventListener('change', function() {
+        if (this.files[0]) uploadMarksFile(this.files[0]);
+    });
+
+    // ---- CONFIRM EXCEL IMPORT ACTION ----
     async function executeConfirmImport(type, records, resultDivId, successCallback) {
         const div = document.getElementById(resultDivId);
         if(!div) return;
