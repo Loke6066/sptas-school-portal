@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Manually populate all class selects
-    const classSelectIds = ['filter-class','att-class-filter','tt-class-select','report-class','tf-class-pick','excel-dl-class','excel-rep-class'];
+    const classSelectIds = ['filter-class','att-class-filter','tt-class-select','report-class','tf-class-pick','excel-dl-class','excel-rep-class','excel-reg-dl-class'];
     classSelectIds.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -1803,6 +1803,114 @@ document.addEventListener("DOMContentLoaded", function () {
         a.download = `SPTAS_Results.xlsx`;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
     });
+
+    // ---- DOWNLOAD STUDENT REGISTRATION TEMPLATE ----
+    document.getElementById('excel-reg-dl-btn')?.addEventListener('click', function() {
+        const cls = document.getElementById('excel-reg-dl-class')?.value || '10';
+        const sec = document.getElementById('excel-reg-dl-section')?.value || 'A';
+        const subjects = document.getElementById('excel-reg-dl-subjects')?.value.trim() || 'Telugu,Hindi,Mathematics,Science,Social,English';
+        if (!cls) { showToast('Please select a class.', 'error'); return; }
+        const url = `/api/excel/sample-register?class=${encodeURIComponent(cls)}&section=${sec}&subjects=${encodeURIComponent(subjects)}`;
+        showToast(`Generating registration template for Class ${cls}-${sec}... Downloading!`, 'success');
+        const a = document.createElement('a');
+        a.href = url; a.download = `SPTAS_Student_Register_Class${cls}.xlsx`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    });
+
+    // ---- STUDENT REGISTRATION UPLOAD ----
+    setupDropZone('reg-drop-zone', 'reg-file-input', uploadRegFile);
+
+    document.getElementById('reg-file-input')?.addEventListener('change', function() {
+        if (this.files[0]) uploadRegFile(this.files[0]);
+    });
+
+    async function uploadRegFile(file) {
+        const resultDiv = document.getElementById('reg-upload-result');
+        if (!resultDiv) return;
+        resultDiv.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--text-muted);">⏳ Processing bulk student registration...</div>`;
+        resultDiv.classList.remove('hidden');
+
+        const form = new FormData();
+        form.append('file', file);
+
+        try {
+            const res = await fetch('/api/excel/upload-register', { method: 'POST', body: form });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`✅ Registered ${data.updated} students successfully!`, 'success');
+                renderRegUploadResult(data);
+                loadStudentTable(); // reload lists
+            } else {
+                resultDiv.innerHTML = `<div class="upload-result-error"><i data-lucide="alert-circle"></i> ${data.message}</div>`;
+                lucide.createIcons();
+            }
+        } catch(e) {
+            resultDiv.innerHTML = `<div class="upload-result-error">Error: ${e.message}</div>`;
+        }
+    }
+
+    function renderRegUploadResult(data) {
+        const div = document.getElementById('reg-upload-result');
+        if (!div) return;
+
+        const results = data.results || [];
+        const errors = data.errors || [];
+
+        // Group registered students by class-section
+        const groups = {};
+        results.forEach(s => {
+            const key = `${s.class}-${s.section}`;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(s.name);
+        });
+
+        let html = `
+            <div class="upload-result-banner success">
+                <i data-lucide="check-circle"></i>
+                <div>
+                    <strong>Successfully registered ${data.updated} students!</strong>
+                    <p>Divided class &amp; section wise automatically.</p>
+                </div>
+            </div>
+            <div style="margin-top:1rem; max-height: 250px; overflow-y: auto; background: var(--bg-input); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <div style="font-weight:700; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted);">
+                    Class Division Summary:
+                </div>
+        `;
+
+        if (Object.keys(groups).length === 0) {
+            html += `<p style="color:var(--text-muted);font-size:0.85rem;">No new students registered.</p>`;
+        } else {
+            Object.entries(groups).forEach(([classSec, names]) => {
+                const parts = classSec.split('-');
+                const cLabel = ['Nursery','LKG','UKG'].includes(parts[0]) ? parts[0] : (parts[0] === '0' ? 'Class 0' : `Class ${parts[0]}`);
+                html += `
+                    <div style="margin-bottom: 0.75rem;">
+                        <span class="badge badge-primary" style="font-size: 0.75rem; margin-bottom: 0.25rem;">${cLabel} - Section ${parts[1]} (${names.length})</span>
+                        <div style="font-size: 0.85rem; color: var(--text-main); line-height: 1.4; padding-left: 0.5rem; border-left: 2px solid var(--primary);">
+                            ${names.join(', ')}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        html += `</div>`;
+
+        if (errors.length) {
+            html += `
+                <div class="upload-result-errors" style="margin-top:1rem;">
+                    <strong>⚠️ Warnings / Skip Logs (${errors.length}):</strong>
+                    <ul style="max-height: 150px; overflow-y: auto;">
+                        ${errors.map(err => `<li>${err}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        div.innerHTML = html;
+        lucide.createIcons();
+    }
 
     // ---- HELPER: Setup Drag & Drop Zone ----
     function setupDropZone(zoneId, inputId, handler) {

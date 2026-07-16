@@ -1095,6 +1095,314 @@ def download_results_report():
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 
+# =========================================================
+# DOWNLOAD STUDENT REGISTRATION SAMPLE TEMPLATE
+# =========================================================
+@app.route('/api/excel/sample-register', methods=['GET'])
+def download_sample_register():
+    if not OPENPYXL_AVAILABLE:
+        return jsonify({'error': 'openpyxl not installed'}), 500
+
+    cls = request.args.get('class', '10')
+    sec = request.args.get('section', 'A')
+    subjects = request.args.get('subjects', 'Telugu,Hindi,Mathematics,Science,Social,English').split(',')
+    subjects = [s.strip() for s in subjects if s.strip()]
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Student Registration'
+    ws.freeze_panes = 'C3'
+
+    # Title Banner
+    total_cols = 13 + len(subjects)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
+    title_cell = ws.cell(row=1, column=1)
+    title_cell.value = f'SPTAS — Bulk Student Registration Template'
+    title_cell.font = Font(bold=True, size=14, color='FFFFFF')
+    title_cell.fill = PatternFill(start_color='1E3A5F', end_color='1E3A5F', fill_type='solid')
+    title_cell.alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 30
+
+    # Header Row
+    headers = [
+        'S.No', 'Student Name', 'Roll No', 'Admission No', 'Class', 'Section',
+        'Parent Name', 'Parent Contact', 'Parent Alt Contact', 'DOB',
+        'Academic Year', 'Class Teacher', 'Attendance %'
+    ] + subjects
+    
+    for col_idx, h in enumerate(headers, 1):
+        ws.cell(row=2, column=col_idx).value = h
+    style_header(ws, 2, len(headers), fill_hex='1E3A5F')
+
+    # Color subject columns (different style)
+    for col_idx in range(14, 14 + len(subjects)):
+        ws.cell(row=2, column=col_idx).fill = PatternFill(start_color='1D6A3A', end_color='1D6A3A', fill_type='solid')
+        ws.cell(row=2, column=col_idx).font = Font(bold=True, color='FFFFFF', size=11)
+
+    # Let's add 2 example rows
+    examples = [
+        (1, 'Rahul Kumar', '101', 'ADM001', cls, sec, 'Srinivasa Rao', '7013029211', '9876543211', '2015-05-15', '2025-26', 'Mrs. Priya Sen', 92.5) + tuple([85]*len(subjects)),
+        (2, 'Aditya Vardhan', '102', 'ADM002', cls, sec, 'Kalyan Rao', '9876543220', '', '2015-08-20', '2025-26', 'Mrs. Priya Sen', 95.0) + tuple([90]*len(subjects))
+    ]
+    
+    data_fill = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
+    thin = Side(style='thin', color='DDDDDD')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    for row_idx, row_val in enumerate(examples, start=3):
+        for col_idx, val in enumerate(row_val, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = border
+            cell.fill = data_fill
+
+    # Set column widths
+    col_widths = [6, 22, 10, 15, 8, 10, 20, 15, 18, 12, 14, 16, 14] + [12]*len(subjects)
+    for c_idx, w in enumerate(col_widths, 1):
+        ws.column_dimensions[get_column_letter(c_idx)].width = w
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename = f'SPTAS_Student_Register_Class{cls}.xlsx'
+    return send_file(buf, as_attachment=True, download_name=filename,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+
+# =========================================================
+# UPLOAD & PROCESS STUDENT REGISTRATION EXCEL
+# =========================================================
+@app.route('/api/excel/upload-register', methods=['POST'])
+def upload_register_excel():
+    if not OPENPYXL_AVAILABLE:
+        return jsonify({'success': False, 'message': 'openpyxl not available'}), 500
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file uploaded'}), 400
+
+    f = request.files['file']
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(f.read()), data_only=True)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Cannot read file: {str(e)}'}), 400
+
+    ws = wb.active
+
+    # Read header row (row 2)
+    headers = []
+    for col in range(1, ws.max_column + 1):
+        h = ws.cell(row=2, column=col).value
+        headers.append(str(h).strip().lower() if h else '')
+
+    # Try mapping column names dynamically
+    col_map = {}
+    standard_fields = {
+        'student name': ['student name', 'name', 'student'],
+        'roll no': ['roll no', 'roll number', 'roll_no', 'roll'],
+        'admission no': ['admission no', 'admission number', 'admission_no', 'admission'],
+        'class': ['class', 'grade'],
+        'section': ['section', 'sec'],
+        'parent name': ['parent name', 'father name', 'mother name', 'parent_name', 'parent'],
+        'parent contact': ['parent contact', 'phone', 'contact', 'mobile', 'parent_contact'],
+        'parent alt contact': ['parent alt contact', 'alt contact', 'secondary contact', 'parent_alt_contact'],
+        'dob': ['dob', 'date of birth', 'birth'],
+        'academic year': ['academic year', 'year', 'academic_year'],
+        'class teacher': ['class teacher', 'teacher', 'class_teacher'],
+        'attendance percentage': ['attendance %', 'attendance percentage', 'attendance']
+    }
+
+    # Find where each field maps
+    for std_field, aliases in standard_fields.items():
+        found_col = None
+        for alias in aliases:
+            if alias in headers:
+                found_col = headers.index(alias) + 1
+                break
+        col_map[std_field] = found_col
+
+    # Check required fields mapping
+    required_mappings = ['student name', 'roll no', 'class', 'section', 'parent contact']
+    missing_mappings = [m for m in required_mappings if col_map[m] is None]
+    if missing_mappings:
+        return jsonify({
+            'success': False,
+            'message': f"Could not find columns for required fields in the Excel headers: {', '.join(missing_mappings)}. Check column headings."
+        }), 400
+
+    # Collect subject columns (any column not matching standard or S.No/sno)
+    subject_cols = []
+    all_std_aliases = [alias for aliases in standard_fields.values() for alias in aliases] + ['s.no', 'sno', 'serial']
+    for idx, h in enumerate(headers, 1):
+        if h and h not in all_std_aliases:
+            # Reconstruct neat name (e.g. capitalize)
+            subj_name = ws.cell(row=2, column=idx).value
+            subject_cols.append((idx, subj_name))
+
+    import time
+    students = load_db()
+    timetables = load_timetables()
+    
+    # Store dynamic validation results
+    added = 0
+    errors = []
+    imported_students_summary = []
+
+    for row in range(3, ws.max_row + 1):
+        # Verify if row is empty by checking if name or roll number is empty
+        name_val = ws.cell(row=row, column=col_map['student name']).value
+        if not name_val:
+            continue
+        
+        name = str(name_val).strip()
+        roll_no = str(ws.cell(row=row, column=col_map['roll no']).value or '').strip()
+        s_class = str(ws.cell(row=row, column=col_map['class']).value or '10').strip()
+        s_section = str(ws.cell(row=row, column=col_map['section']).value or 'A').strip().upper()
+        parent_contact = clean_phone(ws.cell(row=row, column=col_map['parent contact']).value)
+
+        # Basic validations
+        if not name or not roll_no or not s_class or not s_section or not parent_contact:
+            errors.append(f"Row {row}: Missing required data (Name, Roll, Class, Section, or Parent Contact).")
+            continue
+
+        # Check duplication in existing DB
+        if any(s['class'] == s_class and s['section'] == s_section and s['roll_no'] == roll_no for s in students):
+            errors.append(f"Row {row}: Student '{name}' with Roll {roll_no} already exists in Class {s_class}-{s_section}.")
+            continue
+
+        # Parse dob
+        dob_val = ws.cell(row=row, column=col_map['dob']).value
+        dob_str = ""
+        if dob_val:
+            if isinstance(dob_val, datetime):
+                dob_str = dob_val.strftime('%Y-%m-%d')
+            else:
+                dob_str = str(dob_val).strip()
+
+        # Parse other info
+        admission_no = str(ws.cell(row=row, column=col_map['admission no']).value or '').strip()
+        parent_name = str(ws.cell(row=row, column=col_map['parent name']).value or '').strip()
+        parent_alt_contact = clean_phone(ws.cell(row=row, column=col_map['parent alt contact']).value)
+        academic_year = str(ws.cell(row=row, column=col_map['academic year']).value or '2025-26').strip()
+        class_teacher = str(ws.cell(row=row, column=col_map['class teacher']).value or 'Class Teacher').strip()
+        
+        att_pct_val = ws.cell(row=row, column=col_map['attendance percentage']).value
+        try: att_pct = float(att_pct_val) if att_pct_val is not None else 90.0
+        except: att_pct = 90.0
+
+        # Parse subjects and baseline test marks
+        student_subjects = [s_name for idx, s_name in subject_cols]
+        if not student_subjects:
+            student_subjects = ['Telugu', 'Hindi', 'Mathematics', 'Science', 'Social Studies']
+
+        # Construct examination baseline marks
+        exam_subjects = []
+        subject_performance = []
+        tot_obtained = 0
+        tot_max = 0
+        
+        for col_idx, s_name in subject_cols:
+            score_val = ws.cell(row=row, column=col_idx).value
+            try:
+                score = float(score_val) if score_val is not None else 0.0
+            except:
+                score = 0.0
+            
+            exam_subjects.append({
+                'name': s_name,
+                'obtained': score,
+                'max': 100
+            })
+            subject_performance.append({
+                'subject': s_name,
+                'score': int(score)
+            })
+            tot_obtained += score
+            tot_max += 100
+
+        # Compile baseline exam record
+        baseline_pct = round((tot_obtained / tot_max) * 100, 2) if tot_max > 0 else 0
+        baseline_grade = get_grade(baseline_pct)
+        
+        examination_progress = []
+        if subject_cols:
+            # Only create baseline entry if subjects exist
+            examination_progress.append({
+                'exam_name': 'Baseline Test',
+                'exam': 'Baseline Test',
+                'year': str(datetime.now().year),
+                'subjects': exam_subjects,
+                'total': tot_obtained,
+                'total_max': tot_max,
+                'percentage': baseline_pct,
+                'grade': baseline_grade,
+                'rank': 1
+            })
+
+        # Apply class timetable
+        class_key = f"{s_class}-{s_section}"
+        class_timetable = timetables.get(class_key, {})
+
+        # Generate unique ID
+        import random
+        rand_suffix = ''.join(random.choices(string.digits, k=4))
+        student_id = f"{int(time.time())}{rand_suffix}"
+
+        new_student = {
+            "id": student_id,
+            "name": name,
+            "roll_no": roll_no,
+            "admission_no": admission_no if admission_no else f"ADM{student_id[-5:]}",
+            "class": s_class,
+            "section": s_section,
+            "academic_year": academic_year,
+            "dob": dob_str,
+            "parent_name": parent_name if parent_name else f"Parent of {name}",
+            "parent_contact": parent_contact,
+            "parent_alt_contact": parent_alt_contact,
+            "parent_password": "",
+            "parent_feedback": "",
+            "principal_reply": "",
+            "attendance_status": "Present",
+            "attendance_records": [],
+            "current_status": {
+                "standard": f"Class {s_class}",
+                "section": f"Section {s_section}",
+                "class_teacher": class_teacher,
+                "attendance_percentage": att_pct,
+                "subjects": student_subjects
+            },
+            "timetable": class_timetable,
+            "examination_progress": examination_progress,
+            "subject_performance": subject_performance,
+            "progress_comparison": [],
+            "performance_trend": "Stable",
+            "teacher_term_remarks": [],
+            "behavioral_observation": {"discipline": 4, "leadership": 4, "participation": 4, "communication": 4, "teamwork": 4, "confidence": 4},
+            "co_curricular_activities": [],
+            "awards": [],
+            "parent_meetings": []
+        }
+        students.append(new_student)
+        added += 1
+        imported_students_summary.append({
+            'name': name,
+            'roll_no': roll_no,
+            'class': s_class,
+            'section': s_section
+        })
+
+    # Save to JSON
+    if save_db(students):
+        return jsonify({
+            'success': True,
+            'updated': added,
+            'errors': errors,
+            'results': imported_students_summary
+        })
+    else:
+        return jsonify({'success': False, 'message': 'Failed to save students to database.'}), 500
+
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)

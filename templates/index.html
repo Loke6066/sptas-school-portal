@@ -368,6 +368,57 @@
 
     <!-- ===== EXCEL IMPORT/EXPORT TAB ===== -->
     <div class="admin-tab-content hidden" id="tab-excel">
+        <!-- Bulk Student Registration Template Card -->
+        <div class="excel-step-card" style="border: 2px solid var(--primary);">
+            <div class="excel-step-header" style="background:linear-gradient(135deg,#4f46e5,#6366f1);">
+                <div class="excel-step-num">NEW</div>
+                <div>
+                    <h3>🎓 Bulk Student Registration (Dynamic Column Mapping)</h3>
+                    <p>Register multiple students at once. Automatically splits them into LKG, UKG, Nursery, and Classes 1-10 with custom subjects.</p>
+                </div>
+            </div>
+            <div class="excel-step-body">
+                <div style="font-weight:600;margin-bottom:0.75rem;font-size:0.9rem;color:var(--text-main);">
+                    Step A: Generate &amp; Download Student Registration Excel Template
+                </div>
+                <div class="filter-bar" style="margin-bottom:1.5rem;background:var(--bg-card);border-style:dashed;">
+                    <div class="filter-item">
+                        <label>Default Class</label>
+                        <select id="excel-reg-dl-class" class="form-select"></select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Default Section</label>
+                        <select id="excel-reg-dl-section" class="form-select">
+                            <option value="A">A</option><option value="B">B</option>
+                            <option value="C">C</option><option value="D">D</option>
+                        </select>
+                    </div>
+                    <div class="filter-item" style="flex:1;min-width:260px;">
+                        <label>Subjects to Register (comma-separated, any order)</label>
+                        <input type="text" id="excel-reg-dl-subjects" class="form-input" 
+                               value="Telugu, Hindi, Mathematics, Science, Social, English" 
+                               placeholder="e.g. Telugu, Hindi, Mathematics...">
+                    </div>
+                    <div class="filter-actions">
+                        <button id="excel-reg-dl-btn" class="btn btn-primary">
+                            <i data-lucide="download-cloud"></i> Get Template
+                        </button>
+                    </div>
+                </div>
+
+                <div style="font-weight:600;margin-bottom:0.75rem;font-size:0.9rem;color:var(--text-main);border-top:1px solid var(--border-color);padding-top:1.25rem;">
+                    Step B: Upload Completed Registration Excel Sheet
+                </div>
+                <div class="upload-drop-zone" id="reg-drop-zone">
+                    <div class="upload-drop-icon" style="background:var(--primary-light);color:var(--primary);"><i data-lucide="file-plus"></i></div>
+                    <p class="upload-drop-title">Drop Registration Excel Here</p>
+                    <p class="upload-drop-sub">or click to browse (.xlsx template only)</p>
+                    <input type="file" id="reg-file-input" accept=".xlsx,.xls" style="display:none;">
+                </div>
+                <div id="reg-upload-result" class="hidden" style="margin-top:1rem;"></div>
+            </div>
+        </div>
+
         <!-- Step 1: Download Sample -->
         <div class="excel-step-card">
             <div class="excel-step-header" style="background:linear-gradient(135deg,#1e3a5f,#1e1b4b);">

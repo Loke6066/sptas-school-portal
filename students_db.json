@@ -360,71 +360,217 @@
         }
       ]
     },
-    "examination_progress": [],
+    "examination_progress": [
+      {
+        "exam_name": "Unit Test 1",
+        "exam": "Unit Test 1",
+        "year": "2026",
+        "subjects": [
+          {
+            "name": "Mathematics",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Science",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "English",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Hindi",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Social Studies",
+            "obtained": 0.0,
+            "max": 100
+          }
+        ],
+        "total": 0.0,
+        "total_max": 500,
+        "percentage": 0.0,
+        "grade": "F",
+        "rank": 1
+      },
+      {
+        "exam_name": "Unit Test 2",
+        "exam": "Unit Test 2",
+        "year": "2026",
+        "subjects": [
+          {
+            "name": "Mathematics",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Science",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "English",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Hindi",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Social Studies",
+            "obtained": 0.0,
+            "max": 100
+          }
+        ],
+        "total": 0.0,
+        "total_max": 500,
+        "percentage": 0.0,
+        "grade": "F",
+        "rank": 1
+      },
+      {
+        "exam_name": "Half Yearly",
+        "exam": "Half Yearly",
+        "year": "2026",
+        "subjects": [
+          {
+            "name": "Mathematics",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Science",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "English",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Hindi",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Social Studies",
+            "obtained": 0.0,
+            "max": 100
+          }
+        ],
+        "total": 0.0,
+        "total_max": 500,
+        "percentage": 0.0,
+        "grade": "F",
+        "rank": 1
+      },
+      {
+        "exam_name": "Pre-Annual",
+        "exam": "Pre-Annual",
+        "year": "2026",
+        "subjects": [
+          {
+            "name": "Mathematics",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Science",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "English",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Hindi",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Social Studies",
+            "obtained": 0.0,
+            "max": 100
+          }
+        ],
+        "total": 0.0,
+        "total_max": 500,
+        "percentage": 0.0,
+        "grade": "F",
+        "rank": 1
+      },
+      {
+        "exam_name": "Annual",
+        "exam": "Annual",
+        "year": "2026",
+        "subjects": [
+          {
+            "name": "Mathematics",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Science",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "English",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Hindi",
+            "obtained": 0.0,
+            "max": 100
+          },
+          {
+            "name": "Social Studies",
+            "obtained": 0.0,
+            "max": 100
+          }
+        ],
+        "total": 0.0,
+        "total_max": 500,
+        "percentage": 0.0,
+        "grade": "F",
+        "rank": 1
+      }
+    ],
     "subject_performance": [
       {
         "subject": "Mathematics",
-        "marks": 80,
-        "total_marks": 100,
-        "percentage": 80,
-        "grade": "B+",
-        "remarks": "Good conceptual grasp in Mathematics, continue maintaining efforts.",
-        "is_strength": false,
-        "needs_improvement": false
+        "score": 0
       },
       {
         "subject": "Science",
-        "marks": 80,
-        "total_marks": 100,
-        "percentage": 80,
-        "grade": "B+",
-        "remarks": "Good conceptual grasp in Science, continue maintaining efforts.",
-        "is_strength": false,
-        "needs_improvement": false
-      },
-      {
-        "subject": "Social Studies",
-        "marks": 80,
-        "total_marks": 100,
-        "percentage": 80,
-        "grade": "B+",
-        "remarks": "Good conceptual grasp in Social Studies, continue maintaining efforts.",
-        "is_strength": false,
-        "needs_improvement": false
+        "score": 0
       },
       {
         "subject": "English",
-        "marks": 80,
-        "total_marks": 100,
-        "percentage": 80,
-        "grade": "B+",
-        "remarks": "Good conceptual grasp in English, continue maintaining efforts.",
-        "is_strength": false,
-        "needs_improvement": false
+        "score": 0
       },
       {
         "subject": "Hindi",
-        "marks": 80,
-        "total_marks": 100,
-        "percentage": 80,
-        "grade": "B+",
-        "remarks": "Good conceptual grasp in Hindi, continue maintaining efforts.",
-        "is_strength": false,
-        "needs_improvement": false
+        "score": 0
       },
       {
-        "subject": "Computer Science",
-        "marks": 80,
-        "total_marks": 100,
-        "percentage": 80,
-        "grade": "B+",
-        "remarks": "Good conceptual grasp in Computer Science, continue maintaining efforts.",
-        "is_strength": false,
-        "needs_improvement": false
+        "subject": "Social Studies",
+        "score": 0
       }
     ],
     "progress_comparison": [],
-    "performance_trend": "Improving",
+    "performance_trend": "Stable",
     "teacher_term_remarks": [],
     "behavioral_observation": {
       "discipline": 4,
