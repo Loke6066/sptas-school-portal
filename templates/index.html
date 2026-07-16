@@ -20,34 +20,72 @@
      ===================================================== -->
 <main id="auth-view" class="auth-container no-print">
     <div class="auth-bg-overlay"></div>
-    <div class="auth-card">
-        <div class="auth-header">
-            <div class="auth-logo-wrap">
-                <svg viewBox="0 0 100 100" width="52" height="52">
-                    <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="4"/>
-                    <polygon points="50,15 80,40 20,40" fill="currentColor"/>
-                    <rect x="28" y="40" width="44" height="35" fill="none" stroke="currentColor" stroke-width="4"/>
-                    <line x1="50" y1="40" x2="50" y2="75" stroke="currentColor" stroke-width="4"/>
-                </svg>
+    
+    <!-- A. Welcome Screen -->
+    <div id="auth-welcome-screen" class="auth-welcome-card">
+        <div class="school-seal-wrap">
+            <svg viewBox="0 0 100 100" width="70" height="70">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="4"/>
+                <polygon points="50,15 80,40 20,40" fill="currentColor"/>
+                <rect x="28" y="40" width="44" height="35" fill="none" stroke="currentColor" stroke-width="4"/>
+                <line x1="50" y1="40" x2="50" y2="75" stroke="currentColor" stroke-width="4"/>
+            </svg>
+        </div>
+        <h1 class="landing-school-name">NEO ROYAL HIGH SCHOOL</h1>
+        <p class="landing-school-sub">Student Progress Tracking &amp; Analytics System (SPTAS)</p>
+        <button type="button" class="btn btn-primary btn-lg" id="enter-portals-btn" style="margin-top: 1.5rem; padding: 0.8rem 2rem; font-size: 1.1rem; border-radius: 30px;">
+            <i data-lucide="shield-check"></i> Click to Login / Enter Portals
+        </button>
+    </div>
+
+    <!-- B. Portal Selection Screen (Hidden initially) -->
+    <div id="auth-selection-screen" class="auth-selection-card hidden">
+        <h2 class="selection-title">NEO ROYAL HIGH SCHOOL</h2>
+        <p style="color: rgba(255,255,255,0.7); text-align: center; margin-bottom: 2rem; font-size: 0.9rem;">
+            Select your portal to log in
+        </p>
+        <div class="portal-cards-grid">
+            <!-- 1. Principal Portal Card -->
+            <div class="portal-select-card" data-role="principal">
+                <div class="portal-card-icon color-principal"><i data-lucide="shield"></i></div>
+                <div class="portal-card-info">
+                    <h3>Principal Portal</h3>
+                    <p>Access full administration, reports, meetings, and teacher settings.</p>
+                </div>
             </div>
-            <h2 id="auth-school-name">Silverwood International School</h2>
-            <p>Student Progress Tracking &amp; Analytics System</p>
+            <!-- 2. Teacher Portal Card -->
+            <div class="portal-select-card" data-role="teacher">
+                <div class="portal-card-icon color-teacher"><i data-lucide="user-check"></i></div>
+                <div class="portal-card-info">
+                    <h3>Teacher Portal</h3>
+                    <p>Manage your class students, mark attendance, and input scorecard marks.</p>
+                </div>
+            </div>
+            <!-- 3. Parent Portal Card -->
+            <div class="portal-select-card" data-role="parent">
+                <div class="portal-card-icon color-parent"><i data-lucide="users"></i></div>
+                <div class="portal-card-info">
+                    <h3>Parent Portal</h3>
+                    <p>Track your child's live classroom activity, marks, and suggest feedback.</p>
+                </div>
+            </div>
         </div>
+        <button type="button" class="btn btn-secondary full-width" id="back-to-welcome-btn" style="margin-top: 1.5rem; background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2);">
+            <i data-lucide="arrow-left"></i> Back to Main Screen
+        </button>
+    </div>
 
-        <div class="auth-tabs">
-            <button class="auth-tab-btn active" data-role="parent">
-                <i data-lucide="users"></i> Parent Portal
-            </button>
-            <button class="auth-tab-btn" data-role="teacher">
-                <i data-lucide="user-check"></i> Teacher Portal
-            </button>
-            <button class="auth-tab-btn" data-role="principal">
-                <i data-lucide="shield"></i> Principal Portal
-            </button>
+    <!-- C. Role Login Card (Hidden initially) -->
+    <div id="auth-login-card" class="auth-card hidden" style="max-width: 440px;">
+        <div class="auth-header">
+            <h2 id="auth-form-title">Login</h2>
+            <p id="auth-form-sub">Please enter your credentials below</p>
         </div>
-
         <div class="auth-body">
-            <div id="login-error-msg" class="auth-error hidden"></div>
+            <button type="button" class="btn-action-back" id="back-to-portals-btn" style="display: flex; align-items: center; gap: 0.35rem; background: transparent; border: none; color: #818cf8; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-bottom: 1rem; padding: 0;">
+                <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Back to Portals
+            </button>
+            <div id="login-error-msg" class="auth-error hidden" style="margin-bottom:1rem;"></div>
 
             <!-- PARENT LOGIN -->
             <div id="parent-login-form" class="login-form">
@@ -560,8 +598,8 @@
                     <span class="gl-chip" style="background:#D1ECF1;color:#0c5460;">B+ = 70-79%</span>
                     <span class="gl-chip" style="background:#BEE5EB;color:#0c5460;">B = 60-69%</span>
                     <span class="gl-chip" style="background:#FFF3CD;color:#856404;">C = 50-59%</span>
-                    <span class="gl-chip" style="background:#FFE8A1;color:#856404;">D = 33-49%</span>
-                    <span class="gl-chip" style="background:#F8D7DA;color:#721c24;">F = &lt;33%</span>
+                    <span class="gl-chip" style="background:#FFE8A1;color:#856404;">D = 35-49%</span>
+                    <span class="gl-chip" style="background:#F8D7DA;color:#721c24;">F = &lt;35%</span>
                 </div>
             </div>
         </div>
@@ -751,18 +789,21 @@
                 <i data-lucide="send"></i> Submit Feedback
             </button>
         </div>
-        <div class="section-card card-full" style="margin-top:1rem;" id="principal-reply-section">
-            <h3 class="section-title"><i data-lucide="reply"></i> Principal's Reply</h3>
-            <textarea id="principal-reply-text" class="form-input" rows="3" placeholder="No reply yet." readonly></textarea>
-            <div id="admin-reply-actions" class="hidden" style="margin-top:0.75rem;">
-                <textarea id="admin-reply-input" class="form-input" rows="3" placeholder="Write reply to parent..."></textarea>
-                <button id="save-principal-reply-btn" class="btn btn-primary" style="margin-top:0.5rem;">
-                    <i data-lucide="save"></i> Save Reply
+        </div>
+        
+        <div class="section-card card-full" style="margin-top:1rem;" id="teacher-reply-section">
+            <h3 class="section-title"><i data-lucide="reply-all"></i> Class Teacher's Reply</h3>
+            <textarea id="teacher-reply-text" class="form-input" rows="3" placeholder="No reply yet." readonly></textarea>
+            <div id="teacher-reply-actions" class="hidden" style="margin-top:0.75rem;">
+                <textarea id="teacher-reply-input" class="form-input" rows="3" placeholder="Write reply to parent as class teacher..."></textarea>
+                <button id="save-teacher-reply-btn" class="btn btn-primary" style="margin-top:0.5rem;">
+                    <i data-lucide="save"></i> Save Teacher Reply
                 </button>
             </div>
         </div>
     </div>
 </main>
+
 
 <!-- =====================================================
      STUDENT MODAL

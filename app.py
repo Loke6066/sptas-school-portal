@@ -611,8 +611,9 @@ def get_grade(pct):
     if pct >= 70: return 'B+'
     if pct >= 60: return 'B'
     if pct >= 50: return 'C'
-    if pct >= 33: return 'D'
+    if pct >= 35: return 'D'
     return 'F'
+
 
 def style_header(ws, row, cols, fill_hex='1E3A5F', font_size=11):
     fill = PatternFill(start_color=fill_hex, end_color=fill_hex, fill_type='solid')
@@ -812,8 +813,9 @@ def download_sample_marks():
                   ('70 - 79', 'B+', 'Very Good'),
                   ('60 - 69', 'B',  'Good'),
                   ('50 - 59', 'C',  'Average'),
-                  ('33 - 49', 'D',  'Below Average'),
-                  ('0  - 32', 'F',  'Fail')]
+                  ('35 - 49', 'D',  'Below Average'),
+                  ('0  - 34', 'F',  'Fail')]
+
     for r, row in enumerate(grade_data, start=2):
         for c, val in enumerate(row, start=1):
             key.cell(r, c).value = val
@@ -919,54 +921,25 @@ def upload_marks_excel():
         for rank_i, row_data in enumerate(sheet_rows, start=1):
             row_data['rank'] = rank_i
 
-        # Update students DB
+        # Collect parsed rows with student names
         for row_data in sheet_rows:
             s = student_map.get(row_data['roll_no'])
-            if not s:
-                errors.append(f'Roll No {row_data["roll_no"]} not found in DB, skipped.')
-                continue
-
-            exam_entry = {
-                'exam_name': exam_name, 'exam': exam_name,
-                'year': str(datetime.now().year),
-                'subjects': [{'name': sn, 'obtained': sv, 'max': max_marks}
-                             for sn, sv in row_data['subjects'].items()],
-                'total': row_data['total'], 'total_max': row_data['total_max'],
-                'percentage': row_data['percentage'],
-                'grade': row_data['grade'], 'rank': row_data['rank']
-            }
-
-            if 'examination_progress' not in s: s['examination_progress'] = []
-            # Replace existing exam with same name or append
-            existing_idx = next((i for i, e in enumerate(s['examination_progress'])
-                                 if (e.get('exam_name') or e.get('exam','')) == exam_name), None)
-            if existing_idx is not None:
-                s['examination_progress'][existing_idx] = exam_entry
+            if s:
+                row_data['name'] = s['name']
+                row_data['exam'] = exam_name
+                row_data['max_marks'] = max_marks
+                results_summary.append(row_data)
             else:
-                s['examination_progress'].append(exam_entry)
+                errors.append(f"Roll No '{row_data['roll_no']}' not found in database. Skipped.")
 
-            # Update subject_performance (latest exam)
-            s['subject_performance'] = [{'subject': sn, 'score': round((sv/max_marks)*100)}
-                                         for sn, sv in row_data['subjects'].items()]
-            # Update performance trend based on progress
-            prog = s['examination_progress']
-            if len(prog) >= 2:
-                pcts = [e.get('percentage', 0) for e in prog[-2:]]
-                diff = pcts[-1] - pcts[-2]
-                s['performance_trend'] = 'Improving' if diff > 2 else ('Declining' if diff < -2 else 'Stable')
+    return jsonify({
+        'success': True,
+        'preview': True,
+        'type': 'marks',
+        'data': results_summary,
+        'errors': errors
+    })
 
-            updated_count += 1
-            results_summary.append({
-                'roll_no': row_data['roll_no'], 'name': s['name'],
-                'exam': exam_name, 'total': row_data['total'],
-                'percentage': row_data['percentage'],
-                'grade': row_data['grade'], 'rank': row_data['rank']
-            })
-
-    if save_db(students):
-        return jsonify({'success': True, 'updated': updated_count,
-                        'results': results_summary, 'errors': errors})
-    return jsonify({'success': False, 'message': 'DB save failed'}), 500
 
 
 # =========================================================
@@ -995,29 +968,31 @@ def upload_attendance_excel():
 
     students = load_db()
     student_map = {s['roll_no']: s for s in students}
-    updated = 0
+    attendance_data = []
     for row in range(3, ws.max_row + 1):
         roll = str(ws.cell(row, roll_col).value or '').strip()
         if not roll or roll == 'None': continue
         s = student_map.get(roll)
         if not s: continue
-        if 'attendance_records' not in s: s['attendance_records'] = []
+        row_recs = []
         for col, date_str in date_cols:
             code = str(ws.cell(row, col).value or 'P').strip().upper()
             status = 'Present' if code == 'P' else ('Absent' if code == 'A' else 'Half Day')
-            existing = next((r for r in s['attendance_records'] if r['date'] == date_str), None)
-            if existing: existing['status'] = status
-            else: s['attendance_records'].append({'date': date_str, 'status': status})
-        # Recalculate attendance %
-        recs = s['attendance_records']
-        total = len(recs)
-        present = sum(1 for r in recs if r['status'] in ['Present', 'Half Day'])
-        s['current_status']['attendance_percentage'] = round(present/total*100, 1) if total else 90
-        updated += 1
+            row_recs.append({'date': date_str, 'status': status})
+        attendance_data.append({
+            'roll_no': roll,
+            'name': s['name'],
+            'records': row_recs
+        })
 
-    if save_db(students):
-        return jsonify({'success': True, 'updated': updated, 'date_columns': len(date_cols)})
-    return jsonify({'success': False, 'message': 'DB save failed'}), 500
+    return jsonify({
+        'success': True,
+        'preview': True,
+        'type': 'attendance',
+        'data': attendance_data,
+        'date_columns': len(date_cols)
+    })
+
 
 
 # =========================================================
@@ -1381,25 +1356,180 @@ def upload_register_excel():
             "awards": [],
             "parent_meetings": []
         }
-        students.append(new_student)
+        # Collect parsed students
+        imported_students_summary.append(new_student)
         added += 1
-        imported_students_summary.append({
-            'name': name,
-            'roll_no': roll_no,
-            'class': s_class,
-            'section': s_section
-        })
 
-    # Save to JSON
-    if save_db(students):
-        return jsonify({
-            'success': True,
-            'updated': added,
-            'errors': errors,
-            'results': imported_students_summary
-        })
-    else:
-        return jsonify({'success': False, 'message': 'Failed to save students to database.'}), 500
+    return jsonify({
+        'success': True,
+        'preview': True,
+        'type': 'register',
+        'data': imported_students_summary,
+        'errors': errors
+    })
+
+
+# =========================================================
+# SAVE/CONFIRM EXCEL IMPORTS (Student registration, Marks, Attendance)
+# =========================================================
+@app.route('/api/excel/confirm-import', methods=['POST'])
+def confirm_import():
+    data_payload = request.get_json() or {}
+    import_type = data_payload.get('type')
+    records = data_payload.get('data', [])
+    if not import_type or not records:
+        return jsonify({'success': False, 'message': 'Missing data or import type'}), 400
+
+    students = load_db()
+    student_map = {s['roll_no']: s for s in students}
+    updated = 0
+
+    if import_type == 'register':
+        import time
+        import random
+        import string
+        timetables = load_timetables()
+        added_records = []
+        for r in records:
+            s_class = r.get('class')
+            s_sec = r.get('section')
+            roll = r.get('roll_no')
+            # Check duplication inside DB or inside current import list
+            if any(s['class'] == s_class and s['section'] == s_sec and s['roll_no'] == roll for s in students):
+                continue
+            
+            # Re-generate IDs to ensure no collisions
+            rand_suffix = ''.join(random.choices(string.digits, k=4))
+            student_id = f"{int(time.time())}{rand_suffix}"
+            r['id'] = student_id
+            
+            # Apply class timetable
+            class_key = f"{s_class}-{s_sec}"
+            r['timetable'] = timetables.get(class_key, {})
+            r['teacher_reply'] = ''  # default empty teacher reply
+            
+            students.append(r)
+            updated += 1
+            added_records.append({'name': r['name'], 'roll_no': roll, 'class': s_class, 'section': s_sec})
+        
+        if save_db(students):
+            return jsonify({'success': True, 'updated': updated, 'results': added_records})
+
+    elif import_type == 'marks':
+        results_summary = []
+        for r in records:
+            roll = r.get('roll_no')
+            s = student_map.get(roll)
+            if not s: continue
+            exam_name = r.get('exam')
+            max_marks = r.get('max_marks', 100)
+            
+            exam_entry = {
+                'exam_name': exam_name, 'exam': exam_name,
+                'year': str(datetime.now().year),
+                'subjects': [{'name': sn, 'obtained': sv, 'max': max_marks}
+                             for sn, sv in r.get('subjects', {}).items()],
+                'total': r.get('total'), 'total_max': r.get('total_max'),
+                'percentage': r.get('percentage'),
+                'grade': r.get('grade'), 'rank': r.get('rank')
+            }
+            if 'examination_progress' not in s: s['examination_progress'] = []
+            existing_idx = next((i for i, e in enumerate(s['examination_progress'])
+                                 if (e.get('exam_name') or e.get('exam','')) == exam_name), None)
+            if existing_idx is not None:
+                s['examination_progress'][existing_idx] = exam_entry
+            else:
+                s['examination_progress'].append(exam_entry)
+
+            # Update subject_performance
+            s['subject_performance'] = [{'subject': sn, 'score': round((sv / max_marks) * 100)}
+                                         for sn, sv in r.get('subjects', {}).items()]
+            
+            # Update performance trend
+            prog = s['examination_progress']
+            if len(prog) >= 2:
+                pcts = [e.get('percentage', 0) for e in prog[-2:]]
+                diff = pcts[-1] - pcts[-2]
+                s['performance_trend'] = 'Improving' if diff > 2 else ('Declining' if diff < -2 else 'Stable')
+
+            updated += 1
+            results_summary.append({
+                'roll_no': roll, 'name': s['name'], 'exam': exam_name,
+                'total': r.get('total'), 'percentage': r.get('percentage'),
+                'grade': r.get('grade'), 'rank': r.get('rank')
+            })
+
+        # Recalculate ranks class-wise and exam-wise
+        classes_to_update = set()
+        for r in records:
+            roll = r.get('roll_no')
+            s = student_map.get(roll)
+            if s:
+                classes_to_update.add((s['class'], s['section'], r.get('exam')))
+        
+        for cls_name, sec_name, exam_name in classes_to_update:
+            class_studs = [st for st in students if st['class'] == cls_name and st['section'] == sec_name]
+            exam_pcts = []
+            for st in class_studs:
+                exam_entry = next((e for e in st.get('examination_progress', [])
+                                   if (e.get('exam_name') or e.get('exam','')) == exam_name), None)
+                if exam_entry:
+                    exam_pcts.append((st, exam_entry.get('percentage', 0)))
+                else:
+                    exam_pcts.append((st, 0))
+            
+            exam_pcts.sort(key=lambda x: -x[1])
+            for rank_idx, (st, pct) in enumerate(exam_pcts, start=1):
+                exam_entry = next((e for e in st.get('examination_progress', [])
+                                   if (e.get('exam_name') or e.get('exam','')) == exam_name), None)
+                if exam_entry:
+                    exam_entry['rank'] = rank_idx
+
+        if save_db(students):
+            return jsonify({'success': True, 'updated': updated, 'results': results_summary})
+
+    elif import_type == 'attendance':
+        for r in records:
+            roll = r.get('roll_no')
+            s = student_map.get(roll)
+            if not s: continue
+            if 'attendance_records' not in s: s['attendance_records'] = []
+            for rec in r.get('records', []):
+                date_str = rec['date']
+                status = rec['status']
+                existing = next((item for item in s['attendance_records'] if item['date'] == date_str), None)
+                if existing: existing['status'] = status
+                else: s['attendance_records'].append({'date': date_str, 'status': status})
+            
+            recs = s['attendance_records']
+            total = len(recs)
+            present = sum(1 for item in recs if item['status'] in ['Present', 'Half Day'])
+            s['current_status']['attendance_percentage'] = round(present/total*100, 1) if total else 90
+            updated += 1
+            
+        if save_db(students):
+            return jsonify({'success': True, 'updated': updated})
+
+    return jsonify({'success': False, 'message': 'Import failed'}), 500
+
+
+# =========================================================
+# TEACHER FEEDBACK REPLY
+# =========================================================
+@app.route('/api/teacher/reply', methods=['POST'])
+def teacher_reply():
+    data = request.get_json() or {}
+    sid = data.get("student_id", "")
+    reply = data.get("reply", "").strip()
+    students = load_db()
+    for s in students:
+        if s["id"] == sid:
+            s["teacher_reply"] = reply
+            save_db(students)
+            return jsonify({"success": True})
+    return jsonify({"success": False}), 404
+
+
 
 
 

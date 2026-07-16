@@ -1297,3 +1297,155 @@ a { text-decoration: none; }
     .excel-legend-item { font-size: 0.72rem; padding: 0.2rem 0.5rem; }
 }
 
+/* =========================================================
+   STICKY TABLE HEADERS
+   ========================================================= */
+.table-container {
+    max-height: 520px;
+    overflow-y: auto;
+    position: relative;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+.data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #1e293b;
+    border-bottom: 2px solid var(--border-color);
+}
+[data-theme="dark"] .data-table thead th {
+    background: #0d1424;
+}
+
+/* =========================================================
+   AUTH LANDING AND SELECTION STYLES
+   ========================================================= */
+.auth-welcome-card {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-xl);
+    padding: 3.5rem 2.5rem;
+    width: 100%;
+    max-width: 580px;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #ffffff;
+    animation: fadeIn 0.4s ease;
+}
+.school-seal-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    box-shadow: 0 10px 30px rgba(79, 70, 229, 0.4);
+    margin-bottom: 1.5rem;
+    color: #ffffff;
+}
+.landing-school-name {
+    font-family: var(--font-header);
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+    text-align: center;
+}
+.landing-school-sub {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.75);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.auth-selection-card {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 820px;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+    color: #ffffff;
+    animation: fadeIn 0.4s ease;
+}
+.selection-title {
+    font-family: var(--font-header);
+    font-size: 2rem;
+    font-weight: 800;
+    text-align: center;
+    color: #ffffff;
+    margin-bottom: 0.25rem;
+    letter-spacing: 0.03em;
+}
+.portal-cards-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    margin-top: 1rem;
+}
+@media (min-width: 768px) {
+    .portal-cards-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+.portal-select-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md);
+    padding: 1.75rem 1.25rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+.portal-select-card:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-4px);
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.3);
+}
+.portal-card-icon {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #ffffff;
+    font-size: 1.2rem;
+}
+.color-principal { background: linear-gradient(135deg, #4f46e5, #6366f1); }
+.color-teacher { background: linear-gradient(135deg, #059669, #10b981); }
+.color-parent { background: linear-gradient(135deg, #d97706, #f59e0b); }
+
+.portal-card-icon i { width: 24px; height: 24px; }
+.portal-card-info h3 {
+    font-family: var(--font-header);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 0.35rem;
+}
+.portal-card-info p {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.45;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+

@@ -170,22 +170,64 @@ document.addEventListener("DOMContentLoaded", function () {
         appNavHeader.classList.add('hidden');
         adminView.classList.add('hidden');
         reportView.classList.add('hidden');
+        
+        // Show welcome screen initially, hide others
+        document.getElementById('auth-welcome-screen')?.classList.remove('hidden');
+        document.getElementById('auth-selection-screen')?.classList.add('hidden');
+        document.getElementById('auth-login-card')?.classList.add('hidden');
     }
 
     checkAuthSession();
 
     // ============================================================
-    // AUTH TABS
+    // WELCOME SCREEN & PORTAL SELECTION INTERACTION
     // ============================================================
-    document.querySelectorAll('.auth-tab-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.auth-tab-btn').forEach(b=>b.classList.remove('active'));
-            document.querySelectorAll('.login-form').forEach(f=>f.classList.add('hidden'));
-            btn.classList.add('active');
+    document.getElementById('enter-portals-btn')?.addEventListener('click', () => {
+        document.getElementById('auth-welcome-screen')?.classList.add('hidden');
+        document.getElementById('auth-selection-screen')?.classList.remove('hidden');
+        lucide.createIcons();
+    });
+
+    document.getElementById('back-to-welcome-btn')?.addEventListener('click', () => {
+        document.getElementById('auth-selection-screen')?.classList.add('hidden');
+        document.getElementById('auth-welcome-screen')?.classList.remove('hidden');
+        lucide.createIcons();
+    });
+
+    document.getElementById('back-to-portals-btn')?.addEventListener('click', () => {
+        document.getElementById('auth-login-card')?.classList.add('hidden');
+        document.getElementById('auth-selection-screen')?.classList.remove('hidden');
+        loginErrorMsg.classList.add('hidden');
+        lucide.createIcons();
+    });
+
+    document.querySelectorAll('.portal-select-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const role = card.getAttribute('data-role');
+            if (!role) return;
+            
+            // Format titles
+            const roleTitles = {
+                principal: 'Principal Portal Login',
+                teacher: 'Teacher Portal Login',
+                parent: 'Parent Portal Login'
+            };
+            
+            const formTitle = document.getElementById('auth-form-title');
+            if (formTitle) formTitle.textContent = roleTitles[role];
+            
+            // Toggle login forms
+            document.querySelectorAll('.login-form').forEach(f => f.classList.add('hidden'));
+            document.getElementById(`${role}-login-form`)?.classList.remove('hidden');
+            
+            // Toggle screens
+            document.getElementById('auth-selection-screen')?.classList.add('hidden');
+            document.getElementById('auth-login-card')?.classList.remove('hidden');
             loginErrorMsg.classList.add('hidden');
-            document.getElementById(`${btn.dataset.role}-login-form`)?.classList.remove('hidden');
+            lucide.createIcons();
         });
     });
+
 
     // ============================================================
     // PARENT LOGIN
@@ -734,7 +776,7 @@ document.addEventListener("DOMContentLoaded", function () {
         setEl('modal-exam-total-max',max);
         const pct=max>0?((tot/max)*100).toFixed(1):0;
         setEl('modal-exam-percentage',`${pct}%`);
-        setEl('modal-exam-passfail',max>0&&pct>=33?'✅ PASS':'❌ FAIL');
+        setEl('modal-exam-passfail',max>0&&pct>=35?'✅ PASS':'❌ FAIL');
     };
     document.getElementById('modal-exam-save-btn')?.addEventListener('click',async function(){
         if(!activeModalStudent) return;
@@ -1077,8 +1119,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 const res=await fetch('/api/meetings');
                 const meetings=await res.json();
                 const cls=`${student.class}-${student.section}`;
-                const relevant=meetings.filter(m=>m.classes==='all'||
-                    (Array.isArray(m.classes)&&m.classes.includes(cls)));
+                const relevant=meetings.filter(m=>{
+                    if (m.classes === 'all' || m.classes === 'All Classes') return true;
+                    if (Array.isArray(m.classes)) {
+                        return m.classes.includes(cls);
+                    }
+                    if (typeof m.classes === 'string') {
+                        return m.classes.split(',').map(c => c.trim()).includes(cls);
+                    }
+                    return false;
+                });
                 scheduledEl.innerHTML=relevant.length?relevant.map(m=>`
                     <div class="meeting-item" style="border-left-color:var(--primary);">
                         <div class="meeting-header">
@@ -1100,17 +1150,34 @@ document.addEventListener("DOMContentLoaded", function () {
         const replySection=document.getElementById('principal-reply-section');
         const submitBtn=document.getElementById('submit-feedback-btn');
 
+        const teacherReplyEl=document.getElementById('teacher-reply-text');
+        const teacherReplyActions=document.getElementById('teacher-reply-actions');
+        const teacherReplyInput=document.getElementById('teacher-reply-input');
+
         if(fbEl){
             fbEl.value=student.parent_feedback||'';
             fbEl.readOnly=!isParent;
         }
         if(replyEl) replyEl.value=student.principal_reply||'';
-        if(adminReply) adminReply.classList.toggle('hidden', isParent);
-        if(replySection) replySection.classList.remove('hidden');
+        if(teacherReplyEl) teacherReplyEl.value=student.teacher_reply||'';
+
         if(submitBtn) submitBtn.classList.toggle('hidden',!isParent);
-        // Admin reply input
+
+        // Control Principal reply card vs Teacher reply card
+        if (isParent) {
+            if(adminReply) adminReply.classList.add('hidden');
+            if(teacherReplyActions) teacherReplyActions.classList.add('hidden');
+        } else {
+            const isPrincipal = (currentRole === 'principal');
+            const isTeacher = (currentRole === 'teacher');
+            if(adminReply) adminReply.classList.toggle('hidden', !isPrincipal);
+            if(teacherReplyActions) teacherReplyActions.classList.toggle('hidden', !isTeacher);
+        }
+
+        // Set inputs
         const adminReplyInput=document.getElementById('admin-reply-input');
         if(adminReplyInput) adminReplyInput.value=student.principal_reply||'';
+        if(teacherReplyInput) teacherReplyInput.value=student.teacher_reply||'';
     }
 
     document.getElementById('submit-feedback-btn')?.addEventListener('click', async function() {
@@ -1130,6 +1197,16 @@ document.addEventListener("DOMContentLoaded", function () {
         const d=await res.json();
         if(d.success){showToast('Reply saved!','success');setEl('principal-reply-text',text);}
     });
+
+    document.getElementById('save-teacher-reply-btn')?.addEventListener('click', async function() {
+        const text=document.getElementById('teacher-reply-input')?.value.trim()||'';
+        const sid=currentStudentId;
+        if(!sid) return;
+        const res=await fetch('/api/teacher/reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({student_id:sid,reply:text})});
+        const d=await res.json();
+        if(d.success){showToast('Teacher reply saved!','success');setEl('teacher-reply-text',text);}
+    });
+
 
     // TAB NAVIGATION (report card)
     document.querySelectorAll('.tab-btn').forEach(btn=>{
@@ -1642,6 +1719,72 @@ document.addEventListener("DOMContentLoaded", function () {
     // ---- MARKS UPLOAD: Drag & Drop ----
     setupDropZone('marks-drop-zone', 'marks-file-input', uploadMarksFile);
 
+    document.getElementById('marks-file-input')?.addEventListener('chan    // ---- CONFIRM EXCEL IMPORT ACTION ----
+    async function executeConfirmImport(type, records, resultDivId, successCallback) {
+        const div = document.getElementById(resultDivId);
+        if(!div) return;
+        div.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--text-muted);"><span class="spinner" style="display:inline-block;animation:spin 1s linear infinite;margin-right:0.5rem;">🔄</span> Saving and updating SPTAS database...</div>`;
+        try {
+            const res = await fetch('/api/excel/confirm-import', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ type: type, data: records })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`✅ Database updated successfully!`, 'success');
+                let groupSummaryHtml = '';
+                
+                if (type === 'register' && data.results) {
+                    const groups = {};
+                    data.results.forEach(s => {
+                        const key = `${s.class}-${s.section}`;
+                        if (!groups[key]) groups[key] = [];
+                        groups[key].push(s.name);
+                    });
+                    groupSummaryHtml = `
+                        <div style="margin-top:1rem; max-height: 200px; overflow-y: auto; background: var(--bg-card); padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                            <div style="font-weight:700; margin-bottom: 0.5rem; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Class Division Results:</div>
+                            ${Object.entries(groups).map(([classSec, names]) => {
+                                const parts = classSec.split('-');
+                                const cLabel = ['Nursery','LKG','UKG'].includes(parts[0]) ? parts[0] : (parts[0] === '0' ? 'Class 0' : `Class ${parts[0]}`);
+                                return `
+                                    <div style="margin-bottom:0.5rem;">
+                                        <span class="badge badge-success" style="font-size:0.7rem;">${cLabel} - Section ${parts[1]} (${names.length} added)</span>
+                                        <div style="font-size:0.8rem;color:var(--text-main);padding-left:0.5rem;border-left:2px solid var(--primary);">${names.join(', ')}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                }
+
+                div.innerHTML = `
+                    <div class="upload-result-banner success" style="background:#d1fae5; border-color:#34d399; color:#065f46; display:flex; align-items:center; gap:0.75rem; padding:1rem; border-radius:8px;">
+                        <i data-lucide="check-circle" style="width:28px;height:28px;"></i>
+                        <div>
+                            <strong>✅ OK! Saved Successfully</strong>
+                            <p>${data.updated} student records committed to database and updated in all portals.</p>
+                        </div>
+                    </div>
+                    ${groupSummaryHtml}
+                `;
+                lucide.createIcons();
+                loadStudentTable(); // refresh table
+                if (successCallback) successCallback(data);
+            } else {
+                div.innerHTML = `<div class="upload-result-error"><i data-lucide="alert-circle"></i> Save failed: ${data.message}</div>`;
+                lucide.createIcons();
+            }
+        } catch(e) {
+            div.innerHTML = `<div class="upload-result-error"><i data-lucide="wifi-off"></i> Error saving to database: ${e.message}</div>`;
+            lucide.createIcons();
+        }
+    }
+
+    // ---- MARKS UPLOAD: Drag & Drop ----
+    setupDropZone('marks-drop-zone', 'marks-file-input', uploadMarksFile);
+
     document.getElementById('marks-file-input')?.addEventListener('change', function() {
         if (this.files[0]) uploadMarksFile(this.files[0]);
     });
@@ -1654,7 +1797,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         progressDiv.classList.remove('hidden');
         resultDiv.classList.add('hidden');
-        // Animate progress bar
+        
         let prog = 0;
         const interval = setInterval(() => {
             prog = Math.min(prog + 10, 85);
@@ -1677,9 +1820,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
             resultDiv.classList.remove('hidden');
             if (data.success) {
-                showToast(`✅ ${data.updated} student records updated!`, 'success');
+                showToast(`📊 Excel parsed! Click OK to save.`, 'info');
                 renderMarksUploadResult(data);
-                loadStudentTable(); // refresh table
             } else {
                 resultDiv.innerHTML = `<div class="upload-result-error"><i data-lucide="alert-circle"></i> ${data.message}</div>`;
                 lucide.createIcons();
@@ -1696,22 +1838,25 @@ document.addEventListener("DOMContentLoaded", function () {
     function renderMarksUploadResult(data) {
         const div = document.getElementById('marks-upload-result');
         const errors = data.errors || [];
-        const results = data.results || [];
+        const records = data.data || [];
 
         // Group by exam
         const examMap = {};
-        results.forEach(r => {
+        records.forEach(r => {
             if (!examMap[r.exam]) examMap[r.exam] = [];
             examMap[r.exam].push(r);
         });
 
         let html = `
-            <div class="upload-result-banner success">
-                <i data-lucide="check-circle"></i>
-                <div>
-                    <strong>${data.updated} student records updated</strong>
-                    <p>${Object.keys(examMap).length} exam(s) processed</p>
+            <div class="upload-result-banner success" style="background:#e0f2fe; border-color:#38bdf8; color:#0369a1;">
+                <i data-lucide="info"></i>
+                <div style="flex:1;">
+                    <strong>📊 Excel sheet parsed successfully! (Preview Mode)</strong>
+                    <p>${records.length} records found in ${Object.keys(examMap).length} exam sheet(s).</p>
                 </div>
+                <button type="button" class="btn btn-success btn-sm" id="confirm-marks-btn" style="box-shadow:none; white-space:nowrap; border-radius:20px;">
+                    <i data-lucide="check-square"></i> OK, Save Marks
+                </button>
             </div>`;
 
         Object.entries(examMap).forEach(([exam, rows]) => {
@@ -1721,7 +1866,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     📝 ${exam}
                     <span class="badge badge-info">${rows.length} Students</span>
                 </div>
-                <div class="table-container">
+                <div class="table-container" style="max-height: 250px;">
                 <table class="data-table">
                 <thead><tr>
                     <th>Rank</th><th>Roll No</th><th>Student Name</th>
@@ -1748,8 +1893,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 <ul>${errors.map(e => `<li>${e}</li>`).join('')}</ul>
             </div>`;
         }
+        
         div.innerHTML = html;
         lucide.createIcons();
+
+        // Bind click event to confirm button
+        document.getElementById('confirm-marks-btn')?.addEventListener('click', function() {
+            executeConfirmImport('marks', records, 'marks-upload-result');
+        });
     }
 
     // ---- ATTENDANCE UPLOAD: Drag & Drop ----
@@ -1761,7 +1912,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     async function uploadAttFile(file) {
         const resultDiv = document.getElementById('att-upload-result');
-        resultDiv.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--text-muted);">⏳ Processing attendance...</div>`;
+        resultDiv.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--text-muted);">⏳ Parsing attendance register...</div>`;
         resultDiv.classList.remove('hidden');
         const form = new FormData();
         form.append('file', file);
@@ -1769,53 +1920,34 @@ document.addEventListener("DOMContentLoaded", function () {
             const res = await fetch('/api/excel/upload-attendance', { method: 'POST', body: form });
             const data = await res.json();
             if (data.success) {
-                showToast(`✅ Attendance updated for ${data.updated} students across ${data.date_columns} dates!`, 'success');
+                showToast(`📅 Attendance register parsed! Click OK to save.`, 'info');
                 resultDiv.innerHTML = `
-                    <div class="upload-result-banner success">
-                        <i data-lucide="check-circle"></i>
-                        <div>
-                            <strong>${data.updated} student attendance records updated</strong>
-                            <p>${data.date_columns} date columns processed</p>
+                    <div class="upload-result-banner success" style="background:#e0f2fe; border-color:#38bdf8; color:#0369a1; display:flex; align-items:center; gap:0.75rem; justify-content:space-between;">
+                        <div style="display:flex; align-items:center; gap:0.75rem;">
+                            <i data-lucide="info" style="width:28px;height:28px;"></i>
+                            <div>
+                                <strong>📅 Attendance Excel Parsed (Preview Mode)</strong>
+                                <p>${data.data.length} student records found across ${data.date_columns} date columns.</p>
+                            </div>
                         </div>
+                        <button type="button" class="btn btn-success btn-sm" id="confirm-att-btn" style="box-shadow:none; white-space:nowrap; border-radius:20px;">
+                            <i data-lucide="check-square"></i> OK, Save Attendance
+                        </button>
                     </div>`;
-                loadStudentTable();
+                lucide.createIcons();
+                
+                // Bind click event to confirm button
+                document.getElementById('confirm-att-btn')?.addEventListener('click', function() {
+                    executeConfirmImport('attendance', data.data, 'att-upload-result');
+                });
             } else {
                 resultDiv.innerHTML = `<div class="upload-result-error"><i data-lucide="alert-circle"></i> ${data.message}</div>`;
+                lucide.createIcons();
             }
-            lucide.createIcons();
         } catch(e) {
             resultDiv.innerHTML = `<div class="upload-result-error">Error: ${e.message}</div>`;
         }
     }
-
-    // ---- DOWNLOAD RESULTS REPORT ----
-    document.getElementById('excel-rep-btn')?.addEventListener('click', function() {
-        const cls  = document.getElementById('excel-rep-class')?.value || '';
-        const sec  = document.getElementById('excel-rep-section')?.value || '';
-        const exam = document.getElementById('excel-rep-exam')?.value || '';
-        const params = new URLSearchParams();
-        if (cls) params.set('class', cls);
-        if (sec) params.set('section', sec);
-        if (exam) params.set('exam', exam);
-        showToast('Generating results report...', 'success');
-        const a = document.createElement('a');
-        a.href = `/api/excel/results-report?${params.toString()}`;
-        a.download = `SPTAS_Results.xlsx`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    });
-
-    // ---- DOWNLOAD STUDENT REGISTRATION TEMPLATE ----
-    document.getElementById('excel-reg-dl-btn')?.addEventListener('click', function() {
-        const cls = document.getElementById('excel-reg-dl-class')?.value || '10';
-        const sec = document.getElementById('excel-reg-dl-section')?.value || 'A';
-        const subjects = document.getElementById('excel-reg-dl-subjects')?.value.trim() || 'Telugu,Hindi,Mathematics,Science,Social,English';
-        if (!cls) { showToast('Please select a class.', 'error'); return; }
-        const url = `/api/excel/sample-register?class=${encodeURIComponent(cls)}&section=${sec}&subjects=${encodeURIComponent(subjects)}`;
-        showToast(`Generating registration template for Class ${cls}-${sec}... Downloading!`, 'success');
-        const a = document.createElement('a');
-        a.href = url; a.download = `SPTAS_Student_Register_Class${cls}.xlsx`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    });
 
     // ---- STUDENT REGISTRATION UPLOAD ----
     setupDropZone('reg-drop-zone', 'reg-file-input', uploadRegFile);
@@ -1827,7 +1959,7 @@ document.addEventListener("DOMContentLoaded", function () {
     async function uploadRegFile(file) {
         const resultDiv = document.getElementById('reg-upload-result');
         if (!resultDiv) return;
-        resultDiv.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--text-muted);">⏳ Processing bulk student registration...</div>`;
+        resultDiv.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--text-muted);">⏳ Parsing registration excel sheet...</div>`;
         resultDiv.classList.remove('hidden');
 
         const form = new FormData();
@@ -1837,9 +1969,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const res = await fetch('/api/excel/upload-register', { method: 'POST', body: form });
             const data = await res.json();
             if (data.success) {
-                showToast(`✅ Registered ${data.updated} students successfully!`, 'success');
+                showToast(`🎓 Registration parsed! Click OK to save.`, 'info');
                 renderRegUploadResult(data);
-                loadStudentTable(); // reload lists
             } else {
                 resultDiv.innerHTML = `<div class="upload-result-error"><i data-lucide="alert-circle"></i> ${data.message}</div>`;
                 lucide.createIcons();
@@ -1853,28 +1984,33 @@ document.addEventListener("DOMContentLoaded", function () {
         const div = document.getElementById('reg-upload-result');
         if (!div) return;
 
-        const results = data.results || [];
+        const records = data.data || [];
         const errors = data.errors || [];
 
         // Group registered students by class-section
         const groups = {};
-        results.forEach(s => {
+        records.forEach(s => {
             const key = `${s.class}-${s.section}`;
             if (!groups[key]) groups[key] = [];
             groups[key].push(s.name);
         });
 
         let html = `
-            <div class="upload-result-banner success">
-                <i data-lucide="check-circle"></i>
-                <div>
-                    <strong>Successfully registered ${data.updated} students!</strong>
-                    <p>Divided class &amp; section wise automatically.</p>
+            <div class="upload-result-banner success" style="background:#e0f2fe; border-color:#38bdf8; color:#0369a1; display:flex; align-items:center; gap:0.75rem; justify-content:space-between; width:100%;">
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <i data-lucide="info" style="width:28px;height:28px;"></i>
+                    <div>
+                        <strong>🎓 Registration Parsed (Preview Mode)</strong>
+                        <p>${records.length} new student profiles ready to import.</p>
+                    </div>
                 </div>
+                <button type="button" class="btn btn-success btn-sm" id="confirm-reg-btn" style="box-shadow:none; white-space:nowrap; border-radius:20px;">
+                    <i data-lucide="check-square"></i> OK, Register Students
+                </button>
             </div>
             <div style="margin-top:1rem; max-height: 250px; overflow-y: auto; background: var(--bg-input); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
                 <div style="font-weight:700; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted);">
-                    Class Division Summary:
+                    Class Division Preview:
                 </div>
         `;
 
@@ -1886,7 +2022,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const cLabel = ['Nursery','LKG','UKG'].includes(parts[0]) ? parts[0] : (parts[0] === '0' ? 'Class 0' : `Class ${parts[0]}`);
                 html += `
                     <div style="margin-bottom: 0.75rem;">
-                        <span class="badge badge-primary" style="font-size: 0.75rem; margin-bottom: 0.25rem;">${cLabel} - Section ${parts[1]} (${names.length})</span>
+                        <span class="badge badge-primary" style="font-size: 0.75rem; margin-bottom: 0.25rem;">${cLabel} - Section ${parts[1]} (${names.length} found)</span>
                         <div style="font-size: 0.85rem; color: var(--text-main); line-height: 1.4; padding-left: 0.5rem; border-left: 2px solid var(--primary);">
                             ${names.join(', ')}
                         </div>
@@ -1910,6 +2046,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
         div.innerHTML = html;
         lucide.createIcons();
+
+        // Bind click event to confirm button
+        document.getElementById('confirm-reg-btn')?.addEventListener('click', function() {
+            executeConfirmImport('register', records, 'reg-upload-result');
+        });
     }
 
     // ---- HELPER: Setup Drag & Drop Zone ----
