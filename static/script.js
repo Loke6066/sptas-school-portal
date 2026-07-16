@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Manually populate all class selects
-    const classSelectIds = ['filter-class','att-class-filter','tt-class-select','report-class','tf-class-pick','excel-dl-class','excel-rep-class','excel-reg-dl-class'];
+    const classSelectIds = ['filter-class','att-class-filter','tt-class-select','report-class','tf-class-pick','excel-dl-class','excel-rep-class','excel-reg-dl-class','excel-att-dl-class'];
     classSelectIds.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -302,12 +302,16 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     function proceedToPortal(role, name) {
+        currentRole = role;
         authView.classList.add('hidden');
         appNavHeader.classList.remove('hidden');
         userGreetingLabel.textContent = `Logged in as: ${name}`;
         const isPrincipal = role === 'principal';
+        const isTeacher = role === 'teacher';
         document.getElementById('edit-principal-name-btn')?.classList.toggle('hidden', !isPrincipal);
         document.querySelectorAll('.principal-only').forEach(el=>el.classList.toggle('hidden', !isPrincipal));
+        document.getElementById('admin-meetings-tab-btn')?.classList.toggle('hidden', !(isPrincipal || isTeacher));
+        document.getElementById('add-meeting-btn')?.classList.toggle('hidden', !isPrincipal);
         if (role !== 'parent') loadAdminDashboard();
     }
 
@@ -474,6 +478,19 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const tr = await fetch('/api/teachers');
             teachersCache = await tr.json();
+            
+            // Log out deleted teachers immediately
+            if (currentRole === 'teacher') {
+                const currentTId = localStorage.getItem('sptas_teacher_id');
+                const stillExists = teachersCache.some(t => t.id === currentTId);
+                if (teachersCache.length > 0 && !stillExists) {
+                    showToast('⚠️ Your teacher profile has been deleted by the Principal. Logging out...', 'error');
+                    setTimeout(() => {
+                        document.getElementById('logout-btn')?.click();
+                    }, 2000);
+                    return;
+                }
+            }
         } catch { teachersCache=[]; }
 
         loadStudentTable();
@@ -910,9 +927,56 @@ document.addEventListener("DOMContentLoaded", function () {
         renderMeetingsList(student);
         renderFeedback(student, isParent);
 
+        if (isParent) {
+            // Check scheduled meetings counts
+            fetch('/api/meetings')
+                .then(res => res.json())
+                .then(meetings => {
+                    const studentClassSec = `${student.class}-${student.section}`;
+                    const relevantMeetings = meetings.filter(m => {
+                        if (m.classes === 'all' || m.classes === 'All Classes') return true;
+                        if (Array.isArray(m.classes)) return m.classes.includes(studentClassSec);
+                        if (typeof m.classes === 'string') return m.classes.split(',').map(c => c.trim()).includes(studentClassSec);
+                        return false;
+                    });
+                    
+                    const count = relevantMeetings.length;
+                    localStorage.setItem('sptas_meetings_fetch_count', count);
+                    
+                    const lastReadCount = parseInt(localStorage.getItem('sptas_last_meetings_count') || '0');
+                    const badge = document.getElementById('badge-meetings');
+                    if (badge) {
+                        if (count > lastReadCount) {
+                            badge.textContent = count - lastReadCount;
+                            badge.classList.remove('hidden');
+                        } else {
+                            badge.classList.add('hidden');
+                        }
+                    }
+                }).catch(() => {});
+
+            // Check feedback reply hash
+            const currentHash = `${student.principal_reply || ''}||${student.teacher_reply || ''}`;
+            localStorage.setItem('sptas_feedback_current_hash', currentHash);
+            
+            const lastReadHash = localStorage.getItem('sptas_last_feedback_hash') || '';
+            const badgeFb = document.getElementById('badge-feedback');
+            if (badgeFb) {
+                if (currentHash !== lastReadHash && (student.principal_reply || student.teacher_reply)) {
+                    badgeFb.textContent = '1';
+                    badgeFb.classList.remove('hidden');
+                } else {
+                    badgeFb.classList.add('hidden');
+                }
+            }
+        } else {
+            // Hide notification badges if viewing as admin/teacher
+            document.getElementById('badge-meetings')?.classList.add('hidden');
+            document.getElementById('badge-feedback')?.classList.add('hidden');
+        }
+
         // Tab reset
         document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
-        document.querySelectorAll('.tab-content').forEach((c,i)=>c.classList.toggle('active',i===0).classList?.toggle('hidden',i!==0));
         document.querySelectorAll('.tab-content').forEach((c,i)=>{ c.classList.toggle('active',i===0); if(i!==0) c.classList.add('hidden'); else c.classList.remove('hidden'); });
 
         lucide.createIcons();
@@ -1008,40 +1072,84 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // RENDER ACADEMICS
     function renderAcademics(student) {
-        const prog=student.examination_progress||[];
-        const ctx=document.getElementById('academic-history-chart');
-        if(ctx&&prog.length>0){
+        const select = document.getElementById('parent-exam-select');
+        const filterVal = select ? select.value : '';
+        renderAcademicsFiltered(student, filterVal);
+    }
+
+    function renderAcademicsFiltered(student, selectedExam) {
+        const prog = student.examination_progress || [];
+        const ctx = document.getElementById('academic-history-chart');
+        if(ctx && prog.length > 0){
             if(academicChartInstance) academicChartInstance.destroy();
-            const labels=prog.map(p=>p.exam_name||p.exam||'Exam');
-            const data=prog.map(p=>{
-                if(typeof p.percentage==='number') return p.percentage;
-                if(p.subjects){
-                    const tot=p.subjects.reduce((s,x)=>s+x.obtained,0);
-                    const mx=p.subjects.reduce((s,x)=>s+x.max,0);
-                    return mx>0?parseFloat(((tot/mx)*100).toFixed(1)):0;
+            const labels = prog.map(p => p.exam_name || p.exam || 'Exam');
+            const data = prog.map(p => {
+                if (typeof p.percentage === 'number') return p.percentage;
+                if (p.subjects) {
+                    const tot = p.subjects.reduce((s, x) => s + x.obtained, 0);
+                    const mx = p.subjects.reduce((s, x) => s + x.max, 0);
+                    return mx > 0 ? parseFloat(((tot / mx) * 100).toFixed(1)) : 0;
                 }
                 return 0;
             });
-            academicChartInstance=new Chart(ctx,{type:'line',data:{labels,datasets:[{
-                label:'Percentage',data,borderColor:'rgb(99,102,241)',backgroundColor:'rgba(99,102,241,0.1)',
-                tension:0.4,fill:true,pointRadius:5,pointHoverRadius:7}]},
-                options:{responsive:true,scales:{y:{min:0,max:100}},plugins:{legend:{display:false}}}});
+            academicChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Percentage',
+                        data,
+                        borderColor: 'rgb(99,102,241)',
+                        backgroundColor: 'rgba(99,102,241,0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: { y: { min: 0, max: 100 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
         }
-        const ec=document.getElementById('exam-history-table-container');
-        if(ec){
-            ec.innerHTML=prog.length?prog.map(exam=>`
-                <div style="margin-bottom:1.5rem;">
-                    <h4 style="font-weight:600;margin-bottom:0.5rem;">${exam.exam_name||exam.exam||'Exam'} ${exam.year||''}</h4>
+
+        let filteredProg = prog;
+        if (selectedExam) {
+            filteredProg = prog.filter(p => (p.exam_name || p.exam || '') === selectedExam);
+        }
+
+        const ec = document.getElementById('exam-history-table-container');
+        if (ec) {
+            ec.innerHTML = filteredProg.length ? filteredProg.map(exam => `
+                <div style="margin-bottom:1.5rem; background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+                        <h4 style="font-weight:700; font-size:1.05rem; margin:0; color:var(--text-main);">${exam.exam_name||exam.exam||'Exam'}</h4>
+                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                            <span class="badge badge-primary">Total: ${exam.total || 0}/${exam.total_max || 0}</span>
+                            <span class="badge badge-info">Percentage: ${exam.percentage || 0}%</span>
+                            <span class="badge badge-success">Rank: #${exam.rank || '—'}</span>
+                            <span class="badge ${exam.percentage >= 35 ? 'badge-success':'badge-danger'}">Grade: ${exam.grade || 'F'}</span>
+                        </div>
+                    </div>
                     <div class="table-container"><table class="data-table"><thead><tr>
-                        <th>Subject</th><th>Obtained</th><th>Max</th><th>Grade</th>
+                        <th>Subject</th><th>Obtained Marks</th><th>Max Marks</th><th>Grade</th><th>Result</th>
                     </tr></thead><tbody>
-                        ${(exam.subjects||[]).map(sub=>{
-                            const pct=Math.round((sub.obtained/sub.max)*100);
-                            const g=pct>=90?'A+':pct>=80?'A':pct>=70?'B+':pct>=60?'B':pct>=50?'C':'F';
-                            return `<tr><td>${sub.name}</td><td><strong>${sub.obtained}</strong></td><td>${sub.max}</td>
-                                <td><span class="badge ${pct>=60?'badge-success':'badge-danger'}">${g}</span></td></tr>`;
+                        ${(exam.subjects||[]).map(sub => {
+                            const pct = Math.round((sub.obtained/sub.max)*100);
+                            const g = pct>=90?'A+':pct>=80?'A':pct>=70?'B+':pct>=60?'B':pct>=50?'C':pct>=35?'D':'F';
+                            const resultTxt = pct>=35 ? '<span style="color:var(--accent-success);font-weight:700;">PASS</span>':'<span style="color:var(--accent-danger);font-weight:700;">FAIL</span>';
+                            return `<tr>
+                                <td><strong>${sub.name}</strong></td>
+                                <td><strong>${sub.obtained}</strong></td>
+                                <td>${sub.max}</td>
+                                <td><span class="badge ${pct>=35?'badge-success':'badge-danger'}">${g}</span></td>
+                                <td>${resultTxt}</td>
+                            </tr>`;
                         }).join('')}
-                    </tbody></table></div></div>`).join(''):`<div style="padding:1.5rem;color:var(--text-muted);">No exam records.</div>`;
+                    </tbody></table></div>
+                </div>`).join('') : `<div style="padding:2rem; text-align:center; color:var(--text-muted); background:var(--bg-card); border-radius:var(--radius-md); border:1px solid var(--border-color);">⚠️ No exam records found for the selected view.</div>`;
         }
     }
 
@@ -1597,6 +1705,7 @@ document.addEventListener("DOMContentLoaded", function () {
             container.innerHTML=`<p style="color:var(--text-muted);text-align:center;padding:2rem;">No meetings scheduled yet.</p>`;
             return;
         }
+        const isPrincipal = currentRole === 'principal';
         container.innerHTML=meetings.map(m=>`
             <div class="meeting-item" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
                 <div>
@@ -1607,9 +1716,10 @@ document.addEventListener("DOMContentLoaded", function () {
                         ${m.classes==='all'?'All Classes':Array.isArray(m.classes)?m.classes.join(', '):m.classes}
                     </span>
                 </div>
+                ${isPrincipal ? `
                 <div class="action-btns">
                     <button class="btn-action btn-delete" onclick="deleteMeeting('${m.id}')" title="Delete"><i data-lucide="trash-2"></i></button>
-                </div>
+                </div>` : ''}
             </div>`).join('');
         lucide.createIcons();
     }
@@ -1707,13 +1817,31 @@ document.addEventListener("DOMContentLoaded", function () {
         const cls     = document.getElementById('excel-dl-class')?.value || '10';
         const sec     = document.getElementById('excel-dl-section')?.value || 'A';
         const max     = document.getElementById('excel-dl-maxmarks')?.value || '100';
-        const subjects= document.getElementById('excel-dl-subjects')?.value.trim() || 'Mathematics,Science,English,Hindi,Social Studies';
         if (!cls) { showToast('Please select a class.', 'error'); return; }
-        const url = `/api/excel/sample-marks?class=${encodeURIComponent(cls)}&section=${sec}&max_marks=${max}&subjects=${encodeURIComponent(subjects)}`;
-        showToast(`Generating Excel for Class ${cls}-${sec}... Downloading!`, 'success');
+        const url = `/api/excel/sample-marks?class=${encodeURIComponent(cls)}&section=${sec}&max_marks=${max}`;
+        showToast(`Generating Marks template for Class ${cls}-${sec}... Downloading!`, 'success');
         const a = document.createElement('a');
-        a.href = url; a.download = `SPTAS_Template_Class${cls}${sec}.xlsx`;
+        a.href = url; a.download = `SPTAS_Marks_Template_Class${cls}${sec}.xlsx`;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    });
+
+    // ---- DOWNLOAD ATTENDANCE REGISTER TEMPLATE ----
+    document.getElementById('excel-att-dl-btn')?.addEventListener('click', function() {
+        const cls = document.getElementById('excel-att-dl-class')?.value || '10';
+        const sec = document.getElementById('excel-att-dl-section')?.value || 'A';
+        if (!cls) { showToast('Please select a class.', 'error'); return; }
+        const url = `/api/excel/sample-attendance?class=${encodeURIComponent(cls)}&section=${sec}`;
+        showToast(`Generating Attendance register for Class ${cls}-${sec}... Downloading!`, 'success');
+        const a = document.createElement('a');
+        a.href = url; a.download = `SPTAS_Attendance_Template_Class${cls}${sec}.xlsx`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    });
+
+    // ---- PARENT PORTAL ACADEMICS EXAMS DROPDOWN LISTENER ----
+    document.getElementById('parent-exam-select')?.addEventListener('change', function() {
+        if (activeStudentObject) {
+            renderAcademicsFiltered(activeStudentObject, this.value);
+        }
     });
 
     // ---- MARKS UPLOAD: Drag & Drop ----
@@ -1763,6 +1891,33 @@ document.addEventListener("DOMContentLoaded", function () {
                     `;
                 }
 
+                let downloadReportBtnHtml = '';
+                if (type === 'marks' && records.length > 0) {
+                    const sample = records[0];
+                    // Pull class, section, exam
+                    let cls = '';
+                    let sec = '';
+                    // Find matching student class info
+                    const match = records.find(r => r.class && r.section);
+                    if (match) {
+                        cls = match.class;
+                        sec = match.section;
+                    }
+                    const exam = sample.exam || '';
+                    
+                    downloadReportBtnHtml = `
+                        <div style="margin-top:1rem; padding:1rem; background:var(--bg-card); border-radius:var(--radius-md); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+                            <div style="flex:1; min-width:200px;">
+                                <strong style="color:var(--text-main); font-size:0.9rem;">📥 Download Calculated Ranks Report Spreadsheet</strong>
+                                <p style="font-size:0.8rem; color:var(--text-muted); margin:0.25rem 0 0 0;">Download a beautifully formatted Excel sheet containing student marks, total, percentage, ranks and pass/fail statuses.</p>
+                            </div>
+                            <button class="btn btn-primary btn-sm" onclick="downloadConfirmMarksReport('${cls}','${sec}','${exam}')">
+                                <i data-lucide="download"></i> Download Report
+                            </button>
+                        </div>
+                    `;
+                }
+
                 div.innerHTML = `
                     <div class="upload-result-banner success" style="background:#d1fae5; border-color:#34d399; color:#065f46; display:flex; align-items:center; gap:0.75rem; padding:1rem; border-radius:8px;">
                         <i data-lucide="check-circle" style="width:28px;height:28px;"></i>
@@ -1772,6 +1927,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         </div>
                     </div>
                     ${groupSummaryHtml}
+                    ${downloadReportBtnHtml}
                 `;
                 lucide.createIcons();
                 loadStudentTable(); // refresh table
@@ -2077,5 +2233,15 @@ document.addEventListener("DOMContentLoaded", function () {
             if (file) handler(file);
         });
     }
+
+    window.downloadConfirmMarksReport = function(cls, sec, exam) {
+        const url = `/api/excel/results-report?class=${encodeURIComponent(cls)}&section=${encodeURIComponent(sec)}&exam=${encodeURIComponent(exam)}`;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SPTAS_Results_${cls}_${sec}_${exam.replace(/ /g,'_')}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
 
 }); // end DOMContentLoaded

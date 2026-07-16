@@ -135,7 +135,7 @@
     "attendance_records": [
       {
         "date": "2026-07-16",
-        "status": "Present"
+        "status": "Half Day"
       }
     ],
     "current_status": {
@@ -584,11 +584,11 @@
     "parent_password": "123456",
     "parent_feedback": "",
     "principal_reply": "",
-    "attendance_status": "Present",
+    "attendance_status": "Absent",
     "attendance_records": [
       {
         "date": "2026-07-16",
-        "status": "Present"
+        "status": "Absent"
       }
     ],
     "current_status": {
@@ -4658,7 +4658,7 @@
     "attendance_records": [
       {
         "date": "2026-07-16",
-        "status": "Present"
+        "status": "Half Day"
       }
     ],
     "current_status": {
@@ -7432,11 +7432,11 @@
     "parent_password": "",
     "parent_feedback": "",
     "principal_reply": "",
-    "attendance_status": "Present",
+    "attendance_status": "Absent",
     "attendance_records": [
       {
         "date": "2026-07-16",
-        "status": "Present"
+        "status": "Absent"
       }
     ],
     "current_status": {
@@ -11452,11 +11452,11 @@
     "parent_password": "",
     "parent_feedback": "",
     "principal_reply": "",
-    "attendance_status": "Present",
+    "attendance_status": "Absent",
     "attendance_records": [
       {
         "date": "2026-07-16",
-        "status": "Present"
+        "status": "Absent"
       }
     ],
     "current_status": {
@@ -18250,11 +18250,11 @@
     "parent_password": "",
     "parent_feedback": "",
     "principal_reply": "",
-    "attendance_status": "Present",
+    "attendance_status": "Absent",
     "attendance_records": [
       {
         "date": "2026-07-16",
-        "status": "Present"
+        "status": "Absent"
       }
     ],
     "current_status": {
@@ -24029,7 +24029,7 @@
     "attendance_records": [
       {
         "date": "2026-07-16",
-        "status": "Present"
+        "status": "Half Day"
       }
     ],
     "current_status": {
@@ -27826,11 +27826,11 @@
     "parent_password": "",
     "parent_feedback": "",
     "principal_reply": "",
-    "attendance_status": "Present",
+    "attendance_status": "Absent",
     "attendance_records": [
       {
         "date": "2026-07-16",
-        "status": "Present"
+        "status": "Absent"
       }
     ],
     "current_status": {
@@ -32110,11 +32110,11 @@
     "parent_password": "",
     "parent_feedback": "",
     "principal_reply": "",
-    "attendance_status": "Present",
+    "attendance_status": "Absent",
     "attendance_records": [
       {
         "date": "2026-07-16",
-        "status": "Present"
+        "status": "Absent"
       }
     ],
     "current_status": {

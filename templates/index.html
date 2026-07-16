@@ -82,8 +82,8 @@
             <p id="auth-form-sub">Please enter your credentials below</p>
         </div>
         <div class="auth-body">
-            <button type="button" class="btn-action-back" id="back-to-portals-btn" style="display: flex; align-items: center; gap: 0.35rem; background: transparent; border: none; color: #818cf8; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-bottom: 1rem; padding: 0;">
-                <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Back to Portals
+            <button type="button" class="btn-action-back btn btn-secondary btn-sm" id="back-to-portals-btn" style="display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 1.25rem; border-radius: 20px; font-weight: 600;">
+                <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Back to Portal Selection
             </button>
             <div id="login-error-msg" class="auth-error hidden" style="margin-bottom:1rem;"></div>
 
@@ -239,7 +239,7 @@
         <button class="admin-tab-pill" data-admin-tab="tab-attendance"><i data-lucide="clipboard-list"></i> <span>Attendance</span></button>
         <button class="admin-tab-pill" data-admin-tab="tab-timetable"><i data-lucide="calendar-days"></i> <span>Timetable</span></button>
         <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-teachers"><i data-lucide="user-cog"></i> <span>Teachers</span></button>
-        <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-meetings"><i data-lucide="calendar-heart"></i> <span>Meetings</span></button>
+        <button class="admin-tab-pill hidden" id="admin-meetings-tab-btn" data-admin-tab="tab-meetings"><i data-lucide="calendar-heart"></i> <span>Meetings</span></button>
         <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-reports"><i data-lucide="bar-chart-2"></i> <span>Reports</span></button>
         <button class="admin-tab-pill" data-admin-tab="tab-excel"><i data-lucide="file-spreadsheet"></i> <span>Import/Export</span></button>
 
@@ -457,17 +457,20 @@
             </div>
         </div>
 
-        <!-- Step 1: Download Sample -->
+        <!-- Step 1: Manage Marks Excel -->
         <div class="excel-step-card">
             <div class="excel-step-header" style="background:linear-gradient(135deg,#1e3a5f,#1e1b4b);">
                 <div class="excel-step-num">Step 1</div>
                 <div>
-                    <h3>📥 Download Sample Template</h3>
-                    <p>Download a pre-filled Excel sheet with your class students and exam sheets already set up.</p>
+                    <h3>📝 Manage Marks Excel</h3>
+                    <p>Download class-prefilled templates synced with the timetables, fill in student marks, and upload them back.</p>
                 </div>
             </div>
             <div class="excel-step-body">
-                <div class="filter-bar" style="margin-bottom:0;">
+                <div style="font-weight:600;margin-bottom:0.75rem;font-size:0.9rem;color:var(--text-main);">
+                    A: Generate &amp; Download Prefilled Marks Template
+                </div>
+                <div class="filter-bar" style="margin-bottom:1.5rem;background:var(--bg-card);border-style:dashed;">
                     <div class="filter-item">
                         <label>Class</label>
                         <select id="excel-dl-class" class="form-select"></select>
@@ -480,7 +483,7 @@
                         </select>
                     </div>
                     <div class="filter-item">
-                        <label>Max Marks per Subject</label>
+                        <label>Max Marks</label>
                         <select id="excel-dl-maxmarks" class="form-select">
                             <option value="25">25</option>
                             <option value="50">50</option>
@@ -488,39 +491,21 @@
                             <option value="100" selected>100</option>
                         </select>
                     </div>
-                    <div class="filter-item" style="flex:1;min-width:200px;">
-                        <label>Subjects (comma-separated)</label>
-                        <input type="text" id="excel-dl-subjects" class="form-input"
-                            value="Mathematics,Science,English,Hindi,Social Studies"
-                            placeholder="Mathematics,Science,English,...">
-                    </div>
                     <div class="filter-actions">
                         <button id="excel-dl-btn" class="btn btn-primary">
-                            <i data-lucide="download"></i> Download Template
+                            <i data-lucide="download"></i> Get Marks Template
                         </button>
                     </div>
                 </div>
-                <div class="excel-legend">
-                    <span class="excel-legend-item" style="background:#E8F4F8;">🔒 Lock (Roll No, Name, Class)</span>
-                    <span class="excel-legend-item" style="background:#FFF3CD;">✏️ Fill Marks Here</span>
-                    <span class="excel-legend-item" style="background:#D4EDDA;">🤖 Auto-calculated on Upload</span>
-                    <span class="excel-legend-item" style="background:#D1FAE5;">📅 Attendance (P/A/H)</span>
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem; margin-top:-0.5rem;">
+                    💡 <em>Note: Subjects will be automatically selected based on the dynamic Timetable of the selected class.</em>
                 </div>
-            </div>
-        </div>
 
-        <!-- Step 2: Upload Marks -->
-        <div class="excel-step-card">
-            <div class="excel-step-header" style="background:linear-gradient(135deg,#064e3b,#065f46);">
-                <div class="excel-step-num">Step 2</div>
-                <div>
-                    <h3>📤 Upload Marks Excel</h3>
-                    <p>Fill in student marks in the downloaded template and upload it. System will auto-calculate Total, Percentage, Grade &amp; Class Rank.</p>
+                <div style="font-weight:600;margin-bottom:0.75rem;font-size:0.9rem;color:var(--text-main);border-top:1px solid var(--border-color);padding-top:1.25rem;">
+                    B: Upload Completed Marks Spreadsheet
                 </div>
-            </div>
-            <div class="excel-step-body">
                 <div class="upload-drop-zone" id="marks-drop-zone">
-                    <div class="upload-drop-icon"><i data-lucide="file-spreadsheet"></i></div>
+                    <div class="upload-drop-icon" style="background:var(--primary-light);color:var(--primary);"><i data-lucide="file-spreadsheet"></i></div>
                     <p class="upload-drop-title">Drop Marks Excel Here</p>
                     <p class="upload-drop-sub">or click to browse (.xlsx only)</p>
                     <input type="file" id="marks-file-input" accept=".xlsx,.xls" style="display:none;">
@@ -533,18 +518,43 @@
             </div>
         </div>
 
-        <!-- Step 2B: Upload Attendance -->
+        <!-- Step 2: Manage Attendance Excel -->
         <div class="excel-step-card">
-            <div class="excel-step-header" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);">
-                <div class="excel-step-num">Step 2B</div>
+            <div class="excel-step-header" style="background:linear-gradient(135deg,#064e3b,#065f46);">
+                <div class="excel-step-num">Step 2</div>
                 <div>
-                    <h3>📋 Upload Attendance Excel</h3>
-                    <p>Fill in P (Present), A (Absent), H (Half Day) for each date in the Attendance sheet and upload. System will auto-update attendance %.</p>
+                    <h3>📅 Manage Attendance Excel</h3>
+                    <p>Download your class attendance sheet prefilled with student list, mark attendance, and upload to sync %.</p>
                 </div>
             </div>
             <div class="excel-step-body">
+                <div style="font-weight:600;margin-bottom:0.75rem;font-size:0.9rem;color:var(--text-main);">
+                    A: Generate &amp; Download Prefilled Attendance Register
+                </div>
+                <div class="filter-bar" style="margin-bottom:1.5rem;background:var(--bg-card);border-style:dashed;">
+                    <div class="filter-item">
+                        <label>Class</label>
+                        <select id="excel-att-dl-class" class="form-select"></select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Section</label>
+                        <select id="excel-att-dl-section" class="form-select">
+                            <option value="A">A</option><option value="B">B</option>
+                            <option value="C">C</option><option value="D">D</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button id="excel-att-dl-btn" class="btn btn-success" style="background:#059669; border-color:#059669;">
+                            <i data-lucide="download-cloud"></i> Get Attendance Template
+                        </button>
+                    </div>
+                </div>
+
+                <div style="font-weight:600;margin-bottom:0.75rem;font-size:0.9rem;color:var(--text-main);border-top:1px solid var(--border-color);padding-top:1.25rem;">
+                    B: Upload Completed Attendance Spreadsheet
+                </div>
                 <div class="upload-drop-zone" id="att-drop-zone">
-                    <div class="upload-drop-icon"><i data-lucide="calendar-check"></i></div>
+                    <div class="upload-drop-icon" style="background:var(--accent-success-light);color:var(--accent-success);"><i data-lucide="calendar-check"></i></div>
                     <p class="upload-drop-title">Drop Attendance Excel Here</p>
                     <p class="upload-drop-sub">or click to browse (.xlsx only)</p>
                     <input type="file" id="att-file-input" accept=".xlsx,.xls" style="display:none;">
@@ -708,8 +718,8 @@
         <button class="tab-btn" data-tab="tab-academics"><i data-lucide="book-open"></i> <span>Academics</span></button>
         <button class="tab-btn" data-tab="tab-behavior"><i data-lucide="heart"></i> <span>Behavior</span></button>
         <button class="tab-btn" data-tab="tab-activities"><i data-lucide="star"></i> <span>Activities</span></button>
-        <button class="tab-btn" data-tab="tab-meetings"><i data-lucide="calendar-days"></i> <span>Meetings</span></button>
-        <button class="tab-btn" data-tab="tab-feedback"><i data-lucide="message-square"></i> <span>Feedback</span></button>
+        <button class="tab-btn" data-tab="tab-meetings"><i data-lucide="calendar-days"></i> <span>Meetings</span><span class="nav-badge hidden" id="badge-meetings">1</span></button>
+        <button class="tab-btn" data-tab="tab-feedback"><i data-lucide="message-square"></i> <span>Feedback</span><span class="nav-badge hidden" id="badge-feedback">1</span></button>
     </div>
 
     <!-- OVERVIEW TAB -->
@@ -732,6 +742,23 @@
 
     <!-- ACADEMICS TAB -->
     <div class="tab-content hidden" id="tab-academics">
+        <div class="section-card card-full" style="margin-bottom:1rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+                <h3 class="section-title" style="margin-bottom:0;"><i data-lucide="award"></i> View Exam Performance</h3>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <label style="font-weight:600; font-size:0.85rem; color:var(--text-muted);">Select Exam:</label>
+                    <select id="parent-exam-select" class="form-select" style="max-width:240px; padding:0.4rem 0.75rem; font-size:0.85rem;">
+                        <option value="">All Examinations</option>
+                        <option value="Unit Test 1">Unit Test 1</option>
+                        <option value="Unit Test 2">Unit Test 2</option>
+                        <option value="Quarterly">Quarterly</option>
+                        <option value="Half-Yearly">Half-Yearly</option>
+                        <option value="Pre-Final">Pre-Final</option>
+                        <option value="Final Examination">Final Examination</option>
+                    </select>
+                </div>
+            </div>
+        </div>
         <div class="section-card card-full">
             <h3 class="section-title"><i data-lucide="trending-up"></i> Academic Progress</h3>
             <canvas id="academic-history-chart" height="150"></canvas>
@@ -790,17 +817,6 @@
             </button>
         </div>
 
-        <div class="section-card card-full" style="margin-top:1rem;" id="principal-reply-section">
-            <h3 class="section-title"><i data-lucide="shield-check"></i> Principal's Reply</h3>
-            <textarea id="principal-reply-text" class="form-input" rows="3" placeholder="No reply yet from the Principal." readonly></textarea>
-            <div id="admin-reply-actions" class="hidden" style="margin-top:0.75rem;">
-                <textarea id="admin-reply-input" class="form-input" rows="3" placeholder="Write reply to parent as Principal..."></textarea>
-                <button id="save-principal-reply-btn" class="btn btn-primary" style="margin-top:0.5rem;">
-                    <i data-lucide="save"></i> Save Principal Reply
-                </button>
-            </div>
-        </div>
-        
         <div class="section-card card-full" style="margin-top:1rem;" id="teacher-reply-section">
             <h3 class="section-title"><i data-lucide="user-check"></i> Class Teacher's Reply</h3>
             <textarea id="teacher-reply-text" class="form-input" rows="3" placeholder="No reply yet from the Class Teacher." readonly></textarea>
@@ -808,6 +824,17 @@
                 <textarea id="teacher-reply-input" class="form-input" rows="3" placeholder="Write reply to parent as class teacher..."></textarea>
                 <button id="save-teacher-reply-btn" class="btn btn-primary" style="margin-top:0.5rem;">
                     <i data-lucide="save"></i> Save Teacher Reply
+                </button>
+            </div>
+        </div>
+
+        <div class="section-card card-full" style="margin-top:1rem;" id="principal-reply-section">
+            <h3 class="section-title"><i data-lucide="shield-check"></i> Principal's Reply</h3>
+            <textarea id="principal-reply-text" class="form-input" rows="3" placeholder="No reply yet from the Principal." readonly></textarea>
+            <div id="admin-reply-actions" class="hidden" style="margin-top:0.75rem;">
+                <textarea id="admin-reply-input" class="form-input" rows="3" placeholder="Write reply to parent as Principal..."></textarea>
+                <button id="save-principal-reply-btn" class="btn btn-primary" style="margin-top:0.5rem;">
+                    <i data-lucide="save"></i> Save Principal Reply
                 </button>
             </div>
         </div>

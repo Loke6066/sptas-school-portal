@@ -603,7 +603,7 @@ def get_student(student_id):
 # =========================================================
 DEFAULT_SUBJECTS = ['Mathematics', 'Science', 'English', 'Hindi', 'Social Studies', 'Computer Science']
 CLASS_LIST = ['0', 'Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-EXAM_LIST  = ['Unit Test 1', 'Unit Test 2', 'Half Yearly', 'Pre-Annual', 'Annual']
+EXAM_LIST = ['Unit Test 1', 'Unit Test 2', 'Quarterly', 'Half-Yearly', 'Pre-Final', 'Final Examination']
 
 def get_grade(pct):
     if pct >= 90: return 'A+'
@@ -639,6 +639,21 @@ def style_data_row(ws, row, cols, even=False):
 # =========================================================
 # DOWNLOAD SAMPLE EXCEL
 # =========================================================
+def get_subjects_from_timetable(cls, sec):
+    class_key = f"{cls}-{sec}"
+    timetables = load_timetables()
+    timetable = timetables.get(class_key, {})
+    subjects = set()
+    for day, periods in timetable.items():
+        for p in periods:
+            sub = p.get("subject", "").strip()
+            if sub and sub.lower() not in ["free", "lunch", "break", "interval", "games", "sports", "pt", "lib", "library"]:
+                subjects.add(sub)
+    return sorted(list(subjects)) if subjects else None
+
+# =========================================================
+# DOWNLOAD SAMPLE EXCEL
+# =========================================================
 @app.route('/api/excel/sample-marks', methods=['GET'])
 def download_sample_marks():
     if not OPENPYXL_AVAILABLE:
@@ -646,9 +661,17 @@ def download_sample_marks():
 
     cls = request.args.get('class', '10')
     sec = request.args.get('section', 'A')
-    subjects = request.args.get('subjects', ','.join(DEFAULT_SUBJECTS)).split(',')
-    subjects = [s.strip() for s in subjects if s.strip()]
     max_marks_each = int(request.args.get('max_marks', 100))
+
+    # Pull subjects dynamically from class timetable
+    subjects = get_subjects_from_timetable(cls, sec)
+    if not subjects:
+        # Fallback to standard request subjects or default list
+        req_subs = request.args.get('subjects', '')
+        if req_subs:
+            subjects = [s.strip() for s in req_subs.split(',') if s.strip()]
+        else:
+            subjects = ['Telugu', 'Hindi', 'Mathematics', 'Science', 'Social Studies', 'English']
 
     students = load_db()
     class_students = sorted(
@@ -657,32 +680,10 @@ def download_sample_marks():
     )
 
     wb = openpyxl.Workbook()
+    # Remove default sheet
+    default_sheet = wb.active
+    wb.remove(default_sheet)
 
-    # ---- INSTRUCTIONS SHEET ----
-    info = wb.active; info.title = 'Instructions'
-    info.column_dimensions['A'].width = 90
-    info.row_dimensions[1].height = 30
-    info['A1'] = 'SPTAS — Marks Import Template'
-    info['A1'].font = Font(bold=True, size=16, color='1E3A5F')
-    info['A2'] = f'School Class: {cls} | Section: {sec} | Max Marks per subject: {max_marks_each}'
-    info['A2'].font = Font(size=12, italic=True, color='555555')
-    info['A4'] = 'INSTRUCTIONS:'
-    info['A4'].font = Font(bold=True, size=12)
-    instructions = [
-        '1. Each sheet below represents ONE exam (e.g. Unit Test 1, Half Yearly, Annual).',
-        '2. Fill in marks (numbers only) in the coloured subject columns.',
-        '3. DO NOT change Roll No, Student Name, Class, or Section columns.',
-        '4. DO NOT rename, delete, or reorder sheets.',
-        '5. Total, Percentage, Grade, and Rank columns will be auto-calculated on upload.',
-        '6. Leave marks as 0 if student was absent. Add a note in the Remarks column.',
-        '7. After filling all exams, save the file and upload it in the portal.',
-        f'8. Max marks per subject = {max_marks_each}. Total max = {max_marks_each * len(subjects)}.',
-    ]
-    for i, line in enumerate(instructions):
-        info[f'A{5+i}'] = line
-        info[f'A{5+i}'].font = Font(size=11)
-
-    # ---- EXAM SHEETS ----
     subj_fill = PatternFill(start_color='FFF3CD', end_color='FFF3CD', fill_type='solid')
     lock_fill = PatternFill(start_color='E8F4F8', end_color='E8F4F8', fill_type='solid')
     calc_fill  = PatternFill(start_color='D4EDDA', end_color='D4EDDA', fill_type='solid')
@@ -692,7 +693,7 @@ def download_sample_marks():
         ws.freeze_panes = 'E3'
 
         # Title row
-        total_cols = 4 + len(subjects) + 4  # roll,name,class,sec + subjects + total,pct,grade,rank + remarks
+        total_cols = 4 + len(subjects) + 5  # roll,name,class,sec + subjects + total,pct,grade,rank,remarks
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
         title_cell = ws.cell(row=1, column=1)
         title_cell.value = f'SPTAS — {exam} Marks | Class {cls}-{sec} | Max/Subject: {max_marks_each}'
@@ -721,14 +722,12 @@ def download_sample_marks():
 
         # Student rows
         for row_i, student in enumerate(class_students, start=3):
-            even = (row_i % 2 == 0)
             row_data = [
                 student['roll_no'], student['name'],
                 student['class'], student['section']
             ] + [0] * len(subjects) + ['', '', '', '', '']
             for col, val in enumerate(row_data, 1):
                 cell = ws.cell(row=row_i, column=col, value=val)
-                # Lock columns style
                 if col <= 4:
                     cell.fill = lock_fill
                     cell.font = Font(size=10, bold=(col==1))
@@ -747,7 +746,16 @@ def download_sample_marks():
             for ex_i, ex_name in enumerate(['Example Student 1', 'Example Student 2'], start=3):
                 row_data = [ex_i - 2, ex_name, cls, sec] + [0]*len(subjects) + ['','','','',' ']
                 for col, val in enumerate(row_data, 1):
-                    ws.cell(row=ex_i, column=col, value=val)
+                    cell = ws.cell(row=ex_i, column=col, value=val)
+                    if col <= 4:
+                        cell.fill = lock_fill
+                    elif col <= 4 + len(subjects):
+                        cell.fill = subj_fill
+                    else:
+                        cell.fill = calc_fill
+                    thin = Side(style='thin', color='CCCCCC')
+                    cell.border = Border(left=thin, right=thin, top=thin, bottom=thin)
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
 
         # Column widths
         ws.column_dimensions['A'].width = 10
@@ -759,9 +767,36 @@ def download_sample_marks():
         for c in range(5+len(subjects), 5+len(subjects)+5):
             ws.column_dimensions[get_column_letter(c)].width = 13
 
-    # ---- ATTENDANCE SHEET ----
-    att = wb.create_sheet(title='Attendance')
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename = f'SPTAS_Marks_Template_Class{cls}{sec}.xlsx'
+    return send_file(buf, as_attachment=True, download_name=filename,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+
+# =========================================================
+# DOWNLOAD STUDENT ATTENDANCE SAMPLE TEMPLATE
+# =========================================================
+@app.route('/api/excel/sample-attendance', methods=['GET'])
+def download_sample_attendance():
+    if not OPENPYXL_AVAILABLE:
+        return jsonify({'error': 'openpyxl not installed'}), 500
+
+    cls = request.args.get('class', '10')
+    sec = request.args.get('section', 'A')
+
+    students = load_db()
+    class_students = sorted(
+        [s for s in students if str(s['class']) == cls and s['section'] == sec],
+        key=lambda x: x['roll_no']
+    )
+
+    wb = openpyxl.Workbook()
+    att = wb.active
+    att.title = 'Attendance'
     att.freeze_panes = 'E3'
+
     import calendar
     from datetime import date
     today = date.today()
@@ -769,21 +804,24 @@ def download_sample_marks():
     dates = [f'{today.year}-{today.month:02d}-{d:02d}' for d in range(1, month_days + 1)
              if date(today.year, today.month, d).weekday() < 6]  # exclude Sunday
 
-    total_cols_att = 4 + len(dates) + 4
-    att.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols_att)
-    att.cell(1,1).value = f'SPTAS — Attendance Register | Class {cls}-{sec} | Month: {today.strftime("%B %Y")}'
-    att.cell(1,1).font = Font(bold=True, size=13, color='FFFFFF')
-    att.cell(1,1).fill = PatternFill(start_color='064E3B', end_color='064E3B', fill_type='solid')
-    att.cell(1,1).alignment = Alignment(horizontal='center', vertical='center')
+    total_cols = 4 + len(dates) + 4
+    att.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
+    title_cell = att.cell(row=1, column=1)
+    title_cell.value = f'SPTAS — Attendance Register | Class {cls}-{sec} | Month: {today.strftime("%B %Y")}'
+    title_cell.font = Font(bold=True, size=13, color='FFFFFF')
+    title_cell.fill = PatternFill(start_color='064E3B', end_color='064E3B', fill_type='solid')
+    title_cell.alignment = Alignment(horizontal='center', vertical='center')
     att.row_dimensions[1].height = 28
 
-    att_headers = ['Roll No', 'Student Name', 'Class', 'Section'] + dates + \
-                  ['Present', 'Absent', 'Half Day', 'Attendance %']
-    for col, h in enumerate(att_headers, 1):
+    headers = ['Roll No', 'Student Name', 'Class', 'Section'] + dates + \
+              ['Present', 'Absent', 'Half Day', 'Attendance %']
+    for col, h in enumerate(headers, 1):
         att.cell(row=2, column=col).value = h
-    style_header(att, 2, len(att_headers), fill_hex='064E3B')
+    style_header(att, 2, len(headers), fill_hex='064E3B')
 
     status_fill = PatternFill(start_color='D1FAE5', end_color='D1FAE5', fill_type='solid')
+    
+    # Prefill student rows
     for row_i, student in enumerate(class_students, start=3):
         row_data = [student['roll_no'], student['name'], student['class'], student['section']]
         row_data += ['P'] * len(dates)  # default Present
@@ -797,6 +835,21 @@ def download_sample_marks():
             thin = Side(style='thin', color='CCCCCC')
             cell.border = Border(left=thin, right=thin, top=thin, bottom=thin)
             cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # If no students, add example rows
+    if not class_students:
+        for ex_i, ex_name in enumerate(['Example Student 1', 'Example Student 2'], start=3):
+            row_data = [ex_i - 2, ex_name, cls, sec] + ['P']*len(dates) + ['','','','']
+            for col, val in enumerate(row_data, 1):
+                cell = att.cell(row=ex_i, column=col, value=val)
+                if col <= 4:
+                    cell.fill = PatternFill(start_color='E8F4F8', end_color='E8F4F8', fill_type='solid')
+                else:
+                    cell.fill = status_fill
+                thin = Side(style='thin', color='CCCCCC')
+                cell.border = Border(left=thin, right=thin, top=thin, bottom=thin)
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+
     att.column_dimensions['A'].width = 10
     att.column_dimensions['B'].width = 24
     att.column_dimensions['C'].width = 8
@@ -804,31 +857,10 @@ def download_sample_marks():
     for c in range(5, 5 + len(dates) + 4):
         att.column_dimensions[get_column_letter(c)].width = 12
 
-    # ---- KEY SHEET ----
-    key = wb.create_sheet(title='Grades & Keys')
-    key['A1'] = 'GRADING SYSTEM'; key['A1'].font = Font(bold=True, size=14)
-    grade_data = [('Percentage', 'Grade', 'Remarks'),
-                  ('90 - 100', 'A+', 'Outstanding'),
-                  ('80 - 89', 'A',  'Excellent'),
-                  ('70 - 79', 'B+', 'Very Good'),
-                  ('60 - 69', 'B',  'Good'),
-                  ('50 - 59', 'C',  'Average'),
-                  ('35 - 49', 'D',  'Below Average'),
-                  ('0  - 34', 'F',  'Fail')]
-
-    for r, row in enumerate(grade_data, start=2):
-        for c, val in enumerate(row, start=1):
-            key.cell(r, c).value = val
-        if r == 2: style_header(key, r, 3)
-    key['A12'] = 'ATTENDANCE CODES'; key['A12'].font = Font(bold=True, size=12)
-    for r, row in enumerate([('Code','Meaning'),('P','Present'),('A','Absent'),('H','Half Day')], start=13):
-        for c, v in enumerate(row, 1): key.cell(r, c).value = v
-        if r == 13: style_header(key, r, 2)
-    key.column_dimensions['A'].width = 20; key.column_dimensions['B'].width = 12; key.column_dimensions['C'].width = 22
-
-    # Save
-    buf = io.BytesIO(); wb.save(buf); buf.seek(0)
-    filename = f'SPTAS_Marks_Template_Class{cls}{sec}.xlsx'
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename = f'SPTAS_Attendance_Template_Class{cls}{sec}.xlsx'
     return send_file(buf, as_attachment=True, download_name=filename,
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
@@ -1022,7 +1054,7 @@ def download_results_report():
     ws.row_dimensions[1].height = 30
 
     headers = ['Rank','Roll No','Student Name','Class','Section',
-               'Exam','Total','Max Marks','Percentage','Grade','Trend']
+               'Exam','Total','Max Marks','Percentage','Grade','Result','Trend']
     for c, h in enumerate(headers, 1): ws.cell(2, c).value = h
     style_header(ws, 2, len(headers))
 
@@ -1031,12 +1063,14 @@ def download_results_report():
         prog = s.get('examination_progress', [])
         exams_to_report = [e for e in prog if not exam or (e.get('exam_name') or e.get('exam','')) == exam]
         for e in exams_to_report:
+            pct = e.get('percentage', 0)
+            result_status = 'FAIL' if pct < 35 else 'PASS'
             rows_data.append({
                 'roll': s['roll_no'], 'name': s['name'],
                 'class': s['class'], 'section': s['section'],
                 'exam': e.get('exam_name') or e.get('exam',''),
                 'total': e.get('total', 0), 'total_max': e.get('total_max', 500),
-                'pct': e.get('percentage', 0), 'grade': e.get('grade',''),
+                'pct': pct, 'grade': e.get('grade',''), 'result': result_status,
                 'rank': e.get('rank',''), 'trend': s.get('performance_trend','Stable')
             })
 
@@ -1046,22 +1080,27 @@ def download_results_report():
 
     for r_i, row in enumerate(rows_data, start=3):
         vals = [row['rank'],row['roll'],row['name'],row['class'],row['section'],
-                row['exam'],row['total'],row['total_max'],f"{row['pct']}%",row['grade'],row['trend']]
+                row['exam'],row['total'],row['total_max'],f"{row['pct']}%",row['grade'],row['result'],row['trend']]
         even = r_i%2==0
         for c, val in enumerate(vals, 1):
             cell = ws.cell(r_i, c, value=val)
             cell.alignment = Alignment(horizontal='center', vertical='center')
             thin = Side(style='thin', color='CCCCCC')
             cell.border = Border(left=thin,right=thin,top=thin,bottom=thin)
-            if c == 9:  # Grade col
+            if c == 10:  # Grade col
                 gc = grade_colors.get(row['grade'], 'FFFFFF')
                 cell.fill = PatternFill(start_color=gc, end_color=gc, fill_type='solid')
                 cell.font = Font(bold=True)
+            elif c == 11: # Result col
+                rc = 'D4EDDA' if row['result'] == 'PASS' else 'F8D7DA'
+                tc = '065F46' if row['result'] == 'PASS' else '842029'
+                cell.fill = PatternFill(start_color=rc, end_color=rc, fill_type='solid')
+                cell.font = Font(bold=True, color=tc)
             else:
                 bg = 'F8F9FA' if even else 'FFFFFF'
                 cell.fill = PatternFill(start_color=bg, end_color=bg, fill_type='solid')
 
-    col_widths = [8,10,24,8,10,16,10,10,12,8,12]
+    col_widths = [8,10,24,8,10,16,10,10,12,8,10,12]
     for c, w in enumerate(col_widths, 1): ws.column_dimensions[get_column_letter(c)].width = w
 
     buf = io.BytesIO(); wb.save(buf); buf.seek(0)

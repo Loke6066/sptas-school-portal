@@ -4,7 +4,9 @@
     "name": "Mrs. Priya Sen",
     "phone": "9876543210",
     "password": "",
-    "subjects": ["Mathematics"],
+    "subjects": [
+      "Mathematics"
+    ],
     "class": "10",
     "section": "A",
     "attendance_status": "Present",
@@ -15,7 +17,9 @@
     "name": "Mr. Amit Verma",
     "phone": "9123456789",
     "password": "",
-    "subjects": ["Science"],
+    "subjects": [
+      "Science"
+    ],
     "class": "10",
     "section": "A",
     "attendance_status": "Present",
@@ -26,7 +30,9 @@
     "name": "Mrs. Anjali Roy",
     "phone": "9000123456",
     "password": "",
-    "subjects": ["English"],
+    "subjects": [
+      "English"
+    ],
     "class": "10",
     "section": "A",
     "attendance_status": "Present",
@@ -37,7 +43,9 @@
     "name": "Mr. Rohan Gupta",
     "phone": "9111222333",
     "password": "",
-    "subjects": ["Social Studies"],
+    "subjects": [
+      "Social Studies"
+    ],
     "class": "9",
     "section": "B",
     "attendance_status": "Present",
@@ -47,8 +55,10 @@
     "id": "t005",
     "name": "Mrs. Kavita Joshi",
     "phone": "9444555666",
-    "password": "",
-    "subjects": ["Hindi"],
+    "password": "123456",
+    "subjects": [
+      "Hindi"
+    ],
     "class": "10",
     "section": "A",
     "attendance_status": "Absent",
