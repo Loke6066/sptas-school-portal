@@ -470,7 +470,7 @@
                 <div style="font-weight:600;margin-bottom:0.75rem;font-size:0.9rem;color:var(--text-main);">
                     A: Generate &amp; Download Prefilled Marks Template
                 </div>
-                <div class="filter-bar" style="margin-bottom:1.5rem;background:var(--bg-card);border-style:dashed;">
+                <div class="filter-bar" style="margin-bottom:1.5rem;background:var(--bg-card);border-style:dashed;align-items:flex-end;">
                     <div class="filter-item">
                         <label>Class</label>
                         <select id="excel-dl-class" class="form-select"></select>
@@ -483,13 +483,40 @@
                         </select>
                     </div>
                     <div class="filter-item">
-                        <label>Max Marks</label>
-                        <select id="excel-dl-maxmarks" class="form-select">
-                            <option value="25">25</option>
-                            <option value="50">50</option>
-                            <option value="75">75</option>
-                            <option value="100" selected>100</option>
+                        <label>Exam Name</label>
+                        <select id="excel-dl-exam" class="form-select">
+                            <option value="Unit Test 1">Unit Test 1</option>
+                            <option value="Unit Test 2">Unit Test 2</option>
+                            <option value="Quarterly">Quarterly</option>
+                            <option value="Half-Yearly">Half-Yearly</option>
+                            <option value="Pre-Final">Pre-Final</option>
+                            <option value="Final Examination">Final Examination</option>
+                            <option value="custom">Custom Exam Name...</option>
                         </select>
+                    </div>
+                    <div class="filter-item hidden" id="excel-dl-exam-custom-wrapper">
+                        <label>Custom Exam Name</label>
+                        <input type="text" id="excel-dl-exam-custom" class="form-input" placeholder="e.g. Test 3">
+                    </div>
+                    <div class="filter-item" style="position:relative; min-width:200px;">
+                        <label>Subjects</label>
+                        <button type="button" class="form-select" id="excel-dl-subjects-dropdown-btn" style="text-align:left; background-color:var(--bg-card); display:flex; justify-content:space-between; align-items:center;">
+                            <span id="excel-dl-subjects-selected-label">6 Subjects Selected</span>
+                            <i data-lucide="chevron-down" style="width:16px;height:16px;margin-left:8px;"></i>
+                        </button>
+                        <div id="excel-dl-subjects-dropdown-content" class="hidden" style="position:absolute; top:100%; left:0; right:0; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:0.75rem; z-index:100; box-shadow:var(--shadow-md); margin-top:2px; display:flex; flex-direction:column; gap:0.5rem; max-height:220px; overflow-y:auto;">
+                            <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;"><input type="checkbox" class="excel-subj-cb" value="Telugu" checked> Telugu</label>
+                            <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;"><input type="checkbox" class="excel-subj-cb" value="Hindi" checked> Hindi</label>
+                            <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;"><input type="checkbox" class="excel-subj-cb" value="English" checked> English</label>
+                            <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;"><input type="checkbox" class="excel-subj-cb" value="Mathematics" checked> Mathematics</label>
+                            <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;"><input type="checkbox" class="excel-subj-cb" value="Science" checked> Science</label>
+                            <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;"><input type="checkbox" class="excel-subj-cb" value="Social Studies" checked> Social Studies</label>
+                            <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;"><input type="checkbox" id="excel-dl-subjects-cb-custom" value="custom"> Custom Additional...</label>
+                        </div>
+                    </div>
+                    <div class="filter-item hidden" id="excel-dl-subjects-custom-wrapper" style="min-width:220px;">
+                        <label>Custom Subjects (comma-separated)</label>
+                        <input type="text" id="excel-dl-subjects-custom-input" class="form-input" placeholder="e.g. Computer Science, Drawing">
                     </div>
                     <div class="filter-actions">
                         <button id="excel-dl-btn" class="btn btn-primary">
@@ -498,7 +525,7 @@
                     </div>
                 </div>
                 <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem; margin-top:-0.5rem;">
-                    💡 <em>Note: Subjects will be automatically selected based on the dynamic Timetable of the selected class.</em>
+                    💡 <em>Note: Prefilled with student names and roll numbers for error-free data entry.</em>
                 </div>
 
                 <div style="font-weight:600;margin-bottom:0.75rem;font-size:0.9rem;color:var(--text-main);border-top:1px solid var(--border-color);padding-top:1.25rem;">

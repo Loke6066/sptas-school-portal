@@ -661,17 +661,13 @@ def download_sample_marks():
 
     cls = request.args.get('class', '10')
     sec = request.args.get('section', 'A')
-    max_marks_each = int(request.args.get('max_marks', 100))
-
-    # Pull subjects dynamically from class timetable
-    subjects = get_subjects_from_timetable(cls, sec)
-    if not subjects:
-        # Fallback to standard request subjects or default list
-        req_subs = request.args.get('subjects', '')
-        if req_subs:
-            subjects = [s.strip() for s in req_subs.split(',') if s.strip()]
-        else:
-            subjects = ['Telugu', 'Hindi', 'Mathematics', 'Science', 'Social Studies', 'English']
+    exam = request.args.get('exam', 'Unit Test 1').strip()
+    subjects_str = request.args.get('subjects', '')
+    
+    if subjects_str:
+        subjects = [s.strip() for s in subjects_str.split(',') if s.strip()]
+    else:
+        subjects = ['Telugu', 'Hindi', 'English', 'Mathematics', 'Science', 'Social Studies']
 
     students = load_db()
     class_students = sorted(
@@ -688,89 +684,88 @@ def download_sample_marks():
     lock_fill = PatternFill(start_color='E8F4F8', end_color='E8F4F8', fill_type='solid')
     calc_fill  = PatternFill(start_color='D4EDDA', end_color='D4EDDA', fill_type='solid')
 
-    for exam in EXAM_LIST:
-        ws = wb.create_sheet(title=exam.replace(' ', '_'))
-        ws.freeze_panes = 'E3'
+    ws = wb.create_sheet(title=exam.replace(' ', '_').replace('/', '_'))
+    ws.freeze_panes = 'E3'
 
-        # Title row
-        total_cols = 4 + len(subjects) + 5  # roll,name,class,sec + subjects + total,pct,grade,rank,remarks
-        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
-        title_cell = ws.cell(row=1, column=1)
-        title_cell.value = f'SPTAS — {exam} Marks | Class {cls}-{sec} | Max/Subject: {max_marks_each}'
-        title_cell.font = Font(bold=True, size=13, color='FFFFFF')
-        title_cell.fill = PatternFill(start_color='1E1B4B', end_color='1E1B4B', fill_type='solid')
-        title_cell.alignment = Alignment(horizontal='center', vertical='center')
-        ws.row_dimensions[1].height = 28
+    # Title row
+    total_cols = 4 + len(subjects) + 5  # roll,name,class,sec + subjects + total,pct,grade,rank,remarks
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
+    title_cell = ws.cell(row=1, column=1)
+    title_cell.value = f'SPTAS — {exam} Marks | Class {cls}-{sec} | Max/Subject: 100'
+    title_cell.font = Font(bold=True, size=13, color='FFFFFF')
+    title_cell.fill = PatternFill(start_color='1E1B4B', end_color='1E1B4B', fill_type='solid')
+    title_cell.alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 28
 
-        # Header row
-        headers = ['Roll No', 'Student Name', 'Class', 'Section'] + subjects + \
-                  ['Total', 'Percentage', 'Grade', 'Class Rank', 'Remarks']
-        for col, h in enumerate(headers, 1):
-            ws.cell(row=2, column=col).value = h
-        style_header(ws, 2, len(headers))
+    # Header row
+    headers = ['Roll No', 'Student Name', 'Class', 'Section'] + subjects + \
+              ['Total', 'Percentage', 'Grade', 'Class Rank', 'Remarks']
+    for col, h in enumerate(headers, 1):
+        ws.cell(row=2, column=col).value = h
+    style_header(ws, 2, len(headers))
 
-        # Colour subject columns
-        for col in range(5, 5 + len(subjects)):
-            ws.cell(row=2, column=col).fill = PatternFill(start_color='1D6A3A', end_color='1D6A3A', fill_type='solid')
-            ws.cell(row=2, column=col).font = Font(bold=True, color='FFFFFF', size=11)
+    # Colour subject columns
+    for col in range(5, 5 + len(subjects)):
+        ws.cell(row=2, column=col).fill = PatternFill(start_color='1D6A3A', end_color='1D6A3A', fill_type='solid')
+        ws.cell(row=2, column=col).font = Font(bold=True, color='FFFFFF', size=11)
 
-        # Colour calculated columns
-        calc_start = 5 + len(subjects)
-        for col in range(calc_start, calc_start + 4):
-            ws.cell(row=2, column=col).fill = PatternFill(start_color='0C4A6E', end_color='0C4A6E', fill_type='solid')
-            ws.cell(row=2, column=col).font = Font(bold=True, color='FFFFFF', size=11)
+    # Colour calculated columns
+    calc_start = 5 + len(subjects)
+    for col in range(calc_start, calc_start + 4):
+        ws.cell(row=2, column=col).fill = PatternFill(start_color='0C4A6E', end_color='0C4A6E', fill_type='solid')
+        ws.cell(row=2, column=col).font = Font(bold=True, color='FFFFFF', size=11)
 
-        # Student rows
-        for row_i, student in enumerate(class_students, start=3):
-            row_data = [
-                student['roll_no'], student['name'],
-                student['class'], student['section']
-            ] + [0] * len(subjects) + ['', '', '', '', '']
+    # Student rows
+    for row_i, student in enumerate(class_students, start=3):
+        row_data = [
+            student['roll_no'], student['name'],
+            student['class'], student['section']
+        ] + [0] * len(subjects) + ['', '', '', '', '']
+        for col, val in enumerate(row_data, 1):
+            cell = ws.cell(row=row_i, column=col, value=val)
+            if col <= 4:
+                cell.fill = lock_fill
+                cell.font = Font(size=10, bold=(col==1))
+            elif col <= 4 + len(subjects):
+                cell.fill = subj_fill
+                cell.font = Font(size=11)
+            else:
+                cell.fill = calc_fill
+                cell.font = Font(size=10, color='555555')
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            thin = Side(style='thin', color='CCCCCC')
+            cell.border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    # If no students, add example rows
+    if not class_students:
+        for ex_i, ex_name in enumerate(['Example Student 1', 'Example Student 2'], start=3):
+            row_data = [ex_i - 2, ex_name, cls, sec] + [0]*len(subjects) + ['','','','',' ']
             for col, val in enumerate(row_data, 1):
-                cell = ws.cell(row=row_i, column=col, value=val)
+                cell = ws.cell(row=ex_i, column=col, value=val)
                 if col <= 4:
                     cell.fill = lock_fill
-                    cell.font = Font(size=10, bold=(col==1))
                 elif col <= 4 + len(subjects):
                     cell.fill = subj_fill
-                    cell.font = Font(size=11)
                 else:
                     cell.fill = calc_fill
-                    cell.font = Font(size=10, color='555555')
-                cell.alignment = Alignment(horizontal='center', vertical='center')
                 thin = Side(style='thin', color='CCCCCC')
                 cell.border = Border(left=thin, right=thin, top=thin, bottom=thin)
+                cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        # If no students, add example rows
-        if not class_students:
-            for ex_i, ex_name in enumerate(['Example Student 1', 'Example Student 2'], start=3):
-                row_data = [ex_i - 2, ex_name, cls, sec] + [0]*len(subjects) + ['','','','',' ']
-                for col, val in enumerate(row_data, 1):
-                    cell = ws.cell(row=ex_i, column=col, value=val)
-                    if col <= 4:
-                        cell.fill = lock_fill
-                    elif col <= 4 + len(subjects):
-                        cell.fill = subj_fill
-                    else:
-                        cell.fill = calc_fill
-                    thin = Side(style='thin', color='CCCCCC')
-                    cell.border = Border(left=thin, right=thin, top=thin, bottom=thin)
-                    cell.alignment = Alignment(horizontal='center', vertical='center')
-
-        # Column widths
-        ws.column_dimensions['A'].width = 10
-        ws.column_dimensions['B'].width = 24
-        ws.column_dimensions['C'].width = 8
-        ws.column_dimensions['D'].width = 10
-        for c in range(5, 5 + len(subjects)):
-            ws.column_dimensions[get_column_letter(c)].width = 14
-        for c in range(5+len(subjects), 5+len(subjects)+5):
-            ws.column_dimensions[get_column_letter(c)].width = 13
+    # Column widths
+    ws.column_dimensions['A'].width = 10
+    ws.column_dimensions['B'].width = 24
+    ws.column_dimensions['C'].width = 8
+    ws.column_dimensions['D'].width = 10
+    for c in range(5, 5 + len(subjects)):
+        ws.column_dimensions[get_column_letter(c)].width = 14
+    for c in range(5+len(subjects), 5+len(subjects)+5):
+        ws.column_dimensions[get_column_letter(c)].width = 13
 
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
-    filename = f'SPTAS_Marks_Template_Class{cls}{sec}.xlsx'
+    filename = f'SPTAS_Marks_Template_{exam.replace(" ","_")}_Class{cls}{sec}.xlsx'
     return send_file(buf, as_attachment=True, download_name=filename,
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
@@ -958,6 +953,8 @@ def upload_marks_excel():
             s = student_map.get(row_data['roll_no'])
             if s:
                 row_data['name'] = s['name']
+                row_data['class'] = s.get('class','')
+                row_data['section'] = s.get('section','')
                 row_data['exam'] = exam_name
                 row_data['max_marks'] = max_marks
                 results_summary.append(row_data)
@@ -1039,72 +1036,139 @@ def download_results_report():
     exam = request.args.get('exam', '')
 
     students = load_db()
-    filtered = [s for s in students if (not cls or str(s['class'])==cls) and
-                (not sec or s['section']==sec)]
+    filtered = sorted([s for s in students if (not cls or str(s['class'])==cls) and
+                (not sec or s['section']==sec)], key=lambda x: x['roll_no'])
+
+    # Gather subjects list from students' exam progress
+    subjects = []
+    for s in filtered:
+        prog = s.get('examination_progress', [])
+        exam_entry = next((e for e in prog if (e.get('exam_name') or e.get('exam','')) == exam), None)
+        if exam_entry and exam_entry.get('subjects'):
+            subjects = [sub.get('name') for sub in exam_entry['subjects']]
+            break
+            
+    if not subjects:
+        # Fallback to default
+        subjects = ['Telugu', 'Hindi', 'English', 'Mathematics', 'Science', 'Social Studies']
 
     wb = openpyxl.Workbook()
     ws = wb.active; ws.title = 'Results Report'
+    ws.freeze_panes = 'E3'
 
     # Title
-    ws.merge_cells('A1:K1')
+    total_cols = 4 + len(subjects) + 6  # roll,name,class,sec + subjects + total, pct, grade, rank, result, remarks
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
     ws['A1'] = f'SPTAS — Results Report | Class {cls or "All"}-{sec or "All"} | {exam or "All Exams"}'
     ws['A1'].font = Font(bold=True, size=14, color='FFFFFF')
     ws['A1'].fill = PatternFill(start_color='1E1B4B', end_color='1E1B4B', fill_type='solid')
     ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
     ws.row_dimensions[1].height = 30
 
-    headers = ['Rank','Roll No','Student Name','Class','Section',
-               'Exam','Total','Max Marks','Percentage','Grade','Result','Trend']
+    headers = ['Roll No', 'Student Name', 'Class', 'Section'] + subjects + \
+              ['Total', 'Percentage', 'Grade', 'Class Rank', 'Result', 'Remarks']
     for c, h in enumerate(headers, 1): ws.cell(2, c).value = h
     style_header(ws, 2, len(headers))
+
+    # Color subjects and calculated headers
+    for col in range(5, 5 + len(subjects)):
+        ws.cell(row=2, column=col).fill = PatternFill(start_color='1D6A3A', end_color='1D6A3A', fill_type='solid')
+        ws.cell(row=2, column=col).font = Font(bold=True, color='FFFFFF', size=11)
+        
+    calc_start = 5 + len(subjects)
+    for col in range(calc_start, calc_start + 5):
+        ws.cell(row=2, column=col).fill = PatternFill(start_color='0C4A6E', end_color='0C4A6E', fill_type='solid')
+        ws.cell(row=2, column=col).font = Font(bold=True, color='FFFFFF', size=11)
 
     rows_data = []
     for s in filtered:
         prog = s.get('examination_progress', [])
-        exams_to_report = [e for e in prog if not exam or (e.get('exam_name') or e.get('exam','')) == exam]
-        for e in exams_to_report:
-            pct = e.get('percentage', 0)
-            result_status = 'FAIL' if pct < 35 else 'PASS'
-            rows_data.append({
-                'roll': s['roll_no'], 'name': s['name'],
-                'class': s['class'], 'section': s['section'],
-                'exam': e.get('exam_name') or e.get('exam',''),
-                'total': e.get('total', 0), 'total_max': e.get('total_max', 500),
-                'pct': pct, 'grade': e.get('grade',''), 'result': result_status,
-                'rank': e.get('rank',''), 'trend': s.get('performance_trend','Stable')
-            })
+        exam_entry = next((e for e in prog if (e.get('exam_name') or e.get('exam','')) == exam), None)
+        
+        # Build scores map
+        scores = {sub: '' for sub in subjects}
+        total = ''
+        pct = ''
+        grade = ''
+        rank = 9999 # fallback high rank for sorting
+        result = ''
+        remarks = ''
+        
+        if exam_entry:
+            for sub_obj in exam_entry.get('subjects', []):
+                sname = sub_obj.get('name')
+                if sname in scores:
+                    scores[sname] = sub_obj.get('obtained', 0)
+            total = exam_entry.get('total', 0)
+            pct = exam_entry.get('percentage', 0)
+            grade = exam_entry.get('grade', '')
+            rank = exam_entry.get('rank', 9999)
+            result = 'FAIL' if pct < 35 else 'PASS'
+            remarks = 'Needs Improvement' if pct < 35 else 'Passed'
+        
+        row_dict = {
+            'roll': s['roll_no'],
+            'name': s['name'],
+            'class': s['class'],
+            'section': s['section'],
+            'scores': scores,
+            'total': total,
+            'pct': pct,
+            'grade': grade,
+            'rank': rank,
+            'result': result,
+            'remarks': remarks
+        }
+        rows_data.append(row_dict)
 
-    rows_data.sort(key=lambda x: (-x['pct'], x['roll']))
+    # Sort by Class Rank ascending (1 first, then 2, 3...)
+    rows_data.sort(key=lambda x: x['rank'])
+
     grade_colors = {'A+':'D4EDDA','A':'C3E6CB','B+':'D1ECF1','B':'BEE5EB',
                     'C':'FFF3CD','D':'FFE8A1','F':'F8D7DA',''  :'FFFFFF'}
 
     for r_i, row in enumerate(rows_data, start=3):
-        vals = [row['rank'],row['roll'],row['name'],row['class'],row['section'],
-                row['exam'],row['total'],row['total_max'],f"{row['pct']}%",row['grade'],row['result'],row['trend']]
+        sub_vals = [row['scores'][sub] for sub in subjects]
+        rank_label = f"#{row['rank']}" if row['rank'] != 9999 else ''
+        pct_label = f"{row['pct']}%" if row['pct'] != '' else ''
+        
+        vals = [row['roll'], row['name'], row['class'], row['section']] + sub_vals + \
+               [row['total'], pct_label, row['grade'], rank_label, row['result'], row['remarks']]
+        
         even = r_i%2==0
         for c, val in enumerate(vals, 1):
             cell = ws.cell(r_i, c, value=val)
             cell.alignment = Alignment(horizontal='center', vertical='center')
             thin = Side(style='thin', color='CCCCCC')
             cell.border = Border(left=thin,right=thin,top=thin,bottom=thin)
-            if c == 10:  # Grade col
+            
+            # Highlight Grade and Result columns
+            grade_col_idx = 4 + len(subjects) + 3
+            result_col_idx = 4 + len(subjects) + 5
+            rank_col_idx = 4 + len(subjects) + 4
+            
+            if c == grade_col_idx:
                 gc = grade_colors.get(row['grade'], 'FFFFFF')
                 cell.fill = PatternFill(start_color=gc, end_color=gc, fill_type='solid')
                 cell.font = Font(bold=True)
-            elif c == 11: # Result col
+            elif c == result_col_idx and row['result']:
                 rc = 'D4EDDA' if row['result'] == 'PASS' else 'F8D7DA'
                 tc = '065F46' if row['result'] == 'PASS' else '842029'
                 cell.fill = PatternFill(start_color=rc, end_color=rc, fill_type='solid')
                 cell.font = Font(bold=True, color=tc)
+            elif c == rank_col_idx:
+                cell.font = Font(bold=True, color='1E3A5F')
             else:
                 bg = 'F8F9FA' if even else 'FFFFFF'
                 cell.fill = PatternFill(start_color=bg, end_color=bg, fill_type='solid')
 
-    col_widths = [8,10,24,8,10,16,10,10,12,8,10,12]
-    for c, w in enumerate(col_widths, 1): ws.column_dimensions[get_column_letter(c)].width = w
+    # Calculate column widths dynamically
+    col_widths = [10, 24, 8, 10] + [14] * len(subjects) + [10, 12, 8, 12, 10, 16]
+    for c, w in enumerate(col_widths, 1): 
+        ws.column_dimensions[get_column_letter(c)].width = w
 
     buf = io.BytesIO(); wb.save(buf); buf.seek(0)
-    fname = f'SPTAS_Results_{cls or "All"}{sec or ""}.xlsx'
+    fname = f'SPTAS_Ranks_Report_Class{cls or "All"}{sec or ""}_{exam.replace(" ","_")}.xlsx'
     return send_file(buf, as_attachment=True, download_name=fname,
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 

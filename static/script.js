@@ -934,9 +934,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 .then(meetings => {
                     const studentClassSec = `${student.class}-${student.section}`;
                     const relevantMeetings = meetings.filter(m => {
-                        if (m.classes === 'all' || m.classes === 'All Classes') return true;
-                        if (Array.isArray(m.classes)) return m.classes.includes(studentClassSec);
-                        if (typeof m.classes === 'string') return m.classes.split(',').map(c => c.trim()).includes(studentClassSec);
+                        if (!m.classes) return false;
+                        if (m.classes === 'all' || m.classes === 'All Classes' || m.classes === 'all-classes') return true;
+                        if (Array.isArray(m.classes)) {
+                            if (m.classes.includes('all') || m.classes.includes('All Classes') || m.classes.includes('all-classes')) return true;
+                            return m.classes.includes(studentClassSec);
+                        }
+                        if (typeof m.classes === 'string') {
+                            const list = m.classes.split(',').map(c => c.trim().toLowerCase());
+                            if (list.includes('all') || list.includes('all classes') || list.includes('all-classes')) return true;
+                            return list.includes(studentClassSec.toLowerCase());
+                        }
                         return false;
                     });
                     
@@ -1228,12 +1236,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 const meetings=await res.json();
                 const cls=`${student.class}-${student.section}`;
                 const relevant=meetings.filter(m=>{
-                    if (m.classes === 'all' || m.classes === 'All Classes') return true;
+                    if (!m.classes) return false;
+                    if (m.classes === 'all' || m.classes === 'All Classes' || m.classes === 'all-classes') return true;
                     if (Array.isArray(m.classes)) {
+                        if (m.classes.includes('all') || m.classes.includes('All Classes') || m.classes.includes('all-classes')) return true;
                         return m.classes.includes(cls);
                     }
                     if (typeof m.classes === 'string') {
-                        return m.classes.split(',').map(c => c.trim()).includes(cls);
+                        const list = m.classes.split(',').map(c => c.trim().toLowerCase());
+                        if (list.includes('all') || list.includes('all classes') || list.includes('all-classes')) return true;
+                        return list.includes(cls.toLowerCase());
                     }
                     return false;
                 });
@@ -1812,16 +1824,78 @@ document.addEventListener("DOMContentLoaded", function () {
     // EXCEL IMPORT / EXPORT
     // ============================================================
 
+    // ---- DYNAMIC MARKS TEMPLATE EXAM & SUBJECT SELECTORS BINDINGS ----
+    document.getElementById('excel-dl-exam')?.addEventListener('change', function() {
+        const customWrapper = document.getElementById('excel-dl-exam-custom-wrapper');
+        if (customWrapper) customWrapper.classList.toggle('hidden', this.value !== 'custom');
+    });
+
+    document.getElementById('excel-dl-subjects-dropdown-btn')?.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const popup = document.getElementById('excel-dl-subjects-dropdown-content');
+        if (popup) popup.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', function(e) {
+        const popup = document.getElementById('excel-dl-subjects-dropdown-content');
+        if (popup && !popup.contains(e.target) && e.target.id !== 'excel-dl-subjects-dropdown-btn') {
+            popup.classList.add('hidden');
+        }
+    });
+
+    function updateExcelSubjectsSelectedLabel() {
+        const cbs = document.querySelectorAll('.excel-subj-cb:checked');
+        const customCb = document.getElementById('excel-dl-subjects-cb-custom');
+        const customWrapper = document.getElementById('excel-dl-subjects-custom-wrapper');
+        
+        if (customCb && customWrapper) {
+            customWrapper.classList.toggle('hidden', !customCb.checked);
+        }
+        
+        let count = cbs.length;
+        const label = document.getElementById('excel-dl-subjects-selected-label');
+        if (label) {
+            label.textContent = `${count} Subject${count !== 1 ? 's' : ''} Selected`;
+        }
+    }
+
+    document.querySelectorAll('.excel-subj-cb, #excel-dl-subjects-cb-custom').forEach(cb => {
+        cb.addEventListener('change', updateExcelSubjectsSelectedLabel);
+    });
+
     // ---- DOWNLOAD SAMPLE TEMPLATE ----
     document.getElementById('excel-dl-btn')?.addEventListener('click', function() {
         const cls     = document.getElementById('excel-dl-class')?.value || '10';
         const sec     = document.getElementById('excel-dl-section')?.value || 'A';
-        const max     = document.getElementById('excel-dl-maxmarks')?.value || '100';
         if (!cls) { showToast('Please select a class.', 'error'); return; }
-        const url = `/api/excel/sample-marks?class=${encodeURIComponent(cls)}&section=${sec}&max_marks=${max}`;
+
+        // Determine exam name
+        const examSelect = document.getElementById('excel-dl-exam')?.value || 'Unit Test 1';
+        let examName = examSelect;
+        if (examSelect === 'custom') {
+            examName = document.getElementById('excel-dl-exam-custom')?.value.trim();
+            if (!examName) { showToast('Please enter custom exam name.', 'error'); return; }
+        }
+
+        // Gather subjects
+        let selectedSubs = Array.from(document.querySelectorAll('.excel-subj-cb:checked')).map(cb => cb.value);
+        const customCb = document.getElementById('excel-dl-subjects-cb-custom');
+        if (customCb?.checked) {
+            const customSubsStr = document.getElementById('excel-dl-subjects-custom-input')?.value.trim();
+            if (customSubsStr) {
+                customSubsStr.split(',').forEach(s => {
+                    const val = s.trim();
+                    if (val && !selectedSubs.includes(val)) selectedSubs.push(val);
+                });
+            }
+        }
+
+        if (selectedSubs.length === 0) { showToast('Select at least one subject.', 'error'); return; }
+
+        const url = `/api/excel/sample-marks?class=${encodeURIComponent(cls)}&section=${encodeURIComponent(sec)}&exam=${encodeURIComponent(examName)}&subjects=${encodeURIComponent(selectedSubs.join(','))}`;
         showToast(`Generating Marks template for Class ${cls}-${sec}... Downloading!`, 'success');
         const a = document.createElement('a');
-        a.href = url; a.download = `SPTAS_Marks_Template_Class${cls}${sec}.xlsx`;
+        a.href = url; a.download = `SPTAS_Marks_Template_${examName.replace(/ /g,'_')}_Class${cls}${sec}.xlsx`;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
     });
 
