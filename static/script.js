@@ -21,15 +21,16 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Manually populate all class selects
-    const classSelectIds = ['filter-class','att-class-filter','tt-class-select','report-class','tf-class-pick'];
+    const classSelectIds = ['filter-class','att-class-filter','tt-class-select','report-class','tf-class-pick','excel-dl-class','excel-rep-class'];
     classSelectIds.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
-        const isAll = ['filter-class','report-class'].includes(id);
+        const isAll = ['filter-class','report-class','excel-rep-class'].includes(id);
         el.innerHTML = buildClassOptions(isAll, id === 'tf-class-pick');
     });
     const formClass = document.getElementById('form-class');
     if (formClass) formClass.innerHTML = buildClassOptions(false, false);
+
 
     // Meeting class checkboxes
     function buildMeetingCheckboxes() {
@@ -1619,5 +1620,209 @@ document.addEventListener("DOMContentLoaded", function () {
             <td><button type="button" class="btn-action btn-delete" onclick="this.closest('tr').remove()"><i data-lucide="trash-2"></i></button></td>`;
         tbody.appendChild(row); lucide.createIcons();
     });
+
+    // ============================================================
+    // EXCEL IMPORT / EXPORT
+    // ============================================================
+
+    // ---- DOWNLOAD SAMPLE TEMPLATE ----
+    document.getElementById('excel-dl-btn')?.addEventListener('click', function() {
+        const cls     = document.getElementById('excel-dl-class')?.value || '10';
+        const sec     = document.getElementById('excel-dl-section')?.value || 'A';
+        const max     = document.getElementById('excel-dl-maxmarks')?.value || '100';
+        const subjects= document.getElementById('excel-dl-subjects')?.value.trim() || 'Mathematics,Science,English,Hindi,Social Studies';
+        if (!cls) { showToast('Please select a class.', 'error'); return; }
+        const url = `/api/excel/sample-marks?class=${encodeURIComponent(cls)}&section=${sec}&max_marks=${max}&subjects=${encodeURIComponent(subjects)}`;
+        showToast(`Generating Excel for Class ${cls}-${sec}... Downloading!`, 'success');
+        const a = document.createElement('a');
+        a.href = url; a.download = `SPTAS_Template_Class${cls}${sec}.xlsx`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    });
+
+    // ---- MARKS UPLOAD: Drag & Drop ----
+    setupDropZone('marks-drop-zone', 'marks-file-input', uploadMarksFile);
+
+    document.getElementById('marks-file-input')?.addEventListener('change', function() {
+        if (this.files[0]) uploadMarksFile(this.files[0]);
+    });
+
+    async function uploadMarksFile(file) {
+        const progressDiv = document.getElementById('marks-upload-progress');
+        const progressFill = document.getElementById('marks-progress-fill');
+        const progressText = document.getElementById('marks-progress-text');
+        const resultDiv = document.getElementById('marks-upload-result');
+
+        progressDiv.classList.remove('hidden');
+        resultDiv.classList.add('hidden');
+        // Animate progress bar
+        let prog = 0;
+        const interval = setInterval(() => {
+            prog = Math.min(prog + 10, 85);
+            progressFill.style.width = prog + '%';
+        }, 200);
+
+        const form = new FormData();
+        form.append('file', file);
+        progressText.textContent = `Processing "${file.name}"...`;
+
+        try {
+            const res = await fetch('/api/excel/upload-marks', { method: 'POST', body: form });
+            const data = await res.json();
+            clearInterval(interval);
+            progressFill.style.width = '100%';
+            setTimeout(() => {
+                progressDiv.classList.add('hidden');
+                progressFill.style.width = '0%';
+            }, 600);
+
+            resultDiv.classList.remove('hidden');
+            if (data.success) {
+                showToast(`✅ ${data.updated} student records updated!`, 'success');
+                renderMarksUploadResult(data);
+                loadStudentTable(); // refresh table
+            } else {
+                resultDiv.innerHTML = `<div class="upload-result-error"><i data-lucide="alert-circle"></i> ${data.message}</div>`;
+                lucide.createIcons();
+            }
+        } catch(e) {
+            clearInterval(interval);
+            progressDiv.classList.add('hidden');
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = `<div class="upload-result-error"><i data-lucide="wifi-off"></i> Connection error: ${e.message}</div>`;
+            lucide.createIcons();
+        }
+    }
+
+    function renderMarksUploadResult(data) {
+        const div = document.getElementById('marks-upload-result');
+        const errors = data.errors || [];
+        const results = data.results || [];
+
+        // Group by exam
+        const examMap = {};
+        results.forEach(r => {
+            if (!examMap[r.exam]) examMap[r.exam] = [];
+            examMap[r.exam].push(r);
+        });
+
+        let html = `
+            <div class="upload-result-banner success">
+                <i data-lucide="check-circle"></i>
+                <div>
+                    <strong>${data.updated} student records updated</strong>
+                    <p>${Object.keys(examMap).length} exam(s) processed</p>
+                </div>
+            </div>`;
+
+        Object.entries(examMap).forEach(([exam, rows]) => {
+            html += `
+            <div style="margin-top:1.25rem;">
+                <div style="font-weight:700;font-size:0.95rem;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem;">
+                    📝 ${exam}
+                    <span class="badge badge-info">${rows.length} Students</span>
+                </div>
+                <div class="table-container">
+                <table class="data-table">
+                <thead><tr>
+                    <th>Rank</th><th>Roll No</th><th>Student Name</th>
+                    <th>Total</th><th>Percentage</th><th>Grade</th>
+                </tr></thead><tbody>
+                ${rows.map(r => {
+                    const gc = r.grade==='A+'?'D4EDDA':r.grade==='A'?'C3E6CB':r.grade==='B+'?'D1ECF1':r.grade==='B'?'BEE5EB':r.grade==='C'?'FFF3CD':r.grade==='D'?'FFE8A1':'F8D7DA';
+                    return `<tr>
+                        <td><strong style="color:var(--primary);">#${r.rank}</strong></td>
+                        <td>${r.roll_no}</td>
+                        <td>${r.name}</td>
+                        <td><strong>${r.total}</strong></td>
+                        <td><strong>${r.percentage}%</strong></td>
+                        <td><span style="background:#${gc};padding:0.2rem 0.6rem;border-radius:12px;font-weight:700;font-size:0.78rem;">${r.grade}</span></td>
+                    </tr>`;
+                }).join('')}
+                </tbody></table></div>
+            </div>`;
+        });
+
+        if (errors.length) {
+            html += `<div class="upload-result-errors" style="margin-top:1rem;">
+                <strong>⚠️ Warnings (${errors.length}):</strong>
+                <ul>${errors.map(e => `<li>${e}</li>`).join('')}</ul>
+            </div>`;
+        }
+        div.innerHTML = html;
+        lucide.createIcons();
+    }
+
+    // ---- ATTENDANCE UPLOAD: Drag & Drop ----
+    setupDropZone('att-drop-zone', 'att-file-input', uploadAttFile);
+
+    document.getElementById('att-file-input')?.addEventListener('change', function() {
+        if (this.files[0]) uploadAttFile(this.files[0]);
+    });
+
+    async function uploadAttFile(file) {
+        const resultDiv = document.getElementById('att-upload-result');
+        resultDiv.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--text-muted);">⏳ Processing attendance...</div>`;
+        resultDiv.classList.remove('hidden');
+        const form = new FormData();
+        form.append('file', file);
+        try {
+            const res = await fetch('/api/excel/upload-attendance', { method: 'POST', body: form });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`✅ Attendance updated for ${data.updated} students across ${data.date_columns} dates!`, 'success');
+                resultDiv.innerHTML = `
+                    <div class="upload-result-banner success">
+                        <i data-lucide="check-circle"></i>
+                        <div>
+                            <strong>${data.updated} student attendance records updated</strong>
+                            <p>${data.date_columns} date columns processed</p>
+                        </div>
+                    </div>`;
+                loadStudentTable();
+            } else {
+                resultDiv.innerHTML = `<div class="upload-result-error"><i data-lucide="alert-circle"></i> ${data.message}</div>`;
+            }
+            lucide.createIcons();
+        } catch(e) {
+            resultDiv.innerHTML = `<div class="upload-result-error">Error: ${e.message}</div>`;
+        }
+    }
+
+    // ---- DOWNLOAD RESULTS REPORT ----
+    document.getElementById('excel-rep-btn')?.addEventListener('click', function() {
+        const cls  = document.getElementById('excel-rep-class')?.value || '';
+        const sec  = document.getElementById('excel-rep-section')?.value || '';
+        const exam = document.getElementById('excel-rep-exam')?.value || '';
+        const params = new URLSearchParams();
+        if (cls) params.set('class', cls);
+        if (sec) params.set('section', sec);
+        if (exam) params.set('exam', exam);
+        showToast('Generating results report...', 'success');
+        const a = document.createElement('a');
+        a.href = `/api/excel/results-report?${params.toString()}`;
+        a.download = `SPTAS_Results.xlsx`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    });
+
+    // ---- HELPER: Setup Drag & Drop Zone ----
+    function setupDropZone(zoneId, inputId, handler) {
+        const zone = document.getElementById(zoneId);
+        const input = document.getElementById(inputId);
+        if (!zone || !input) return;
+
+        zone.addEventListener('click', () => input.click());
+
+        zone.addEventListener('dragover', e => {
+            e.preventDefault();
+            zone.classList.add('drag-over');
+        });
+        zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+        zone.addEventListener('drop', e => {
+            e.preventDefault();
+            zone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file) handler(file);
+        });
+    }
 
 }); // end DOMContentLoaded

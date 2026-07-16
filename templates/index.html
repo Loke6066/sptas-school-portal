@@ -203,6 +203,8 @@
         <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-teachers"><i data-lucide="user-cog"></i> <span>Teachers</span></button>
         <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-meetings"><i data-lucide="calendar-heart"></i> <span>Meetings</span></button>
         <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-reports"><i data-lucide="bar-chart-2"></i> <span>Reports</span></button>
+        <button class="admin-tab-pill" data-admin-tab="tab-excel"><i data-lucide="file-spreadsheet"></i> <span>Import/Export</span></button>
+
     </div>
 
     <!-- ===== STUDENTS TAB ===== -->
@@ -363,7 +365,158 @@
             </div>
         </div>
     </div>
+
+    <!-- ===== EXCEL IMPORT/EXPORT TAB ===== -->
+    <div class="admin-tab-content hidden" id="tab-excel">
+        <!-- Step 1: Download Sample -->
+        <div class="excel-step-card">
+            <div class="excel-step-header" style="background:linear-gradient(135deg,#1e3a5f,#1e1b4b);">
+                <div class="excel-step-num">Step 1</div>
+                <div>
+                    <h3>📥 Download Sample Template</h3>
+                    <p>Download a pre-filled Excel sheet with your class students and exam sheets already set up.</p>
+                </div>
+            </div>
+            <div class="excel-step-body">
+                <div class="filter-bar" style="margin-bottom:0;">
+                    <div class="filter-item">
+                        <label>Class</label>
+                        <select id="excel-dl-class" class="form-select"></select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Section</label>
+                        <select id="excel-dl-section" class="form-select">
+                            <option value="A">A</option><option value="B">B</option>
+                            <option value="C">C</option><option value="D">D</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Max Marks per Subject</label>
+                        <select id="excel-dl-maxmarks" class="form-select">
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="75">75</option>
+                            <option value="100" selected>100</option>
+                        </select>
+                    </div>
+                    <div class="filter-item" style="flex:1;min-width:200px;">
+                        <label>Subjects (comma-separated)</label>
+                        <input type="text" id="excel-dl-subjects" class="form-input"
+                            value="Mathematics,Science,English,Hindi,Social Studies"
+                            placeholder="Mathematics,Science,English,...">
+                    </div>
+                    <div class="filter-actions">
+                        <button id="excel-dl-btn" class="btn btn-primary">
+                            <i data-lucide="download"></i> Download Template
+                        </button>
+                    </div>
+                </div>
+                <div class="excel-legend">
+                    <span class="excel-legend-item" style="background:#E8F4F8;">🔒 Lock (Roll No, Name, Class)</span>
+                    <span class="excel-legend-item" style="background:#FFF3CD;">✏️ Fill Marks Here</span>
+                    <span class="excel-legend-item" style="background:#D4EDDA;">🤖 Auto-calculated on Upload</span>
+                    <span class="excel-legend-item" style="background:#D1FAE5;">📅 Attendance (P/A/H)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Upload Marks -->
+        <div class="excel-step-card">
+            <div class="excel-step-header" style="background:linear-gradient(135deg,#064e3b,#065f46);">
+                <div class="excel-step-num">Step 2</div>
+                <div>
+                    <h3>📤 Upload Marks Excel</h3>
+                    <p>Fill in student marks in the downloaded template and upload it. System will auto-calculate Total, Percentage, Grade &amp; Class Rank.</p>
+                </div>
+            </div>
+            <div class="excel-step-body">
+                <div class="upload-drop-zone" id="marks-drop-zone">
+                    <div class="upload-drop-icon"><i data-lucide="file-spreadsheet"></i></div>
+                    <p class="upload-drop-title">Drop Marks Excel Here</p>
+                    <p class="upload-drop-sub">or click to browse (.xlsx only)</p>
+                    <input type="file" id="marks-file-input" accept=".xlsx,.xls" style="display:none;">
+                </div>
+                <div id="marks-upload-progress" class="hidden" style="margin-top:1rem;">
+                    <div class="upload-progress-bar"><div class="upload-progress-fill" id="marks-progress-fill"></div></div>
+                    <p id="marks-progress-text" style="text-align:center;font-size:0.85rem;margin-top:0.5rem;color:var(--text-muted);">Processing...</p>
+                </div>
+                <div id="marks-upload-result" class="hidden" style="margin-top:1rem;"></div>
+            </div>
+        </div>
+
+        <!-- Step 2B: Upload Attendance -->
+        <div class="excel-step-card">
+            <div class="excel-step-header" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);">
+                <div class="excel-step-num">Step 2B</div>
+                <div>
+                    <h3>📋 Upload Attendance Excel</h3>
+                    <p>Fill in P (Present), A (Absent), H (Half Day) for each date in the Attendance sheet and upload. System will auto-update attendance %.</p>
+                </div>
+            </div>
+            <div class="excel-step-body">
+                <div class="upload-drop-zone" id="att-drop-zone">
+                    <div class="upload-drop-icon"><i data-lucide="calendar-check"></i></div>
+                    <p class="upload-drop-title">Drop Attendance Excel Here</p>
+                    <p class="upload-drop-sub">or click to browse (.xlsx only)</p>
+                    <input type="file" id="att-file-input" accept=".xlsx,.xls" style="display:none;">
+                </div>
+                <div id="att-upload-result" class="hidden" style="margin-top:1rem;"></div>
+            </div>
+        </div>
+
+        <!-- Step 3: Download Results Report -->
+        <div class="excel-step-card">
+            <div class="excel-step-header" style="background:linear-gradient(135deg,#9d174d,#be185d);">
+                <div class="excel-step-num">Step 3</div>
+                <div>
+                    <h3>📊 Download Results Report</h3>
+                    <p>Download a formatted Excel report with Rank, Grade, Total, and Performance Trend for any class/exam combination.</p>
+                </div>
+            </div>
+            <div class="excel-step-body">
+                <div class="filter-bar" style="margin-bottom:0;">
+                    <div class="filter-item">
+                        <label>Class</label>
+                        <select id="excel-rep-class" class="form-select"></select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Section</label>
+                        <select id="excel-rep-section" class="form-select">
+                            <option value="">All Sections</option>
+                            <option>A</option><option>B</option><option>C</option><option>D</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Exam (Optional)</label>
+                        <select id="excel-rep-exam" class="form-select">
+                            <option value="">All Exams</option>
+                            <option>Unit Test 1</option>
+                            <option>Unit Test 2</option>
+                            <option>Half Yearly</option>
+                            <option>Pre-Annual</option>
+                            <option>Annual</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button id="excel-rep-btn" class="btn btn-primary">
+                            <i data-lucide="download"></i> Download Report
+                        </button>
+                    </div>
+                </div>
+                <div class="grade-legend" style="margin-top:1rem;">
+                    <span class="gl-chip" style="background:#D4EDDA;color:#155724;">A+ = 90-100%</span>
+                    <span class="gl-chip" style="background:#C3E6CB;color:#155724;">A = 80-89%</span>
+                    <span class="gl-chip" style="background:#D1ECF1;color:#0c5460;">B+ = 70-79%</span>
+                    <span class="gl-chip" style="background:#BEE5EB;color:#0c5460;">B = 60-69%</span>
+                    <span class="gl-chip" style="background:#FFF3CD;color:#856404;">C = 50-59%</span>
+                    <span class="gl-chip" style="background:#FFE8A1;color:#856404;">D = 33-49%</span>
+                    <span class="gl-chip" style="background:#F8D7DA;color:#721c24;">F = &lt;33%</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
+
 
 <!-- =====================================================
      STUDENT REPORT CARD / DASHBOARD

@@ -1138,3 +1138,162 @@ a { text-decoration: none; }
     .section-card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
     .profile-card { background: #1e293b !important; -webkit-print-color-adjust: exact; }
 }
+
+/* =========================================================
+   EXCEL IMPORT / EXPORT UI
+   ========================================================= */
+
+.excel-step-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-md);
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+.excel-step-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+.excel-step-header {
+    display: flex; align-items: center; gap: 1.25rem;
+    padding: 1.5rem 2rem;
+    color: white;
+}
+.excel-step-header h3 {
+    font-family: var(--font-header); font-size: 1.1rem; font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+.excel-step-header p { font-size: 0.85rem; opacity: 0.8; }
+.excel-step-num {
+    flex-shrink: 0;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    border: 2px solid rgba(255,255,255,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-header); font-size: 0.78rem; font-weight: 800;
+    letter-spacing: 0.02em; color: white;
+}
+
+.excel-step-body { padding: 1.5rem 2rem; }
+
+/* Legend */
+.excel-legend {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    margin-top: 1rem; padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+.excel-legend-item {
+    display: inline-flex; align-items: center;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px; font-size: 0.78rem; font-weight: 500;
+    border: 1px solid rgba(0,0,0,0.08);
+    color: #333;
+}
+
+/* Grade Legend chips */
+.grade-legend { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.gl-chip {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem; font-weight: 700;
+    border: 1px solid rgba(0,0,0,0.08);
+}
+
+/* Drag & Drop Upload Zone */
+.upload-drop-zone {
+    border: 2.5px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 2.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition);
+    background: var(--bg-input);
+}
+.upload-drop-zone:hover,
+.upload-drop-zone.drag-over {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    transform: scale(1.01);
+}
+.upload-drop-zone.drag-over {
+    box-shadow: 0 0 0 4px rgba(79,70,229,0.15);
+}
+.upload-drop-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 64px; height: 64px;
+    border-radius: 16px;
+    background: var(--primary-light);
+    color: var(--primary);
+    margin-bottom: 0.75rem;
+}
+.upload-drop-icon i { width: 30px; height: 30px; }
+.upload-drop-title {
+    font-size: 1rem; font-weight: 700; color: var(--text-main);
+    margin-bottom: 0.25rem;
+}
+.upload-drop-sub { font-size: 0.82rem; color: var(--text-muted); }
+
+/* Upload Progress Bar */
+.upload-progress-bar {
+    height: 10px;
+    background: var(--bg-input);
+    border-radius: 99px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+.upload-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4f46e5, #10b981);
+    border-radius: 99px;
+    transition: width 0.3s ease;
+}
+
+/* Upload Result Banner */
+.upload-result-banner {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--radius-md);
+    border: 1px solid;
+}
+.upload-result-banner.success {
+    background: var(--accent-success-light);
+    border-color: var(--accent-success);
+    color: #065f46;
+}
+.upload-result-banner i { width: 32px; height: 32px; flex-shrink: 0; }
+.upload-result-banner strong { display: block; font-size: 1rem; font-weight: 700; margin-bottom: 0.2rem; }
+.upload-result-banner p { font-size: 0.85rem; opacity: 0.8; }
+
+.upload-result-error {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: var(--accent-danger-light);
+    border: 1px solid var(--accent-danger);
+    border-radius: var(--radius-md);
+    color: #7f1d1d; font-size: 0.9rem; font-weight: 500;
+}
+.upload-result-error i { width: 18px; height: 18px; flex-shrink: 0; }
+
+.upload-result-errors {
+    background: var(--accent-warning-light);
+    border: 1px solid var(--accent-warning);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem; color: #78350f;
+}
+.upload-result-errors ul { padding-left: 1.25rem; margin-top: 0.35rem; }
+.upload-result-errors li { margin-bottom: 0.2rem; }
+
+/* Mobile adjustments for Excel tab */
+@media (max-width: 768px) {
+    .excel-step-header { flex-direction: column; text-align: center; padding: 1.25rem; }
+    .excel-step-body { padding: 1.25rem; }
+    .excel-step-card:hover { transform: none; }
+    .upload-drop-zone { padding: 1.75rem 0.75rem; }
+    .excel-legend { gap: 0.35rem; }
+    .excel-legend-item { font-size: 0.72rem; padding: 0.2rem 0.5rem; }
+}
+
