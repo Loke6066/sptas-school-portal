@@ -190,7 +190,11 @@
     </div>
 </header>
 
-<!-- =====================================================
+<div id="school-holiday-banner" class="hidden no-print" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; text-align: center; padding: 0.75rem; font-weight: 700; font-size: 1.1rem; border-bottom: 2px solid #b91c1c; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); text-transform: uppercase; letter-spacing: 0.05em; display: none; align-items: center; justify-content: center; gap: 0.5rem;">
+    <i data-lucide="party-popper"></i>
+    <span id="holiday-banner-text">Today is Holiday</span>
+    <i data-lucide="party-popper"></i>
+</div>
      ADMIN DASHBOARD VIEW
      ===================================================== -->
 <main id="admin-dashboard-view" class="container no-print hidden">
@@ -337,6 +341,10 @@
                             <option value="working">🟢 Special Working Day</option>
                             <option value="clear">⚪ Reset to Default Status</option>
                         </select>
+                    </div>
+                    <div class="filter-item" id="holiday-mgr-reason-container">
+                        <label>Holiday Purpose / Reason</label>
+                        <input type="text" id="holiday-mgr-reason" class="form-input" placeholder="e.g. Independence Day" style="width:200px;">
                     </div>
                     <div class="filter-actions">
                         <button type="button" id="holiday-mgr-save-btn" class="btn btn-primary">

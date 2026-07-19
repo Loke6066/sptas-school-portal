@@ -85,6 +85,7 @@ def is_school_holiday(date_str):
     settings = load_settings()
     custom_holidays = settings.get("custom_holidays", [])
     custom_working_days = settings.get("custom_working_days", [])
+    holiday_reasons = settings.get("holiday_reasons", {})
     
     # Custom working day overrides Sunday/Govt holiday
     if date_str in custom_working_days:
@@ -92,7 +93,8 @@ def is_school_holiday(date_str):
         
     # Custom holiday overrides Sunday/Govt holiday
     if date_str in custom_holidays:
-        return True, "School Holiday"
+        reason = holiday_reasons.get(date_str, "School Holiday")
+        return True, reason
         
     # Govt holiday
     if date_str in DEFAULT_GOVT_HOLIDAYS:
@@ -167,42 +169,70 @@ def update_settings():
         return jsonify({"success": True})
     return jsonify({"success": False}), 500
 
+def get_sundays_of_current_month():
+    now = datetime.now()
+    year = now.year
+    month = now.month
+    import calendar
+    c = calendar.Calendar(firstweekday=calendar.SUNDAY)
+    sundays = []
+    for day in c.itermonthdates(year, month):
+        if day.month == month and day.weekday() == 6: # Sunday
+            sundays.append(day.strftime("%Y-%m-%d"))
+    return sorted(sundays)
+
 @app.route('/api/holidays', methods=['GET'])
 def get_holidays():
     settings = load_settings()
     return jsonify({
         "default_govt_holidays": DEFAULT_GOVT_HOLIDAYS,
         "custom_holidays": settings.get("custom_holidays", []),
-        "custom_working_days": settings.get("custom_working_days", [])
+        "custom_working_days": settings.get("custom_working_days", []),
+        "holiday_reasons": settings.get("holiday_reasons", {}),
+        "sundays": get_sundays_of_current_month()
     })
+
+@app.route('/api/holidays/check', methods=['GET'])
+def check_holiday():
+    date_str = request.args.get('date', '').strip()
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+    is_h, reason = is_school_holiday(date_str)
+    return jsonify({"is_holiday": is_h, "reason": reason})
 
 @app.route('/api/holidays/set', methods=['POST'])
 def set_holiday_status():
     data = request.get_json() or {}
     date_str = data.get("date", "").strip()
     status = data.get("status", "").strip() # "holiday", "working", or "clear"
+    reason = data.get("reason", "").strip() or "School Holiday"
     if not date_str:
         return jsonify({"success": False, "message": "Date is required."}), 400
         
     settings = load_settings()
     custom_holidays = set(settings.get("custom_holidays", []))
     custom_working_days = set(settings.get("custom_working_days", []))
+    holiday_reasons = settings.get("holiday_reasons", {})
     
     # Reset existing
     custom_holidays.discard(date_str)
     custom_working_days.discard(date_str)
+    if date_str in holiday_reasons:
+        del holiday_reasons[date_str]
     
     if status == "holiday":
         custom_holidays.add(date_str)
+        holiday_reasons[date_str] = reason
     elif status == "working":
         custom_working_days.add(date_str)
         
     settings["custom_holidays"] = sorted(list(custom_holidays))
     settings["custom_working_days"] = sorted(list(custom_working_days))
+    settings["holiday_reasons"] = holiday_reasons
     
     if save_settings(settings):
         role, u_name = get_log_identity()
-        log_activity(role, u_name, f"Set day status: {date_str} -> {status}")
+        log_activity(role, u_name, f"Set day status: {date_str} -> {status} ({reason})")
         return jsonify({"success": True, "message": "Holiday status updated."})
     return jsonify({"success": False, "message": "Failed to save settings."}), 500
 

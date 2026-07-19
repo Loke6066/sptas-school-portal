@@ -64,6 +64,55 @@ document.addEventListener("DOMContentLoaded", function () {
     let radarChartInstance = null;
     let overviewRadarChartInstance = null;
 
+    let globalHolidaysData = {
+        default_govt_holidays: [],
+        custom_holidays: [],
+        custom_working_days: [],
+        holiday_reasons: {},
+        sundays: []
+    };
+    
+    async function fetchHolidaysData() {
+        try {
+            const res = await fetch('/api/holidays');
+            globalHolidaysData = await res.json();
+        } catch (e) {
+            console.error("Failed to fetch holidays:", e);
+        }
+    }
+    
+    async function checkTodayHolidayStatus() {
+        try {
+            const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+            const res = await fetch(`/api/holidays/check?date=${todayStr}`);
+            const data = await res.json();
+            
+            const banner = document.getElementById('school-holiday-banner');
+            const bannerTxt = document.getElementById('holiday-banner-text');
+            
+            if (data.is_holiday) {
+                if (banner && bannerTxt) {
+                    bannerTxt.textContent = `Today is Holiday: ${data.reason}`;
+                    banner.style.display = 'flex';
+                    banner.classList.remove('hidden');
+                }
+                
+                const parentAttStatus = document.getElementById('live-student-attendance-status');
+                if (parentAttStatus) {
+                    const isSun = new Date().getDay() === 0;
+                    parentAttStatus.textContent = isSun ? 'Weekend' : 'Holiday';
+                }
+            } else {
+                if (banner) {
+                    banner.style.display = 'none';
+                    banner.classList.add('hidden');
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
     const authView = document.getElementById('auth-view');
     const appNavHeader = document.getElementById('app-nav-header');
     const adminView = document.getElementById('admin-dashboard-view');
@@ -80,6 +129,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (attDateFilter) attDateFilter.value = today.toISOString().slice(0,10);
     const reportMonth = document.getElementById('report-month');
     if (reportMonth) reportMonth.value = today.toISOString().slice(0,7);
+
+    fetchHolidaysData().then(() => {
+        checkTodayHolidayStatus();
+    });
 
     // ============================================================
     // SHOW/HIDE PASSWORD
@@ -1109,7 +1162,15 @@ document.addEventListener("DOMContentLoaded", function () {
             ring.style.stroke=att>=75?'#10b981':att>=50?'#f59e0b':'#ef4444';
         }
         setEl('attendance-status-txt',att>=90?'Excellent standing':att>=75?'Good standing':att>=50?'Needs attention':'Critical');
-        setEl('live-student-attendance-status',student.attendance_status||'Present');
+        const todayDay = new Date().getDay();
+        const todayStr = new Date().toLocaleDateString('en-CA');
+        let todayStatus = student.attendance_status || 'Present';
+        if (todayDay === 0) {
+            todayStatus = 'Weekend';
+        } else if (globalHolidaysData.custom_holidays.includes(todayStr) || globalHolidaysData.default_govt_holidays.includes(todayStr)) {
+            todayStatus = 'Holiday';
+        }
+        setEl('live-student-attendance-status', todayStatus);
 
         // Live ticker
         updateLiveClassroom(student.timetable||{});
@@ -1200,11 +1261,25 @@ document.addEventListener("DOMContentLoaded", function () {
         const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
         const day=dayNames[now.getDay()];
         setEl('live-clock',now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
-        const isWeekend=now.getDay()===0||now.getDay()===6;
-        if(isWeekend){
-            setEl('live-status','🏖️ Weekend');
-            setEl('live-period','—'); setEl('live-subject','Weekend — No Classes');
-            setEl('live-teacher','—'); setEl('live-room','—');
+        const todayStr = now.toLocaleDateString('en-CA');
+        const isSun = now.getDay() === 0;
+        const isSat = now.getDay() === 6;
+        const isCustomHoliday = globalHolidaysData.custom_holidays.includes(todayStr) || globalHolidaysData.default_govt_holidays.includes(todayStr);
+        
+        if (isSun || isCustomHoliday) {
+            setEl('live-status', 'Holiday');
+            setEl('live-period', '—');
+            setEl('live-subject', isSun ? 'Weekend — No Classes' : 'Holiday — No Classes');
+            setEl('live-teacher', '—');
+            setEl('live-room', '—');
+            return;
+        }
+        if (isSat) {
+            setEl('live-status', '🏖️ Weekend');
+            setEl('live-period', '—');
+            setEl('live-subject', 'Weekend — No Classes');
+            setEl('live-teacher', '—');
+            setEl('live-room', '—');
             return;
         }
         const schedule=timetable[day]||[];
@@ -1742,6 +1817,21 @@ document.addEventListener("DOMContentLoaded", function () {
         if(!cls){showToast('Select a class.','error');return;}
         if(!date){showToast('Select a date.','error');return;}
         
+        // Check if selected date is a holiday/Sunday
+        try {
+            const hRes = await fetch(`/api/holidays/check?date=${date}`);
+            const hCheck = await hRes.json();
+            if (hCheck.is_holiday) {
+                const container = document.getElementById('attendance-list-container');
+                const saveBtn = document.getElementById('att-save-btn');
+                container.innerHTML = `<div style="text-align:center;padding:3rem 2rem;color:var(--accent-warning);font-weight:700;font-size:1.2rem;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">Today is Holiday: ${hCheck.reason}</div>`;
+                saveBtn.style.display = 'none';
+                return;
+            }
+        } catch(e) {
+            console.error("Holiday check failed:", e);
+        }
+
         if (currentRole === 'teacher' && activeTeacherProfile) {
             const assigned = activeTeacherProfile.classes || [];
             const targetClassSec = sec ? `${cls}-${sec}` : null;
@@ -1775,7 +1865,8 @@ document.addEventListener("DOMContentLoaded", function () {
         </div><div class="table-container"><table class="data-table">
         <thead><tr><th>#</th><th>Roll No</th><th>Name</th><th>Present</th><th>Half Day</th><th>Absent</th></tr></thead><tbody>`;
         students.forEach((s,i)=>{
-            const isP=s.attendance_status==='Present', isH=s.attendance_status==='Half Day', isA=s.attendance_status==='Absent';
+            // Default to Present for every row on load
+            const isP=true, isH=false, isA=false;
             html+=`<tr id="att-row-${s.id}" data-student-id="${s.id}" class="${isA?'row-absent':isH?'row-halfday':''}">
                 <td>${i+1}</td><td><strong>${s.roll_no}</strong></td><td>${s.name}</td>
                 <td style="text-align:center;"><input type="radio" name="att_${s.id}" value="Present" ${isP?'checked':''} onchange="updateAttRow('${s.id}','Present')"></td>
@@ -2805,37 +2896,55 @@ document.addEventListener("DOMContentLoaded", function () {
             const res = await fetch('/api/holidays');
             const data = await res.json();
             
+            const sundays = data.sundays || [];
+            const working = data.custom_working_days || [];
+            const custom = data.custom_holidays || [];
+            const reasons = data.holiday_reasons || {};
+            
+            const activeSundays = sundays.filter(s => !working.includes(s));
+            const allHolidays = Array.from(new Set([...activeSundays, ...custom])).sort();
+            
             // Render Custom Holidays
             const hList = document.getElementById('holiday-mgr-holidays-list');
             if (hList) {
-                if (!data.custom_holidays || data.custom_holidays.length === 0) {
+                if (allHolidays.length === 0) {
                     hList.innerHTML = `<p style="color:var(--text-muted); padding:0.25rem;">No custom holidays set.</p>`;
                 } else {
-                    hList.innerHTML = data.custom_holidays.map(d => `
-                        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-body); padding:0.35rem 0.5rem; border-radius:4px; border:1px solid var(--border-color);">
-                            <span>📅 ${d}</span>
-                            <button type="button" class="btn-action btn-delete" onclick="deleteHolidayOverride('${d}')" style="box-shadow:none;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
-                        </div>
-                    `).join('');
+                    hList.innerHTML = allHolidays.map(d => {
+                        const isSun = sundays.includes(d);
+                        const reason = reasons[d] || (isSun ? "Sunday Holiday" : "School Holiday");
+                        const showDelete = custom.includes(d);
+                        const deleteBtn = showDelete ? 
+                            `<button type="button" class="btn-action btn-delete" onclick="deleteHolidayOverride('${d}')" style="box-shadow:none;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>` : 
+                            `<span style="color:var(--text-muted); font-size:0.75rem; font-style:italic;">Default</span>`;
+                        return `
+                            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-body); padding:0.35rem 0.5rem; border-radius:4px; border:1px solid var(--border-color);">
+                                <span>📅 <strong>${d}</strong> - <span style="color:var(--text-muted);">${reason}</span></span>
+                                ${deleteBtn}
+                            </div>
+                        `;
+                    }).join('');
                 }
             }
             
             // Render Special Working Days
             const wList = document.getElementById('holiday-mgr-working-list');
             if (wList) {
-                if (!data.custom_working_days || data.custom_working_days.length === 0) {
+                if (working.length === 0) {
                     wList.innerHTML = `<p style="color:var(--text-muted); padding:0.25rem;">No special working days set.</p>`;
                 } else {
-                    wList.innerHTML = data.custom_working_days.map(d => `
+                    wList.innerHTML = working.map(d => `
                         <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-body); padding:0.35rem 0.5rem; border-radius:4px; border:1px solid var(--border-color);">
-                            <span>📅 ${d}</span>
+                            <span>📅 <strong>${d}</strong> <span style="color:var(--text-muted); font-size:0.8rem;">(Working Day)</span></span>
                             <button type="button" class="btn-action btn-delete" onclick="deleteHolidayOverride('${d}')" style="box-shadow:none;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
                         </div>
                     `).join('');
                 }
             }
             lucide.createIcons();
-        } catch {}
+        } catch(e) {
+            console.error("Error rendering holidays manager:", e);
+        }
     }
 
     window.deleteHolidayOverride = async function(date) {
@@ -2847,6 +2956,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const data = await res.json();
         if (data.success) {
             showToast('Reset date status to default.', 'success');
+            await fetchHolidaysData();
+            checkTodayHolidayStatus();
             loadHolidaysManager();
         } else {
             showToast(data.message || 'Error.', 'error');
@@ -2856,16 +2967,21 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('holiday-mgr-save-btn')?.addEventListener('click', async function() {
         const dateVal = document.getElementById('holiday-mgr-date').value;
         const statusVal = document.getElementById('holiday-mgr-status').value;
+        const reasonVal = document.getElementById('holiday-mgr-reason')?.value || '';
         if (!dateVal) { showToast('Please select a date.', 'error'); return; }
         
         const res = await fetch('/api/holidays/set', {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ date: dateVal, status: statusVal })
+            body: JSON.stringify({ date: dateVal, status: statusVal, reason: reasonVal })
         });
         const data = await res.json();
         if (data.success) {
             showToast('School holiday/working day status updated!', 'success');
+            const reasonInput = document.getElementById('holiday-mgr-reason');
+            if (reasonInput) reasonInput.value = '';
+            await fetchHolidaysData();
+            checkTodayHolidayStatus();
             loadHolidaysManager();
         } else {
             showToast(data.message || 'Error.', 'error');
