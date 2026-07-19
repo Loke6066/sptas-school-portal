@@ -121,6 +121,29 @@ def index():
 def get_stats():
     students = load_db()
     teachers = load_teachers()
+    
+    teacher_id = request.args.get('teacher_id', '').strip()
+    if teacher_id:
+        target_teacher = None
+        for t in teachers:
+            if t["id"] == teacher_id:
+                target_teacher = t
+                break
+        if target_teacher:
+            profile = dict(target_teacher)
+            t_classes = profile.get("classes")
+            if not t_classes and profile.get("class") and profile.get("section"):
+                t_classes = [f"{profile['class']}-{profile['section']}"]
+            elif not t_classes:
+                t_classes = []
+            
+            filtered = []
+            for s in students:
+                s_key = f"{s.get('class','')}-{s.get('section','')}"
+                if s_key in t_classes:
+                    filtered.append(s)
+            students = filtered
+
     total = len(students)
     classes = len(set(f"{s['class']}-{s['section']}" for s in students)) if students else 0
     avg_att = f"{sum(s['current_status']['attendance_percentage'] for s in students)/total:.1f}%" if total else "0%"
@@ -134,11 +157,6 @@ def get_stats():
             if rec["status"] == "Present":
                 today_present += 1
             elif rec["status"] == "Half Day":
-                today_present += 0.5
-        else:
-            if s.get("attendance_status") == "Present":
-                today_present += 1
-            elif s.get("attendance_status") == "Half Day":
                 today_present += 0.5
 
     return jsonify({
@@ -729,7 +747,7 @@ def get_class_attendance():
     for s in students:
         if cls and str(s["class"]) != cls: continue
         if sec and s["section"] != sec: continue
-        status = "Present"
+        status = "Not Marked"
         if date:
             rec = next((r for r in s.get("attendance_records",[]) if r["date"]==date), None)
             if rec: status = rec["status"]
@@ -854,6 +872,7 @@ def admin_create_student():
         "attendance_status": data.get("attendance_status","Present"),
         "attendance_records": [],
         "fees": {
+            "school": 10000,
             "tuition": 30000,
             "books": 5000,
             "dresses": 3000,
@@ -2082,6 +2101,7 @@ def upload_register_excel():
             "attendance_status": "Present",
             "attendance_records": [],
             "fees": {
+                "school": 10000,
                 "tuition": 30000,
                 "books": 5000,
                 "dresses": 3000,
@@ -2296,7 +2316,7 @@ def teacher_reply():
 @app.route('/api/students/fees', methods=['PUT'])
 def update_student_fees():
     role, name = get_log_identity()
-    if role != "admin":
+    if role.lower() != "admin":
         return jsonify({"success": False, "message": "Access denied: Administrator role required."}), 403
         
     data = request.get_json() or {}
@@ -2315,6 +2335,7 @@ def update_student_fees():
         return jsonify({"success": False, "message": "Student not found."}), 404
         
     fees = student.get("fees", {})
+    fees["school"] = int(data.get("school", fees.get("school", 10000)))
     fees["tuition"] = int(data.get("tuition", fees.get("tuition", 30000)))
     fees["books"] = int(data.get("books", fees.get("books", 5000)))
     fees["dresses"] = int(data.get("dresses", fees.get("dresses", 3000)))
@@ -2336,7 +2357,7 @@ def get_services():
 @app.route('/api/services/add', methods=['POST'])
 def add_service():
     role, name = get_log_identity()
-    if role not in ["admin", "principal"]:
+    if role.lower() not in ["admin", "principal"]:
         return jsonify({"success": False, "message": "Access denied."}), 403
     data = request.get_json() or {}
     s_name = data.get("name", "").strip()
@@ -2363,7 +2384,7 @@ def add_service():
 @app.route('/api/services/delete/<sid>', methods=['POST', 'DELETE'])
 def delete_service(sid):
     role, name = get_log_identity()
-    if role not in ["admin", "principal"]:
+    if role.lower() not in ["admin", "principal"]:
         return jsonify({"success": False, "message": "Access denied."}), 403
     services = load_json('services_db.json', [])
     filtered = [s for s in services if s["id"] != sid]

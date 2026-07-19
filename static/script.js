@@ -219,6 +219,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function showModal(id) { const m=document.getElementById(id); if(m){ m.classList.remove('hidden'); lucide.createIcons(); } }
     function hideModal(id) { const m=document.getElementById(id); if(m) m.classList.add('hidden'); }
+    window.showModal = showModal;
+    window.hideModal = hideModal;
 
     function showLoginError(msg) {
         loginErrorMsg.textContent = msg;
@@ -707,7 +709,12 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch {}
 
         try {
-            const res = await fetch('/api/stats');
+            let statsUrl = '/api/stats';
+            if (currentRole === 'teacher') {
+                const tid = localStorage.getItem('sptas_teacher_id') || '';
+                statsUrl = `/api/stats?teacher_id=${encodeURIComponent(tid)}`;
+            }
+            const res = await fetch(statsUrl);
             const stats = await res.json();
             setEl('admin-stat-students',stats.total_students);
             setEl('admin-stat-attendance',stats.overall_attendance);
@@ -1955,13 +1962,15 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         saveBtn.style.display='';
         let html=`<div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
-            <button class="btn btn-secondary btn-sm" onclick="markAllAtt('Present')">✅ All Present</button>
-            <button class="btn btn-secondary btn-sm" onclick="markAllAtt('Absent')">❌ All Absent</button>
+            <button class="btn btn-secondary btn-sm" onclick="markAllAtt('Present')">✅ Select All Present</button>
+            <button class="btn btn-secondary btn-sm" onclick="markAllAtt('Absent')">❌ Select All Absent</button>
         </div><div class="table-container"><table class="data-table">
         <thead><tr><th>#</th><th>Roll No</th><th>Name</th><th>Present</th><th>Half Day</th><th>Absent</th></tr></thead><tbody>`;
         students.forEach((s,i)=>{
-            // Default to Present for every row on load
-            const isP=true, isH=false, isA=false;
+            const status = s.attendance_status || 'Not Marked';
+            const isP = (status === 'Present');
+            const isH = (status === 'Half Day');
+            const isA = (status === 'Absent');
             html+=`<tr id="att-row-${s.id}" data-student-id="${s.id}" class="${isA?'row-absent':isH?'row-halfday':''}">
                 <td>${i+1}</td><td><strong>${s.roll_no}</strong></td><td>${s.name}</td>
                 <td style="text-align:center;"><input type="radio" name="att_${s.id}" value="Present" ${isP?'checked':''} onchange="updateAttRow('${s.id}','Present')"></td>
@@ -1995,7 +2004,10 @@ document.addEventListener("DOMContentLoaded", function () {
         if(!records.length){showToast('No attendance data.','error');return;}
         const res=await fetch('/api/attendance/save',{method:'POST',headers:getAuthHeaders(),body:JSON.stringify({date,records})});
         const d=await res.json();
-        if(d.success) showToast(`Saved for ${d.updated} students.`,'success');
+        if(d.success) {
+            showToast(`Saved for ${d.updated} students.`,'success');
+            loadAdminDashboard();
+        }
         else showToast('Failed.','error');
     });
 
@@ -3101,13 +3113,13 @@ document.addEventListener("DOMContentLoaded", function () {
         
         tbody.innerHTML = '';
         if (!students.length) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted);">No students found.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text-muted);">No students found.</td></tr>`;
             return;
         }
         
         students.forEach(s => {
-            const fees = s.fees || { tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
-            const total = (fees.tuition || 0) + (fees.books || 0) + (fees.dresses || 0) + (fees.extra || 0);
+            const fees = s.fees || { school: 10000, tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
+            const total = (fees.school || 0) + (fees.tuition || 0) + (fees.books || 0) + (fees.dresses || 0) + (fees.extra || 0);
             const due = total - (fees.paid || 0);
             
             const actionHtml = currentRole === 'admin' 
@@ -3118,6 +3130,7 @@ document.addEventListener("DOMContentLoaded", function () {
             tr.innerHTML = `
                 <td><strong>${s.roll_no}</strong></td>
                 <td>${s.name}</td>
+                <td>₹${fees.school || 0}</td>
                 <td>₹${fees.tuition || 0}</td>
                 <td>₹${fees.books || 0}</td>
                 <td>₹${fees.dresses || 0}</td>
@@ -3141,8 +3154,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const s = await res.json();
         if (s.error) { showToast('Student not found.', 'error'); return; }
         
-        const fees = s.fees || { tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
+        const fees = s.fees || { school: 10000, tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
         document.getElementById('edit-fees-student-id').value = id;
+        document.getElementById('edit-fees-school').value = fees.school || 0;
         document.getElementById('edit-fees-tuition').value = fees.tuition || 0;
         document.getElementById('edit-fees-books').value = fees.books || 0;
         document.getElementById('edit-fees-dresses').value = fees.dresses || 0;
@@ -3153,6 +3167,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.getElementById('edit-fees-save-btn')?.addEventListener('click', async function() {
         const id = document.getElementById('edit-fees-student-id').value;
+        const school = parseInt(document.getElementById('edit-fees-school').value) || 0;
         const tuition = parseInt(document.getElementById('edit-fees-tuition').value) || 0;
         const books = parseInt(document.getElementById('edit-fees-books').value) || 0;
         const dresses = parseInt(document.getElementById('edit-fees-dresses').value) || 0;
@@ -3162,7 +3177,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const res = await fetch('/api/students/fees', {
             method: 'PUT',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ student_id: id, tuition, books, dresses, extra, paid })
+            body: JSON.stringify({ student_id: id, school, tuition, books, dresses, extra, paid })
         });
         const data = await res.json();
         if (data.success) {

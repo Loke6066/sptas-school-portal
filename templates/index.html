@@ -769,6 +769,7 @@
                             <tr>
                                 <th>Roll No</th>
                                 <th>Name</th>
+                                <th>School Fees (₹)</th>
                                 <th>Tuition Fee (₹)</th>
                                 <th>Books Fee (₹)</th>
                                 <th>Dresses Fee (₹)</th>
@@ -779,7 +780,7 @@
                             </tr>
                         </thead>
                         <tbody id="fees-table-body">
-                            <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:2rem;">Select class/section and click Load.</td></tr>
+                            <tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:2rem;">Select class/section and click Load.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1544,6 +1545,10 @@
         </div>
         <div style="padding:1.5rem;">
             <input type="hidden" id="edit-fees-student-id">
+            <div class="form-group">
+                <label>School Fees (₹)</label>
+                <input type="number" id="edit-fees-school" class="form-input" min="0">
+            </div>
             <div class="form-group">
                 <label>Tuition Fee (₹)</label>
                 <input type="number" id="edit-fees-tuition" class="form-input" min="0">
