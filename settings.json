@@ -2,5 +2,10 @@
   "principal_name": "Narahari",
   "school_name": "Silverwood International School",
   "principal_username": "principal",
-  "principal_password": "principal123"
+  "principal_password": "principal123",
+  "principal_phone": "9999999999",
+  "custom_holidays": [
+    "2026-07-06"
+  ],
+  "custom_working_days": []
 }

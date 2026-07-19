@@ -11,36 +11,36 @@
     --font-header: 'Outfit', sans-serif;
     --font-body: 'Inter', sans-serif;
 
-    --bg-app: #f1f5f9;
-    --bg-card: #ffffff;
-    --bg-header: #1e293b;
-    --bg-input: #f8fafc;
-    --bg-overlay: rgba(15,23,42,0.7);
+    --bg-app: #0a0f1e;
+    --bg-card: #141c2e;
+    --bg-header: #0d1424;
+    --bg-input: #1a2236;
+    --bg-overlay: rgba(0,0,0,0.8);
 
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --text-light: #94a3b8;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-light: #64748b;
     --text-white: #ffffff;
 
-    --primary: #4f46e5;
-    --primary-hover: #4338ca;
-    --primary-light: #eef2ff;
-    --primary-dark: #3730a3;
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --primary-light: #1e1b4b;
+    --primary-dark: #818cf8;
 
     --accent-success: #10b981;
-    --accent-success-light: #d1fae5;
+    --accent-success-light: #064e3b;
     --accent-warning: #f59e0b;
-    --accent-warning-light: #fef3c7;
+    --accent-warning-light: #78350f;
     --accent-danger: #ef4444;
-    --accent-danger-light: #fee2e2;
+    --accent-danger-light: #7f1d1d;
     --accent-info: #06b6d4;
-    --accent-info-light: #cffafe;
+    --accent-info-light: #083344;
 
-    --border-color: #e2e8f0;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
-    --shadow-lg: 0 12px 28px rgba(0,0,0,0.1);
-    --shadow-primary: 0 4px 14px rgba(79,70,229,0.25);
+    --border-color: #1e2d45;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.35);
+    --shadow-lg: 0 12px 28px rgba(0,0,0,0.4);
+    --shadow-primary: 0 4px 14px rgba(99,102,241,0.25);
 
     --radius-sm: 8px;
     --radius-md: 14px;
@@ -282,6 +282,20 @@ a { text-decoration: none; }
 #dashboard-report-page .form-group label {
     color: var(--text-muted);
     font-size: 0.78rem;
+}
+
+/* Theme styling for dropdown options to resolve color blending */
+select option {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+}
+[data-theme="dark"] select option {
+    background-color: #1e293b;
+    color: #f8fafc;
+}
+[data-theme="light"] select option {
+    background-color: #ffffff;
+    color: #0f172a;
 }
 
 /* =========================================================
@@ -1480,6 +1494,81 @@ select.form-select option {
     display: inline-block;
     line-height: 1;
     vertical-align: middle;
+}
+
+/* Mobile bottom navigation bar overrides for native app-like experience */
+@media (max-width: 768px) {
+    .admin-portal-tabs, .tabs-navigation {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: #0d1424 !important;
+        border-top: 1px solid var(--border-color) !important;
+        padding: 0.35rem 0.25rem !important;
+        display: flex !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+        z-index: 1000 !important;
+        box-shadow: 0 -4px 16px rgba(0,0,0,0.4) !important;
+        margin: 0 !important;
+        gap: 0 !important;
+    }
+    
+    #admin-dashboard-view, #dashboard-report-page {
+        padding-bottom: 80px !important;
+    }
+    
+    .admin-tab-pill, .tab-btn {
+        background: transparent !important;
+        border: none !important;
+        color: var(--text-muted) !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 2px !important;
+        flex: 1 !important;
+        padding: 0.3rem 0 !important;
+        font-size: 0.65rem !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        white-space: nowrap !important;
+        min-width: 0 !important;
+    }
+    
+    .admin-tab-pill i, .tab-btn i {
+        width: 18px !important;
+        height: 18px !important;
+        margin: 0 !important;
+    }
+    
+    .admin-tab-pill.active, .tab-btn.active {
+        color: var(--primary) !important;
+        background: transparent !important;
+    }
+    
+    .admin-tab-pill span, .tab-btn span {
+        display: block !important;
+        font-size: 0.62rem !important;
+        font-weight: 500 !important;
+    }
+}
+
+.forgot-pwd-link {
+    background: transparent;
+    border: none;
+    color: var(--primary-dark);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: color 0.2s ease;
+    cursor: pointer;
+}
+.forgot-pwd-link:hover {
+    color: var(--primary);
 }
 
 

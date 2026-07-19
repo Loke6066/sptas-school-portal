@@ -62,6 +62,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let currentTimetableKey = '';
     let currentEditingDay = 'Monday';
     let teachersCache = [];
+    let activeTeacherProfile = null;
 
     let academicChartInstance = null;
     let radarChartInstance = null;
@@ -115,6 +116,28 @@ document.addEventListener("DOMContentLoaded", function () {
         catch { return d; }
     }
     function debounce(fn, ms) { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+    
+    function refilterTeacherDropdowns() {
+        if (currentRole !== 'teacher' || !activeTeacherProfile) return;
+        const assigned = activeTeacherProfile.classes || [];
+        const classes = Array.from(new Set(assigned.map(c => c.split('-')[0])));
+        const selects = ['filter-class','att-class-filter','tt-class-select','report-class','excel-dl-class','excel-rep-class','excel-reg-dl-class','excel-att-dl-class'];
+        selects.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            let html = '';
+            if (['filter-class','report-class','excel-rep-class'].includes(id)) {
+                html += '<option value="">All Assigned</option>';
+            } else {
+                html += '<option value="">Select Class</option>';
+            }
+            classes.forEach(c => {
+                const label = ['Nursery','LKG','UKG'].includes(c) ? c : (c === '0' ? 'Class 0 (Kindergarten)' : `Class ${c}`);
+                html += `<option value="${c}">${label}</option>`;
+            });
+            el.innerHTML = html;
+        });
+    }
     function showToast(msg, type='success') {
         let t = document.getElementById('sptas-toast');
         if (t) t.remove();
@@ -141,14 +164,10 @@ document.addEventListener("DOMContentLoaded", function () {
     // THEME
     // ============================================================
     function applyTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('sptas_theme', theme);
-        document.querySelector('.theme-icon-dark')?.classList.toggle('hidden', theme==='dark');
-        document.querySelector('.theme-icon-light')?.classList.toggle('hidden', theme==='light');
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('sptas_theme', 'dark');
     }
-    applyTheme(localStorage.getItem('sptas_theme')||'light');
-    document.getElementById('theme-toggle-btn')?.addEventListener('click', ()=>
-        applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light'));
+    applyTheme('dark');
 
     // ============================================================
     // AUTH SESSION
@@ -160,9 +179,35 @@ document.addEventListener("DOMContentLoaded", function () {
         const name = localStorage.getItem('sptas_user_name');
         authView.classList.add('hidden');
         appNavHeader.classList.remove('hidden');
-        userGreetingLabel.textContent = `Logged in as: ${name||role}`;
-        if (role==='parent') loadParentDashboard(localStorage.getItem('sptas_student_id'));
-        else loadAdminDashboard();
+        if (role === 'teacher') {
+            userGreetingLabel.textContent = `Teacher: ${name||role}`;
+        } else {
+            userGreetingLabel.textContent = `Logged in as: ${name||role}`;
+        }
+        
+        const isPrincipal = role === 'principal';
+        const isTeacher = role === 'teacher';
+        document.getElementById('edit-principal-name-btn')?.classList.toggle('hidden', !isPrincipal);
+        document.querySelectorAll('.principal-only').forEach(el=>el.classList.toggle('hidden', !isPrincipal));
+        document.getElementById('admin-meetings-tab-btn')?.classList.toggle('hidden', !(isPrincipal || isTeacher));
+        document.getElementById('admin-reports-tab-btn')?.classList.toggle('hidden', !(isPrincipal || isTeacher));
+        document.querySelectorAll('[data-admin-tab="tab-activities-log"]').forEach(el => el.classList.toggle('hidden', !isPrincipal));
+
+        if (role === 'parent') {
+            loadParentDashboard(localStorage.getItem('sptas_student_id'));
+        } else if (role === 'teacher') {
+            const tid = localStorage.getItem('sptas_teacher_id');
+            fetch(`/api/teacher/profile/${tid}`)
+                .then(res => res.json())
+                .then(profile => {
+                    activeTeacherProfile = profile;
+                    refilterTeacherDropdowns();
+                    loadAdminDashboard();
+                });
+        } else {
+            activeTeacherProfile = null;
+            loadAdminDashboard();
+        }
     }
 
     function showAuthView() {
@@ -305,80 +350,129 @@ document.addEventListener("DOMContentLoaded", function () {
         currentRole = role;
         authView.classList.add('hidden');
         appNavHeader.classList.remove('hidden');
-        userGreetingLabel.textContent = `Logged in as: ${name}`;
+        if (role === 'teacher') {
+            userGreetingLabel.textContent = `Teacher: ${name}`;
+        } else {
+            userGreetingLabel.textContent = `Logged in as: ${name}`;
+        }
         const isPrincipal = role === 'principal';
         const isTeacher = role === 'teacher';
         document.getElementById('edit-principal-name-btn')?.classList.toggle('hidden', !isPrincipal);
         document.querySelectorAll('.principal-only').forEach(el=>el.classList.toggle('hidden', !isPrincipal));
         document.getElementById('admin-meetings-tab-btn')?.classList.toggle('hidden', !(isPrincipal || isTeacher));
         document.getElementById('add-meeting-btn')?.classList.toggle('hidden', !isPrincipal);
-        if (role !== 'parent') loadAdminDashboard();
+        document.getElementById('admin-reports-tab-btn')?.classList.toggle('hidden', !(isPrincipal || isTeacher));
+        document.querySelectorAll('[data-admin-tab="tab-activities-log"]').forEach(el => el.classList.toggle('hidden', !isPrincipal));
+
+        if (role !== 'parent') {
+            if (role === 'teacher') {
+                const tid = localStorage.getItem('sptas_teacher_id');
+                fetch(`/api/teacher/profile/${tid}`)
+                    .then(res => res.json())
+                    .then(profile => {
+                        activeTeacherProfile = profile;
+                        refilterTeacherDropdowns();
+                        loadAdminDashboard();
+                    });
+            } else {
+                activeTeacherProfile = null;
+                loadAdminDashboard();
+            }
+        }
     }
 
     // ============================================================
-    // FORGOT PASSWORD
+    // FORGOT PASSWORD (OTP RESET FLOW)
     // ============================================================
     document.querySelectorAll('.forgot-pwd-link').forEach(btn => {
         btn.addEventListener('click', function() {
-            document.getElementById('forgot-pwd-role').value = btn.dataset.role;
-            document.getElementById('otp-phone').value = '';
-            document.getElementById('otp-code-input').value = '';
-            document.getElementById('otp-new-pwd').value = '';
-            document.getElementById('otp-step-1').classList.remove('hidden');
-            document.getElementById('otp-step-2').classList.add('hidden');
-            document.getElementById('otp-demo-banner').classList.add('hidden');
-            document.getElementById('otp-step1-error').classList.add('hidden');
-            document.getElementById('otp-step2-error').classList.add('hidden');
-            showModal('forgot-pwd-overlay');
+            const role = btn.dataset.role;
+            const displayEl = document.getElementById('forgot-pwd-role-display');
+            if (displayEl) displayEl.value = role;
+            
+            document.getElementById('forgot-pwd-phone').value = '';
+            document.getElementById('forgot-pwd-otp').value = '';
+            document.getElementById('forgot-pwd-new-pass').value = '';
+            document.getElementById('forgot-pwd-confirm-pass').value = '';
+            
+            document.getElementById('forgot-pwd-step-1').classList.remove('hidden');
+            document.getElementById('forgot-pwd-step-2').classList.add('hidden');
+            showModal('forgot-password-modal');
         });
     });
 
-    document.getElementById('forgot-pwd-close')?.addEventListener('click', ()=>hideModal('forgot-pwd-overlay'));
+    const closeForgot = () => hideModal('forgot-password-modal');
+    document.getElementById('forgot-pwd-close')?.addEventListener('click', closeForgot);
+    document.getElementById('forgot-pwd-cancel-1')?.addEventListener('click', closeForgot);
+    document.getElementById('forgot-pwd-cancel-2')?.addEventListener('click', closeForgot);
 
-    document.getElementById('send-otp-btn')?.addEventListener('click', async function() {
-        const phone = document.getElementById('otp-phone').value.trim();
-        const role = document.getElementById('forgot-pwd-role').value;
-        const errEl = document.getElementById('otp-step1-error');
-        if (!phone) { errEl.textContent='Enter phone number.'; errEl.classList.remove('hidden'); return; }
-        const res = await fetch('/api/otp/send',{ method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({phone: cleanPhone(phone), role}) });
-        const data = await res.json();
-        if (data.success) {
-            document.getElementById('otp-demo-code').textContent = data.otp_demo;
-            document.getElementById('otp-demo-banner').classList.remove('hidden');
-            errEl.classList.add('hidden');
-            setTimeout(()=>{
-                document.getElementById('otp-step-1').classList.add('hidden');
-                document.getElementById('otp-step-2').classList.remove('hidden');
-            },2000);
-        } else { errEl.textContent=data.message||'Error.'; errEl.classList.remove('hidden'); }
+    document.getElementById('forgot-pwd-send-otp-btn')?.addEventListener('click', async function() {
+        const phone = document.getElementById('forgot-pwd-phone').value.trim();
+        const role = document.getElementById('forgot-pwd-role-display').value;
+        if (!phone) { showToast('Phone number is required.', 'error'); return; }
+        
+        try {
+            const res = await fetch('/api/otp/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: cleanPhone(phone), role })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`OTP Sent! Demo Code: ${data.otp_demo}`, 'success', 10000);
+                document.getElementById('forgot-pwd-step-1').classList.add('hidden');
+                document.getElementById('forgot-pwd-step-2').classList.remove('hidden');
+            } else {
+                showToast(data.message || 'Verification failed.', 'error');
+            }
+        } catch {
+            showToast('Error sending OTP.', 'error');
+        }
     });
 
-    document.getElementById('otp-back-btn')?.addEventListener('click', ()=>{
-        document.getElementById('otp-step-1').classList.remove('hidden');
-        document.getElementById('otp-step-2').classList.add('hidden');
-    });
-
-    document.getElementById('reset-pwd-btn')?.addEventListener('click', async function() {
-        const phone = document.getElementById('otp-phone').value.trim();
-        const otp = document.getElementById('otp-code-input').value.trim();
-        const newPwd = document.getElementById('otp-new-pwd').value.trim();
-        const role = document.getElementById('forgot-pwd-role').value;
-        const errEl = document.getElementById('otp-step2-error');
-        if (!otp||!newPwd) { errEl.textContent='Enter OTP and new password.'; errEl.classList.remove('hidden'); return; }
-        // Verify OTP
-        const vRes = await fetch('/api/otp/verify',{ method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({phone:cleanPhone(phone), otp}) });
-        const vData = await vRes.json();
-        if (!vData.success) { errEl.textContent='Invalid OTP.'; errEl.classList.remove('hidden'); return; }
-        // Reset password
-        const rRes = await fetch('/api/reset-password',{ method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({phone:cleanPhone(phone), password:newPwd, role}) });
-        const rData = await rRes.json();
-        if (rData.success) {
-            hideModal('forgot-pwd-overlay');
-            showToast('Password reset successfully! Please login.','success');
-        } else { errEl.textContent=rData.message||'Reset failed.'; errEl.classList.remove('hidden'); }
+    document.getElementById('forgot-pwd-reset-save-btn')?.addEventListener('click', async function() {
+        const phone = document.getElementById('forgot-pwd-phone').value.trim();
+        const otp = document.getElementById('forgot-pwd-otp').value.trim();
+        const newPwd = document.getElementById('forgot-pwd-new-pass').value.trim();
+        const confirmPwd = document.getElementById('forgot-pwd-confirm-pass').value.trim();
+        const role = document.getElementById('forgot-pwd-role-display').value;
+        
+        if (!otp || !newPwd || !confirmPwd) {
+            showToast('All fields are required.', 'error');
+            return;
+        }
+        if (newPwd !== confirmPwd) {
+            showToast('Passwords do not match.', 'error');
+            return;
+        }
+        
+        try {
+            const vRes = await fetch('/api/otp/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: cleanPhone(phone), otp })
+            });
+            const vData = await vRes.json();
+            if (!vData.success) {
+                showToast('Invalid or expired OTP.', 'error');
+                return;
+            }
+            
+            const rRes = await fetch('/api/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: cleanPhone(phone), password: newPwd, role })
+            });
+            const rData = await rRes.json();
+            if (rData.success) {
+                hideModal('forgot-password-modal');
+                showToast('Password reset successfully! Please login.', 'success');
+            } else {
+                showToast(rData.message || 'Password reset failed.', 'error');
+            }
+        } catch {
+            showToast('An error occurred during password reset.', 'error');
+        }
     });
 
     // ============================================================
@@ -472,6 +566,7 @@ document.addEventListener("DOMContentLoaded", function () {
             setEl('admin-stat-attendance',stats.overall_attendance);
             setEl('admin-stat-classes',stats.active_classes);
             setEl('admin-stat-teachers',stats.teachers);
+            setEl('admin-stat-attendance-ratio', `Today: ${stats.today_present}/${stats.today_total} Present`);
         } catch {}
 
         // Fetch teachers for cache
@@ -494,12 +589,37 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch { teachersCache=[]; }
 
         loadStudentTable();
+        if (isPrincipal) loadHolidaysManager();
         lucide.createIcons();
     }
 
     // ============================================================
     // ADMIN PORTAL TABS
     // ============================================================
+    async function loadActivitiesLog() {
+        const container = document.getElementById('activities-log-container');
+        if (!container) return;
+        try {
+            const res = await fetch('/api/activities');
+            const data = await res.json();
+            if (!data.length) {
+                container.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:2rem;">No system activities logged yet.</p>`;
+                return;
+            }
+            container.innerHTML = data.map(act => `
+                <div class="meeting-item" style="border-left:3px solid var(--primary); padding:0.75rem 1rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
+                        <strong>${act.role}: ${act.name}</strong>
+                        <span style="font-size:0.75rem; color:var(--text-muted);">${act.timestamp}</span>
+                    </div>
+                    <p style="margin:0; font-size:0.85rem; color:var(--text-main);">${act.description}</p>
+                </div>
+            `).join('');
+        } catch {
+            container.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:2rem;">Failed to load activity logs.</p>`;
+        }
+    }
+
     document.querySelectorAll('.admin-tab-pill').forEach(btn=>{
         btn.addEventListener('click',function(){
             document.querySelectorAll('.admin-tab-pill').forEach(b=>b.classList.remove('active'));
@@ -509,17 +629,60 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById(tabId)?.classList.remove('hidden');
             if (tabId==='tab-teachers') loadTeachersTable();
             if (tabId==='tab-meetings') loadMeetingsAdmin();
+            if (tabId==='tab-attendance') loadHolidaysManager();
+            if (tabId==='tab-activities-log') loadActivitiesLog();
+            if (tabId==='tab-excel') {
+                const cls = document.getElementById('excel-dl-class')?.value || '10';
+                const sec = document.getElementById('excel-dl-section')?.value || 'A';
+                loadClassTimetableSubjects(cls, sec);
+                loadExcelReportsExamDropdown();
+            }
         });
     });
 
     // ============================================================
     // STUDENT TABLE
     // ============================================================
+    window.adminResetPassword = async function(id, type) {
+        const newPass = prompt(`Enter new password for this ${type}:`);
+        if (newPass === null) return;
+        if (!newPass.trim()) {
+            showToast('Password cannot be empty.', 'error');
+            return;
+        }
+        try {
+            const res = await fetch('/api/admin/reset-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Role': localStorage.getItem('sptas_role') || 'Unknown',
+                    'X-User-Name': localStorage.getItem('sptas_user_name') || 'Unknown'
+                },
+                body: JSON.stringify({ id, type, password: newPass.trim() })
+            });
+            const d = await res.json();
+            if (d.success) {
+                showToast(d.message || 'Password updated successfully.', 'success');
+                if (type === 'teacher') loadTeachersTable();
+                else loadStudentTable();
+            } else {
+                showToast(d.message || 'Reset failed.', 'error');
+            }
+        } catch {
+            showToast('An error occurred.', 'error');
+        }
+    };
+
     async function loadStudentTable(q='', cls='', sec='') {
         let url=`/api/search?q=${encodeURIComponent(q)}`;
         if(cls) url+=`&class=${cls}`;
         if(sec) url+=`&section=${sec}`;
-        const res = await fetch(url);
+        
+        const headers = {};
+        const tid = localStorage.getItem('sptas_teacher_id');
+        if (tid) headers['X-Teacher-Id'] = tid;
+        
+        const res = await fetch(url, { headers });
         const students = await res.json();
         const tbody = document.querySelector('#admin-students-table tbody');
         const badge = document.getElementById('students-count-badge');
@@ -529,6 +692,7 @@ document.addEventListener("DOMContentLoaded", function () {
             tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted);">No students found.</td></tr>`;
             return;
         }
+        const isPrincipal = currentRole==='principal';
         students.forEach(s=>{
             const attBadge = s.attendance_status==='Absent'
                 ?`<span class="badge badge-danger">Absent</span>`
@@ -541,6 +705,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const fbBadge = s.parent_feedback
                 ?`<span class="badge badge-warning">Has Feedback</span>`
                 :`<span style="color:var(--text-muted);font-size:0.78rem;">None</span>`;
+                
+            const contactText = (currentRole === 'teacher') ? '********' : (s.parent_contact || '');
             const tr = document.createElement('tr');
             tr.innerHTML=`
                 <td><strong>${s.roll_no}</strong></td>
@@ -549,12 +715,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 <td><span class="badge badge-info">${s.class}-${s.section}</span></td>
                 <td>${attBadge}<br><small style="color:var(--text-muted);">${s.attendance}%</small></td>
                 <td>${trendBadge}</td>
-                <td style="font-size:0.8rem;">${s.parent_name||'—'}<br><small>${s.parent_contact||''}</small></td>
+                <td style="font-size:0.8rem;">${s.parent_name||'—'}<br><small>${contactText}</small></td>
                 <td>${fbBadge}</td>
                 <td>
                     <div class="action-btns">
                         <button class="btn-action btn-view" onclick="viewStudent('${s.id}')" title="View"><i data-lucide="eye"></i></button>
                         <button class="btn-action btn-edit" onclick="editStudentById('${s.id}')" title="Edit"><i data-lucide="pencil"></i></button>
+                        ${isPrincipal ? `<button class="btn-action btn-edit" style="background:#0c4a6e; border-color:#0c4a6e; color:white;" onclick="adminResetPassword('${s.id}', 'student')" title="Reset Password"><i data-lucide="key"></i></button>` : ''}
                         <button class="btn-action btn-delete" onclick="requestDeleteStudent('${s.id}','${s.name.replace(/'/g,'')}')" title="Delete"><i data-lucide="trash-2"></i></button>
                     </div>
                 </td>`;
@@ -622,6 +789,10 @@ document.addEventListener("DOMContentLoaded", function () {
     function openStudentModal(student) {
         activeModalStudent = student;
         document.getElementById('modal-title').textContent = student?'Edit Student Record':'Add New Student';
+        
+        // Hide modal tabs header if in Add mode (no student object)
+        document.querySelector('.modal-tabs')?.classList.toggle('hidden', !student);
+        
         // Basic Info
         document.getElementById('form-student-name').value = student?.name||'';
         document.getElementById('form-roll-no').value = student?.roll_no||'';
@@ -631,8 +802,12 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById('form-section').value = student?.section||'A';
         document.getElementById('form-academic-year').value = student?.academic_year||'2025-26';
         document.getElementById('form-parent-name').value = student?.parent_name||'';
-        document.getElementById('form-parent-contact').value = student?.parent_contact||'';
-        document.getElementById('form-parent-alt-contact').value = student?.parent_alt_contact||'';
+        
+        const pcVal = (currentRole === 'teacher' && student) ? '********' : (student?.parent_contact||'');
+        const altVal = (currentRole === 'teacher' && student) ? '********' : (student?.parent_alt_contact||'');
+        document.getElementById('form-parent-contact').value = pcVal;
+        document.getElementById('form-parent-alt-contact').value = altVal;
+        
         document.getElementById('form-class-teacher').value = student?.current_status?.class_teacher||'';
         document.getElementById('form-attendance-pct').value = student?.current_status?.attendance_percentage||90;
         document.getElementById('form-performance-trend').value = student?.performance_trend||'Stable';
@@ -817,9 +992,13 @@ document.addEventListener("DOMContentLoaded", function () {
     // STUDENT FORM SUBMIT
     document.getElementById('student-form')?.addEventListener('submit', async function(e) {
         e.preventDefault();
-        const pc=document.getElementById('form-parent-contact').value.trim();
+        let pc=document.getElementById('form-parent-contact').value.trim();
+        let alt=document.getElementById('form-parent-alt-contact').value.trim();
+        if (currentRole === 'teacher' && activeModalStudent) {
+            if (pc === '********') pc = activeModalStudent.parent_contact || '';
+            if (alt === '********') alt = activeModalStudent.parent_alt_contact || '';
+        }
         if(!validatePhone(pc)){showToast('Parent phone must be 10 digits.','error');return;}
-        const alt=document.getElementById('form-parent-alt-contact').value.trim();
         if(alt&&!validatePhone(alt)){showToast('Alt phone must be 10 digits.','error');return;}
         const body={
             name:document.getElementById('form-student-name').value.trim(),
@@ -863,7 +1042,10 @@ document.addEventListener("DOMContentLoaded", function () {
     // VIEW STUDENT (Report Card)
     // ============================================================
     window.viewStudent = async function(id) {
-        const res=await fetch(`/api/student/${id}`);
+        const headers = {};
+        const tid = localStorage.getItem('sptas_teacher_id');
+        if (tid) headers['X-Teacher-Id'] = tid;
+        const res=await fetch(`/api/student/${id}`, { headers });
         const s=await res.json();
         if(s.error){showToast('Student not found.','error');return;}
         activeStudentObject=s; currentStudentId=id;
@@ -884,6 +1066,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if(liveTickerInterval) clearInterval(liveTickerInterval);
         adminView.classList.add('hidden');
         reportView.classList.remove('hidden');
+        document.getElementById('back-to-search-btn')?.classList.toggle('hidden', isParent);
 
         // Profile
         setEl('profile-name', student.name);
@@ -895,8 +1078,10 @@ document.addEventListener("DOMContentLoaded", function () {
         setEl('profile-academic-year', student.academic_year||'—');
         setEl('profile-dob', formatDate(student.dob));
         setEl('profile-parent-name', student.parent_name||'—');
-        setEl('profile-parent-contact', student.parent_contact||'—');
-        setEl('profile-parent-alt', student.parent_alt_contact||'—');
+        const contactVal = (currentRole === 'teacher') ? '********' : (student.parent_contact || '—');
+        const altVal = (currentRole === 'teacher') ? '********' : (student.parent_alt_contact || '—');
+        setEl('profile-parent-contact', contactVal);
+        setEl('profile-parent-alt', altVal);
 
         const trendBadge = document.getElementById('profile-trend-badge');
         if(trendBadge) {
@@ -935,13 +1120,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     const studentClassSec = `${student.class}-${student.section}`;
                     const relevantMeetings = meetings.filter(m => {
                         if (!m.classes) return false;
-                        if (m.classes === 'all' || m.classes === 'All Classes' || m.classes === 'all-classes') return true;
-                        if (Array.isArray(m.classes)) {
-                            if (m.classes.includes('all') || m.classes.includes('All Classes') || m.classes.includes('all-classes')) return true;
-                            return m.classes.includes(studentClassSec);
-                        }
                         if (typeof m.classes === 'string') {
                             const list = m.classes.split(',').map(c => c.trim().toLowerCase());
+                            if (list.includes('all') || list.includes('all classes') || list.includes('all-classes')) return true;
+                            return list.includes(studentClassSec.toLowerCase());
+                        }
+                        if (Array.isArray(m.classes)) {
+                            const list = m.classes.map(c => c.trim().toLowerCase());
                             if (list.includes('all') || list.includes('all classes') || list.includes('all-classes')) return true;
                             return list.includes(studentClassSec.toLowerCase());
                         }
@@ -1081,6 +1266,23 @@ document.addEventListener("DOMContentLoaded", function () {
     // RENDER ACADEMICS
     function renderAcademics(student) {
         const select = document.getElementById('parent-exam-select');
+        if (select) {
+            const currentVal = select.value;
+            const stdExams = ['Unit Test 1', 'Unit Test 2', 'Quarterly', 'Half-Yearly', 'Pre-Final', 'Final Examination'];
+            const customExams = (student.examination_progress || []).map(p => p.exam_name || p.exam).filter(e => e && !stdExams.includes(e));
+            const allExams = Array.from(new Set([...stdExams, ...customExams]));
+            
+            let html = '<option value="">All Examinations</option>';
+            allExams.forEach(ex => {
+                html += `<option value="${ex}">${ex}</option>`;
+            });
+            select.innerHTML = html;
+            if (currentVal && allExams.includes(currentVal)) {
+                select.value = currentVal;
+            } else {
+                select.value = '';
+            }
+        }
         const filterVal = select ? select.value : '';
         renderAcademicsFiltered(student, filterVal);
     }
@@ -1124,40 +1326,61 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         let filteredProg = prog;
+        let showNotYetStarted = false;
         if (selectedExam) {
             filteredProg = prog.filter(p => (p.exam_name || p.exam || '') === selectedExam);
+            if (filteredProg.length === 0) {
+                showNotYetStarted = true;
+            }
         }
 
         const ec = document.getElementById('exam-history-table-container');
         if (ec) {
-            ec.innerHTML = filteredProg.length ? filteredProg.map(exam => `
-                <div style="margin-bottom:1.5rem; background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
-                        <h4 style="font-weight:700; font-size:1.05rem; margin:0; color:var(--text-main);">${exam.exam_name||exam.exam||'Exam'}</h4>
-                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                            <span class="badge badge-primary">Total: ${exam.total || 0}/${exam.total_max || 0}</span>
-                            <span class="badge badge-info">Percentage: ${exam.percentage || 0}%</span>
-                            <span class="badge badge-success">Rank: #${exam.rank || '—'}</span>
-                            <span class="badge ${exam.percentage >= 35 ? 'badge-success':'badge-danger'}">Grade: ${exam.grade || 'F'}</span>
+            if (showNotYetStarted) {
+                ec.innerHTML = `
+                    <div style="padding:3rem 2rem; text-align:center; background:var(--bg-card); border-radius:var(--radius-md); border:1px solid var(--border-color); display:flex; flex-direction:column; align-items:center; gap:1rem; box-shadow:var(--shadow-sm); margin-top:1rem;">
+                        <div style="width:56px; height:56px; border-radius:50%; background:var(--accent-warning-light); display:flex; align-items:center; justify-content:center; color:var(--accent-warning);">
+                            <i data-lucide="alert-triangle" style="width:28px; height:28px;"></i>
+                        </div>
+                        <div>
+                            <h4 style="font-weight:700; font-size:1.15rem; color:var(--text-main); margin:0 0 0.25rem 0;">⚠️ NOT YET STARTED</h4>
+                            <p style="color:var(--text-muted); font-size:0.875rem; margin:0; max-width:320px; line-height:1.4;">
+                                Marks for <strong>${selectedExam}</strong> have not been updated or published yet.
+                            </p>
                         </div>
                     </div>
-                    <div class="table-container"><table class="data-table"><thead><tr>
-                        <th>Subject</th><th>Obtained Marks</th><th>Max Marks</th><th>Grade</th><th>Result</th>
-                    </tr></thead><tbody>
-                        ${(exam.subjects||[]).map(sub => {
-                            const pct = Math.round((sub.obtained/sub.max)*100);
-                            const g = pct>=90?'A+':pct>=80?'A':pct>=70?'B+':pct>=60?'B':pct>=50?'C':pct>=35?'D':'F';
-                            const resultTxt = pct>=35 ? '<span style="color:var(--accent-success);font-weight:700;">PASS</span>':'<span style="color:var(--accent-danger);font-weight:700;">FAIL</span>';
-                            return `<tr>
-                                <td><strong>${sub.name}</strong></td>
-                                <td><strong>${sub.obtained}</strong></td>
-                                <td>${sub.max}</td>
-                                <td><span class="badge ${pct>=35?'badge-success':'badge-danger'}">${g}</span></td>
-                                <td>${resultTxt}</td>
-                            </tr>`;
-                        }).join('')}
-                    </tbody></table></div>
-                </div>`).join('') : `<div style="padding:2rem; text-align:center; color:var(--text-muted); background:var(--bg-card); border-radius:var(--radius-md); border:1px solid var(--border-color);">⚠️ No exam records found for the selected view.</div>`;
+                `;
+                lucide.createIcons();
+            } else {
+                ec.innerHTML = filteredProg.length ? filteredProg.map(exam => `
+                    <div style="margin-bottom:1.5rem; background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+                            <h4 style="font-weight:700; font-size:1.05rem; margin:0; color:var(--text-main);">${exam.exam_name||exam.exam||'Exam'}</h4>
+                            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                                <span class="badge badge-primary">Total: ${exam.total || 0}/${exam.total_max || 0}</span>
+                                <span class="badge badge-info">Percentage: ${exam.percentage || 0}%</span>
+                                <span class="badge badge-success">Rank: #${exam.rank || '—'}</span>
+                                <span class="badge ${exam.percentage >= 35 ? 'badge-success':'badge-danger'}">Grade: ${exam.grade || 'F'}</span>
+                            </div>
+                        </div>
+                        <div class="table-container"><table class="data-table"><thead><tr>
+                            <th>Subject</th><th>Obtained Marks</th><th>Max Marks</th><th>Grade</th><th>Result</th>
+                        </tr></thead><tbody>
+                            ${(exam.subjects||[]).map(sub => {
+                                const pct = Math.round((sub.obtained/sub.max)*100);
+                                const g = pct>=90?'A+':pct>=80?'A':pct>=70?'B+':pct>=60?'B':pct>=50?'C':pct>=35?'D':'F';
+                                const resultTxt = pct>=35 ? '<span style="color:var(--accent-success);font-weight:700;">PASS</span>':'<span style="color:var(--accent-danger);font-weight:700;">FAIL</span>';
+                                return `<tr>
+                                    <td><strong>${sub.name}</strong></td>
+                                    <td><strong>${sub.obtained}</strong></td>
+                                    <td>${sub.max}</td>
+                                    <td><span class="badge ${pct>=35?'badge-success':'badge-danger'}">${g}</span></td>
+                                    <td>${resultTxt}</td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody></table></div>
+                    </div>`).join('') : `<div style="padding:2rem; text-align:center; color:var(--text-muted); background:var(--bg-card); border-radius:var(--radius-md); border:1px solid var(--border-color);">⚠️ No exam records found for the selected view.</div>`;
+            }
         }
     }
 
@@ -1237,13 +1460,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 const cls=`${student.class}-${student.section}`;
                 const relevant=meetings.filter(m=>{
                     if (!m.classes) return false;
-                    if (m.classes === 'all' || m.classes === 'All Classes' || m.classes === 'all-classes') return true;
-                    if (Array.isArray(m.classes)) {
-                        if (m.classes.includes('all') || m.classes.includes('All Classes') || m.classes.includes('all-classes')) return true;
-                        return m.classes.includes(cls);
-                    }
                     if (typeof m.classes === 'string') {
                         const list = m.classes.split(',').map(c => c.trim().toLowerCase());
+                        if (list.includes('all') || list.includes('all classes') || list.includes('all-classes')) return true;
+                        return list.includes(cls.toLowerCase());
+                    }
+                    if (Array.isArray(m.classes)) {
+                        const list = m.classes.map(c => c.trim().toLowerCase());
                         if (list.includes('all') || list.includes('all classes') || list.includes('all-classes')) return true;
                         return list.includes(cls.toLowerCase());
                     }
@@ -1336,6 +1559,20 @@ document.addEventListener("DOMContentLoaded", function () {
             btn.classList.add('active');
             const tc=document.getElementById(btn.dataset.tab);
             if(tc){tc.classList.add('active');tc.classList.remove('hidden');}
+
+            // Clear notification badges
+            if (btn.dataset.tab === 'parent-tab-meetings') {
+                const badge = document.getElementById('badge-meetings');
+                if (badge) badge.classList.add('hidden');
+                const count = localStorage.getItem('sptas_meetings_fetch_count') || '0';
+                localStorage.setItem('sptas_last_meetings_count', count);
+            }
+            if (btn.dataset.tab === 'parent-tab-feedback') {
+                const badge = document.getElementById('badge-feedback');
+                if (badge) badge.classList.add('hidden');
+                const hash = localStorage.getItem('sptas_feedback_current_hash') || '';
+                localStorage.setItem('sptas_last_feedback_hash', hash);
+            }
         });
     });
 
@@ -1381,6 +1618,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <td>${pwdBadge}</td>
                 <td><div class="action-btns">
                     <button class="btn-action btn-edit" onclick="openEditTeacher('${t.id}')" title="Edit"><i data-lucide="pencil"></i></button>
+                    <button class="btn-action btn-edit" style="background:#0c4a6e; border-color:#0c4a6e; color:white;" onclick="adminResetPassword('${t.id}', 'teacher')" title="Reset Password"><i data-lucide="key"></i></button>
                     <button class="btn-action btn-delete" onclick="requestDeleteTeacher('${t.id}','${t.name.replace(/'/g,'')}')" title="Delete"><i data-lucide="trash-2"></i></button>
                 </div></td>`;
             tbody.appendChild(tr);
@@ -1403,6 +1641,8 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById('tf-email').value='';
         document.getElementById('tf-subjects').value='';
         document.getElementById('tf-classes-tag-list').innerHTML='';
+        const cb = document.getElementById('tf-can-edit-timetable');
+        if (cb) cb.checked = false;
         document.getElementById('teacher-form-error').classList.add('hidden');
         showModal('teacher-modal-overlay');
     }
@@ -1417,10 +1657,12 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById('tf-phone').value=t.phone;
         document.getElementById('tf-email').value=t.email||'';
         document.getElementById('tf-subjects').value=(t.subjects||[]).join(', ');
+        const cb = document.getElementById('tf-can-edit-timetable');
+        if (cb) cb.checked = t.can_edit_timetable || false;
         // Classes tags
         const tagList=document.getElementById('tf-classes-tag-list');
         tagList.innerHTML=(t.classes||[]).map(c=>`
-            <span class="class-tag">${c}
+            <span class="class-tag" data-class="${c}">${c}
                 <button type="button" class="tag-remove" onclick="this.parentElement.remove()">×</button>
             </span>`).join('');
         document.getElementById('teacher-form-error').classList.add('hidden');
@@ -1455,7 +1697,8 @@ document.addEventListener("DOMContentLoaded", function () {
             phone:cleanPhone(phone),
             email:document.getElementById('tf-email').value.trim(),
             subjects:document.getElementById('tf-subjects').value.split(',').map(s=>s.trim()).filter(s=>s),
-            classes
+            classes,
+            can_edit_timetable: document.getElementById('tf-can-edit-timetable')?.checked || false
         };
         const url=id?`/api/teacher/update/${id}`:'/api/teacher/create';
         const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -1531,6 +1774,12 @@ document.addEventListener("DOMContentLoaded", function () {
     // TIMETABLE MANAGER
     // ============================================================
     document.getElementById('tt-load-btn')?.addEventListener('click',loadTimetableEditor);
+    function canEditTimetable() {
+        if (currentRole === 'principal') return true;
+        if (currentRole === 'teacher' && activeTeacherProfile?.can_edit_timetable === true) return true;
+        return false;
+    }
+
     async function loadTimetableEditor(){
         const cls=document.getElementById('tt-class-select').value;
         const sec=document.getElementById('tt-section-select').value;
@@ -1549,8 +1798,11 @@ document.addEventListener("DOMContentLoaded", function () {
         currentTimetableData=data.timetable||{};
         days.forEach(d=>{if(!currentTimetableData[d]) currentTimetableData[d]=emptyDay();});
         renderTimetableEditor();
-        document.getElementById('tt-save-btn').style.display='';
-        document.getElementById('tt-save-btn').innerHTML=`<i data-lucide="save"></i> Save & Apply to ${currentTimetableKey}`;
+        const saveBtn = document.getElementById('tt-save-btn');
+        if (saveBtn) {
+            saveBtn.style.display = canEditTimetable() ? '' : 'none';
+            saveBtn.innerHTML=`<i data-lucide="save"></i> Save & Apply to ${currentTimetableKey}`;
+        }
         lucide.createIcons();
     }
 
@@ -1559,13 +1811,16 @@ document.addEventListener("DOMContentLoaded", function () {
         const container=document.getElementById('timetable-editor-container');
         let html=`<div class="timetable-days-tabs">`;
         days.forEach((d,i)=>`${html+=`<button class="tt-day-btn${i===0?' active':''}" onclick="switchTTDay('${d}',this)">${d.slice(0,3)}</button>`}`);
-        html+=`</div>
-        <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-            <button class="btn btn-secondary btn-sm" onclick="applyToAllDays()">
-                <i data-lucide="copy"></i> Apply Monday to All Days
-            </button>
-        </div>
-        <div id="tt-day-editor" style="margin-top:1rem;"></div>`;
+        html+=`</div>`;
+        if (canEditTimetable()) {
+            html += `
+            <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+                <button class="btn btn-secondary btn-sm" onclick="applyToAllDays()">
+                    <i data-lucide="copy"></i> Apply Monday to All Days
+                </button>
+            </div>`;
+        }
+        html+=`<div id="tt-day-editor" style="margin-top:1rem;"></div>`;
         container.innerHTML=html;
         renderTTDayEditor('Monday');
         lucide.createIcons();
@@ -1587,6 +1842,7 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     function saveTTDayToMemory(){
+        if (!canEditTimetable()) return;
         const rows=document.querySelectorAll('#tt-periods-table tbody tr');
         const periods=[];
         rows.forEach(row=>periods.push({
@@ -1605,34 +1861,35 @@ document.addEventListener("DOMContentLoaded", function () {
         const periods=currentTimetableData[day]||[];
         const teacherOptions=teachersCache.map(t=>`<option value="${t.name}">${t.name}</option>`).join('');
         const editor=document.getElementById('tt-day-editor');
+        const canEdit = canEditTimetable();
         let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem;">
             <h4 style="font-weight:600;">${day} Schedule</h4>
-            <button class="btn btn-secondary btn-sm" onclick="addPeriodRow()"><i data-lucide="plus"></i> Add Period</button>
+            ${canEdit ? `<button class="btn btn-secondary btn-sm" onclick="addPeriodRow()"><i data-lucide="plus"></i> Add Period</button>` : ''}
         </div>
         <div class="table-container"><table class="data-table" id="tt-periods-table">
-        <thead><tr><th>Period</th><th>Time (Start - End)</th><th>Subject</th><th>Teacher</th><th>Room</th><th>Type</th><th>Del</th></tr></thead>
+        <thead><tr><th>Period</th><th>Time (Start - End)</th><th>Subject</th><th>Teacher</th><th>Room</th><th>Type</th>${canEdit ? '<th>Del</th>' : ''}</tr></thead>
         <tbody>`;
         periods.forEach(p=>{
             html+=`<tr>
-                <td><input type="text" class="form-input tt-period-no" value="${p.period}" style="width:55px;"></td>
-                <td><input type="text" class="form-input tt-period-time" value="${p.time}" style="width:185px;"></td>
-                <td><input type="text" class="form-input tt-period-subject" value="${p.subject}"></td>
+                <td><input type="text" class="form-input tt-period-no" value="${p.period}" style="width:55px;" ${canEdit ? '' : 'disabled'}></td>
+                <td><input type="text" class="form-input tt-period-time" value="${p.time}" style="width:185px;" ${canEdit ? '' : 'disabled'}></td>
+                <td><input type="text" class="form-input tt-period-subject" value="${p.subject}" ${canEdit ? '' : 'disabled'}></td>
                 <td>
-                    <select class="form-select tt-period-teacher" style="min-width:130px;">
+                    <select class="form-select tt-period-teacher" style="min-width:130px;" ${canEdit ? '' : 'disabled'}>
                         <option value="${p.teacher}">${p.teacher||'Select Teacher'}</option>
                         ${teacherOptions}
                     </select>
                 </td>
-                <td><input type="text" class="form-input tt-period-room" value="${p.room}" style="width:80px;"></td>
+                <td><input type="text" class="form-input tt-period-room" value="${p.room}" style="width:80px;" ${canEdit ? '' : 'disabled'}></td>
                 <td>
-                    <select class="form-select tt-period-status" style="width:145px;">
+                    <select class="form-select tt-period-status" style="width:145px;" ${canEdit ? '' : 'disabled'}>
                         <option ${p.status==='Class In Progress'?'selected':''}>Class In Progress</option>
                         <option ${p.status==='Recess'?'selected':''}>Recess</option>
                         <option ${p.status==='Break'?'selected':''}>Break</option>
                         <option ${p.status==='Free Period'?'selected':''}>Free Period</option>
                     </select>
                 </td>
-                <td><button class="btn-action btn-delete" onclick="this.closest('tr').remove()"><i data-lucide="trash-2"></i></button></td>
+                ${canEdit ? `<td><button class="btn-action btn-delete" onclick="this.closest('tr').remove()"><i data-lucide="trash-2"></i></button></td>` : ''}
             </tr>`;
         });
         html+=`</tbody></table></div>`;
@@ -1641,6 +1898,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     window.addPeriodRow=function(){
+        if (!canEditTimetable()) return;
         const tbody=document.querySelector('#tt-periods-table tbody'); if(!tbody) return;
         const teacherOptions=teachersCache.map(t=>`<option>${t.name}</option>`).join('');
         const row=document.createElement('tr');
@@ -1829,6 +2087,57 @@ document.addEventListener("DOMContentLoaded", function () {
         const customWrapper = document.getElementById('excel-dl-exam-custom-wrapper');
         if (customWrapper) customWrapper.classList.toggle('hidden', this.value !== 'custom');
     });
+
+    document.getElementById('excel-dl-class')?.addEventListener('change', function() {
+        const cls = this.value;
+        const sec = document.getElementById('excel-dl-section')?.value || 'A';
+        loadClassTimetableSubjects(cls, sec);
+    });
+
+    document.getElementById('excel-dl-section')?.addEventListener('change', function() {
+        const cls = document.getElementById('excel-dl-class')?.value || '10';
+        const sec = this.value;
+        loadClassTimetableSubjects(cls, sec);
+    });
+
+    async function loadClassTimetableSubjects(cls, sec) {
+        if (!cls || !sec) return;
+        try {
+            const res = await fetch(`/api/timetable/subjects/${cls}-${sec}`);
+            const data = await res.json();
+            const ttSubs = data.subjects || [];
+            
+            const stdSubs = ['Telugu', 'Hindi', 'English', 'Mathematics', 'Science', 'Social Studies'];
+            const allSubs = Array.from(new Set([...ttSubs, ...stdSubs]));
+            
+            const popup = document.getElementById('excel-dl-subjects-dropdown-content');
+            if (popup) {
+                let html = '';
+                allSubs.forEach(sub => {
+                    const isChecked = ttSubs.length > 0 ? ttSubs.includes(sub) : stdSubs.includes(sub);
+                    html += `
+                        <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;">
+                            <input type="checkbox" class="excel-subj-cb" value="${sub}" ${isChecked ? 'checked' : ''}> ${sub}
+                        </label>
+                    `;
+                });
+                html += `
+                    <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;">
+                        <input type="checkbox" id="excel-dl-subjects-cb-custom" value="custom"> Custom Additional...
+                    </label>
+                `;
+                popup.innerHTML = html;
+                
+                document.querySelectorAll('.excel-subj-cb, #excel-dl-subjects-cb-custom').forEach(cb => {
+                    cb.addEventListener('change', updateExcelSubjectsSelectedLabel);
+                });
+                
+                updateExcelSubjectsSelectedLabel();
+            }
+        } catch(e) {
+            console.error("Error loading timetable subjects:", e);
+        }
+    }
 
     document.getElementById('excel-dl-subjects-dropdown-btn')?.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -2317,5 +2626,207 @@ document.addEventListener("DOMContentLoaded", function () {
         a.click();
         document.body.removeChild(a);
     };
+
+    // ---- DOWNLOAD BULK STUDENT REGISTRATION TEMPLATE ----
+    document.getElementById('excel-reg-dl-btn')?.addEventListener('click', function() {
+        const cls = document.getElementById('excel-reg-dl-class')?.value || '';
+        const sec = document.getElementById('excel-reg-dl-section')?.value || '';
+        const subjects = document.getElementById('excel-reg-dl-subjects')?.value || '';
+        
+        if (!cls) {
+            showToast('Please select a class to download registration template.', 'error');
+            return;
+        }
+        
+        const url = `/api/excel/sample-register?class=${encodeURIComponent(cls)}&section=${encodeURIComponent(sec)}&subjects=${encodeURIComponent(subjects)}`;
+        showToast('Generating student registration template...', 'info');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SPTAS_Registration_Template_${cls}_${sec}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+
+    // ---- DOWNLOAD DYNAMIC RESULTS REPORT SPREADSHEET ----
+    document.getElementById('excel-rep-btn')?.addEventListener('click', async function() {
+        const cls = document.getElementById('excel-rep-class')?.value || '';
+        const sec = document.getElementById('excel-rep-section')?.value || '';
+        const exam = document.getElementById('excel-rep-exam')?.value || '';
+        
+        if (!cls) {
+            showToast('Please select a class to download results report.', 'error');
+            return;
+        }
+        
+        const url = `/api/excel/results-report?class=${encodeURIComponent(cls)}&section=${encodeURIComponent(sec)}&exam=${encodeURIComponent(exam)}`;
+        showToast(`Generating results report... Downloading!`, 'success');
+        
+        const headers = {};
+        const tid = localStorage.getItem('sptas_teacher_id');
+        if (tid) headers['X-Teacher-Id'] = tid;
+        
+        try {
+            const res = await fetch(url, { headers });
+            if (res.status === 403) {
+                showToast('Forbidden: You are not assigned to this class.', 'error');
+                return;
+            }
+            if (!res.ok) {
+                showToast('Failed to generate results report.', 'error');
+                return;
+            }
+            const blob = await res.blob();
+            const dlUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = dlUrl;
+            a.download = `SPTAS_Results_${cls}_${sec}_${exam.replace(/ /g,'_')}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(dlUrl);
+        } catch(e) {
+            showToast('Error downloading report.', 'error');
+        }
+    });
+
+    // ---- DOWNLOAD MONTHLY ATTENDANCE REPORT SPREADSHEET ----
+    document.getElementById('report-excel-btn')?.addEventListener('click', async function() {
+        const month = document.getElementById('report-month').value;
+        const cls = document.getElementById('report-class').value;
+        const sec = document.getElementById('report-section').value;
+        if (!month) {
+            showToast('Select a month to download attendance report.', 'error');
+            return;
+        }
+        
+        const url = `/api/excel/attendance-report?month=${encodeURIComponent(month)}&class=${encodeURIComponent(cls)}&section=${encodeURIComponent(sec)}`;
+        showToast(`Generating attendance report... Downloading!`, 'success');
+        
+        const headers = {};
+        const tid = localStorage.getItem('sptas_teacher_id');
+        if (tid) headers['X-Teacher-Id'] = tid;
+        
+        try {
+            const res = await fetch(url, { headers });
+            if (res.status === 403) {
+                showToast('Forbidden: You are not assigned to this class.', 'error');
+                return;
+            }
+            if (!res.ok) {
+                showToast('Failed to generate attendance report.', 'error');
+                return;
+            }
+            const blob = await res.blob();
+            const dlUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = dlUrl;
+            a.download = `SPTAS_Attendance_${cls || 'All'}_${sec || 'All'}_${month}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(dlUrl);
+        } catch(e) {
+            showToast('Error downloading report.', 'error');
+        }
+    });
+
+    async function loadExcelReportsExamDropdown() {
+        try {
+            const res = await fetch('/api/exams/list');
+            const data = await res.json();
+            const examSelect = document.getElementById('excel-rep-exam');
+            if (examSelect && data.success) {
+                const currentVal = examSelect.value;
+                let html = '<option value="">All Exams</option>';
+                data.exams.forEach(ex => {
+                    html += `<option value="${ex}">${ex}</option>`;
+                });
+                examSelect.innerHTML = html;
+                if (data.exams.includes(currentVal)) {
+                    examSelect.value = currentVal;
+                }
+            }
+        } catch(e) {
+            console.error("Error loading exams list:", e);
+        }
+    }
+
+    // ============================================================
+    // HOLIDAYS & WORKING DAYS MANAGER (PRINCIPAL ONLY)
+    // ============================================================
+    async function loadHolidaysManager() {
+        const isPrincipal = (currentRole === 'principal');
+        if (!isPrincipal) return;
+        try {
+            const res = await fetch('/api/holidays');
+            const data = await res.json();
+            
+            // Render Custom Holidays
+            const hList = document.getElementById('holiday-mgr-holidays-list');
+            if (hList) {
+                if (!data.custom_holidays || data.custom_holidays.length === 0) {
+                    hList.innerHTML = `<p style="color:var(--text-muted); padding:0.25rem;">No custom holidays set.</p>`;
+                } else {
+                    hList.innerHTML = data.custom_holidays.map(d => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-body); padding:0.35rem 0.5rem; border-radius:4px; border:1px solid var(--border-color);">
+                            <span>📅 ${d}</span>
+                            <button type="button" class="btn-action btn-delete" onclick="deleteHolidayOverride('${d}')" style="box-shadow:none;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
+                        </div>
+                    `).join('');
+                }
+            }
+            
+            // Render Special Working Days
+            const wList = document.getElementById('holiday-mgr-working-list');
+            if (wList) {
+                if (!data.custom_working_days || data.custom_working_days.length === 0) {
+                    wList.innerHTML = `<p style="color:var(--text-muted); padding:0.25rem;">No special working days set.</p>`;
+                } else {
+                    wList.innerHTML = data.custom_working_days.map(d => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-body); padding:0.35rem 0.5rem; border-radius:4px; border:1px solid var(--border-color);">
+                            <span>📅 ${d}</span>
+                            <button type="button" class="btn-action btn-delete" onclick="deleteHolidayOverride('${d}')" style="box-shadow:none;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
+                        </div>
+                    `).join('');
+                }
+            }
+            lucide.createIcons();
+        } catch {}
+    }
+
+    window.deleteHolidayOverride = async function(date) {
+        const res = await fetch('/api/holidays/set', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ date: date, status: 'clear' })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Reset date status to default.', 'success');
+            loadHolidaysManager();
+        } else {
+            showToast(data.message || 'Error.', 'error');
+        }
+    };
+
+    document.getElementById('holiday-mgr-save-btn')?.addEventListener('click', async function() {
+        const dateVal = document.getElementById('holiday-mgr-date').value;
+        const statusVal = document.getElementById('holiday-mgr-status').value;
+        if (!dateVal) { showToast('Please select a date.', 'error'); return; }
+        
+        const res = await fetch('/api/holidays/set', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ date: dateVal, status: statusVal })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('School holiday/working day status updated!', 'success');
+            loadHolidaysManager();
+        } else {
+            showToast(data.message || 'Error.', 'error');
+        }
+    });
 
 }); // end DOMContentLoaded

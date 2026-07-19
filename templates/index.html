@@ -149,6 +149,9 @@
                 <button type="button" class="btn btn-primary full-width" id="principal-login-btn">
                     <i data-lucide="log-in"></i> Login to Principal Portal
                 </button>
+                <button type="button" class="forgot-pwd-link" data-role="principal">
+                    <i data-lucide="key"></i> Forgot Password?
+                </button>
             </div>
         </div>
     </div>
@@ -177,9 +180,9 @@
         <button class="header-icon-btn principal-only hidden" id="edit-principal-name-btn" title="Edit Name">
             <i data-lucide="pencil"></i>
         </button>
-        <button class="header-icon-btn" id="theme-toggle-btn" title="Toggle Theme">
+        <button class="header-icon-btn hidden" id="theme-toggle-btn" title="Toggle Theme">
             <i data-lucide="moon" class="theme-icon-dark"></i>
-            <i data-lucide="sun" class="theme-icon-light hidden"></i>
+            <i data-lucideSun="sun" class="theme-icon-light hidden"></i>
         </button>
         <button class="header-icon-btn" id="logout-btn" title="Logout">
             <i data-lucide="log-out"></i>
@@ -215,6 +218,7 @@
             <div class="stat-content">
                 <h3 id="admin-stat-attendance">-</h3>
                 <p>Avg Attendance</p>
+                <small id="admin-stat-attendance-ratio" style="font-size:0.75rem;color:var(--text-muted);display:block;margin-top:0.2rem;"></small>
             </div>
         </div>
         <div class="stat-card">
@@ -240,7 +244,8 @@
         <button class="admin-tab-pill" data-admin-tab="tab-timetable"><i data-lucide="calendar-days"></i> <span>Timetable</span></button>
         <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-teachers"><i data-lucide="user-cog"></i> <span>Teachers</span></button>
         <button class="admin-tab-pill hidden" id="admin-meetings-tab-btn" data-admin-tab="tab-meetings"><i data-lucide="calendar-heart"></i> <span>Meetings</span></button>
-        <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-reports"><i data-lucide="bar-chart-2"></i> <span>Reports</span></button>
+        <button class="admin-tab-pill hidden" id="admin-reports-tab-btn" data-admin-tab="tab-reports"><i data-lucide="bar-chart-2"></i> <span>Reports</span></button>
+        <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-activities-log"><i data-lucide="activity"></i> <span>Activity Log</span></button>
         <button class="admin-tab-pill" data-admin-tab="tab-excel"><i data-lucide="file-spreadsheet"></i> <span>Import/Export</span></button>
 
     </div>
@@ -310,6 +315,56 @@
                 <div id="attendance-list-container" style="margin-top:1rem;"></div>
             </div>
         </div>
+        <!-- ===== SCHOOL HOLIDAYS MANAGER (PRINCIPAL ONLY) ===== -->
+        <div class="section-card card-full principal-only hidden" style="margin-top:1.5rem;">
+            <div class="table-card-header" style="background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#ffffff;">
+                <h3><i data-lucide="palm-tree" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Manage School Holidays &amp; Working Days</h3>
+                <span class="badge badge-info" style="background:#ffffff; color:#4f46e5; font-weight:700;">Principal Only</span>
+            </div>
+            <div style="padding:1.25rem;">
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.25rem;">
+                    Configure custom school holidays or mark standard holidays/Sundays as working days (e.g. school is running on a holiday).
+                </p>
+                <div class="filter-bar" style="align-items:flex-end; gap:1rem; flex-wrap:wrap;">
+                    <div class="filter-item">
+                        <label>Select Date</label>
+                        <input type="date" id="holiday-mgr-date" class="form-input" style="width:160px;">
+                    </div>
+                    <div class="filter-item">
+                        <label>Day Status</label>
+                        <select id="holiday-mgr-status" class="form-select" style="width:180px;">
+                            <option value="holiday">🔴 School Holiday</option>
+                            <option value="working">🟢 Special Working Day</option>
+                            <option value="clear">⚪ Reset to Default Status</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button type="button" id="holiday-mgr-save-btn" class="btn btn-primary">
+                            <i data-lucide="check"></i> Apply Status
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="margin-top:1.5rem; display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.25rem;">
+                    <div>
+                        <h4 style="font-size:0.85rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:0.5rem;">
+                            Custom Holidays
+                        </h4>
+                        <div id="holiday-mgr-holidays-list" style="max-height:150px; overflow-y:auto; background:var(--bg-card); padding:0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-color); font-size:0.85rem; display:flex; flex-direction:column; gap:0.35rem;">
+                            <p style="color:var(--text-muted); padding:0.25rem;">No custom holidays set.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 style="font-size:0.85rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:0.5rem;">
+                            Special Working Days
+                        </h4>
+                        <div id="holiday-mgr-working-list" style="max-height:150px; overflow-y:auto; background:var(--bg-card); padding:0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-color); font-size:0.85rem; display:flex; flex-direction:column; gap:0.35rem;">
+                            <p style="color:var(--text-muted); padding:0.25rem;">No special working days set.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ===== TIMETABLE TAB ===== -->
@@ -373,10 +428,11 @@
 
     <!-- ===== REPORTS TAB ===== -->
     <div class="admin-tab-content hidden" id="tab-reports">
-        <div class="section-card card-full">
-            <div class="table-card-header">
+        <!-- Monthly Attendance Card -->
+        <div class="section-card card-full" style="margin-bottom: 2rem;">
+            <div class="table-card-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white;">
                 <h3><i data-lucide="bar-chart-2" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Monthly Attendance Report</h3>
-                <button onclick="window.print()" class="btn btn-secondary btn-sm"><i data-lucide="printer"></i> Print</button>
+                <button onclick="window.print()" class="btn btn-secondary btn-sm" style="border-color: rgba(255,255,255,0.25); color: white;"><i data-lucide="printer"></i> Print</button>
             </div>
             <div style="padding:1.25rem;">
                 <div class="filter-bar">
@@ -395,11 +451,75 @@
                             <option>A</option><option>B</option><option>C</option><option>D</option>
                         </select>
                     </div>
-                    <div class="filter-actions">
-                        <button id="report-load-btn" class="btn btn-primary"><i data-lucide="bar-chart-2"></i> Generate</button>
+                    <div class="filter-actions" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                        <button id="report-load-btn" class="btn btn-primary"><i data-lucide="bar-chart-2"></i> Generate View</button>
+                        <button id="report-excel-btn" class="btn btn-success"><i data-lucide="download"></i> Download Excel</button>
                     </div>
                 </div>
                 <div id="monthly-report-container" style="margin-top:1rem;"></div>
+            </div>
+        </div>
+
+        <!-- Download Results Report Card (Relocated from Excel Tab) -->
+        <div class="section-card card-full">
+            <div class="table-card-header" style="background: linear-gradient(135deg, #9d174d, #be185d); color: white;">
+                <h3><i data-lucide="award" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Download Exam Results &amp; Ranks Report</h3>
+            </div>
+            <div style="padding: 1.25rem;">
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.25rem;">
+                    Download a beautifully formatted Excel report containing total marks, percentages, grades, class/section ranks, pass/fail result status, and academic remarks.
+                </p>
+                <div class="filter-bar" style="margin-bottom:0; background:var(--bg-card); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+                    <div class="filter-item">
+                        <label>Class</label>
+                        <select id="excel-rep-class" class="form-select"></select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Section</label>
+                        <select id="excel-rep-section" class="form-select">
+                            <option value="">All Sections</option>
+                            <option>A</option><option>B</option><option>C</option><option>D</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Exam Name</label>
+                        <select id="excel-rep-exam" class="form-select">
+                            <option value="">All Exams</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button id="excel-rep-btn" class="btn btn-primary" style="background:#be185d; border-color:#be185d;">
+                            <i data-lucide="download"></i> Download Report
+                        </button>
+                    </div>
+                </div>
+                <div class="grade-legend" style="margin-top:1rem;">
+                    <span class="gl-chip" style="background:#D4EDDA;color:#155724;">A+ = 90-100%</span>
+                    <span class="gl-chip" style="background:#C3E6CB;color:#155724;">A = 80-89%</span>
+                    <span class="gl-chip" style="background:#D1ECF1;color:#0c5460;">B+ = 70-79%</span>
+                    <span class="gl-chip" style="background:#BEE5EB;color:#0c5460;">B = 60-69%</span>
+                    <span class="gl-chip" style="background:#FFF3CD;color:#856404;">C = 50-59%</span>
+                    <span class="gl-chip" style="background:#FFE8A1;color:#856404;">D = 35-49%</span>
+                    <span class="gl-chip" style="background:#F8D7DA;color:#721c24;">F = &lt;35%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ACTIVITY LOG TAB (PRINCIPAL ONLY) ===== -->
+    <div class="admin-tab-content hidden" id="tab-activities-log">
+        <div class="section-card card-full">
+            <div class="table-card-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white;">
+                <h3><i data-lucide="activity" style="width:16px;vertical-align:middle;margin-right:6px;"></i>System Activity Log</h3>
+                <span class="badge badge-info" style="background:#ffffff; color:#0f172a; font-weight:700;">Principal Only</span>
+            </div>
+            <div style="padding:1.25rem;">
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.25rem;">
+                    Recent actions performed by teachers and administrators.
+                </p>
+                <div id="activities-log-container" style="max-height: 480px; overflow-y: auto; display:flex; flex-direction:column; gap:0.75rem;">
+                    <!-- Activities list will render here -->
+                </div>
             </div>
         </div>
     </div>
@@ -590,56 +710,6 @@
             </div>
         </div>
 
-        <!-- Step 3: Download Results Report -->
-        <div class="excel-step-card">
-            <div class="excel-step-header" style="background:linear-gradient(135deg,#9d174d,#be185d);">
-                <div class="excel-step-num">Step 3</div>
-                <div>
-                    <h3>📊 Download Results Report</h3>
-                    <p>Download a formatted Excel report with Rank, Grade, Total, and Performance Trend for any class/exam combination.</p>
-                </div>
-            </div>
-            <div class="excel-step-body">
-                <div class="filter-bar" style="margin-bottom:0;">
-                    <div class="filter-item">
-                        <label>Class</label>
-                        <select id="excel-rep-class" class="form-select"></select>
-                    </div>
-                    <div class="filter-item">
-                        <label>Section</label>
-                        <select id="excel-rep-section" class="form-select">
-                            <option value="">All Sections</option>
-                            <option>A</option><option>B</option><option>C</option><option>D</option>
-                        </select>
-                    </div>
-                    <div class="filter-item">
-                        <label>Exam (Optional)</label>
-                        <select id="excel-rep-exam" class="form-select">
-                            <option value="">All Exams</option>
-                            <option>Unit Test 1</option>
-                            <option>Unit Test 2</option>
-                            <option>Half Yearly</option>
-                            <option>Pre-Annual</option>
-                            <option>Annual</option>
-                        </select>
-                    </div>
-                    <div class="filter-actions">
-                        <button id="excel-rep-btn" class="btn btn-primary">
-                            <i data-lucide="download"></i> Download Report
-                        </button>
-                    </div>
-                </div>
-                <div class="grade-legend" style="margin-top:1rem;">
-                    <span class="gl-chip" style="background:#D4EDDA;color:#155724;">A+ = 90-100%</span>
-                    <span class="gl-chip" style="background:#C3E6CB;color:#155724;">A = 80-89%</span>
-                    <span class="gl-chip" style="background:#D1ECF1;color:#0c5460;">B+ = 70-79%</span>
-                    <span class="gl-chip" style="background:#BEE5EB;color:#0c5460;">B = 60-69%</span>
-                    <span class="gl-chip" style="background:#FFF3CD;color:#856404;">C = 50-59%</span>
-                    <span class="gl-chip" style="background:#FFE8A1;color:#856404;">D = 35-49%</span>
-                    <span class="gl-chip" style="background:#F8D7DA;color:#721c24;">F = &lt;35%</span>
-                </div>
-            </div>
-        </div>
     </div>
 </main>
 
@@ -654,7 +724,7 @@
         </button>
         <div class="toolbar-right">
             <button id="parent-settings-btn" class="btn btn-secondary btn-sm hidden">
-                <i data-lucide="settings"></i> Settings
+                <i data-lucide="key"></i> Reset Password
             </button>
             <button id="print-pdf-btn" class="btn btn-primary btn-sm">
                 <i data-lucide="printer"></i> Print Report
@@ -745,8 +815,8 @@
         <button class="tab-btn" data-tab="tab-academics"><i data-lucide="book-open"></i> <span>Academics</span></button>
         <button class="tab-btn" data-tab="tab-behavior"><i data-lucide="heart"></i> <span>Behavior</span></button>
         <button class="tab-btn" data-tab="tab-activities"><i data-lucide="star"></i> <span>Activities</span></button>
-        <button class="tab-btn" data-tab="tab-meetings"><i data-lucide="calendar-days"></i> <span>Meetings</span><span class="nav-badge hidden" id="badge-meetings">1</span></button>
-        <button class="tab-btn" data-tab="tab-feedback"><i data-lucide="message-square"></i> <span>Feedback</span><span class="nav-badge hidden" id="badge-feedback">1</span></button>
+        <button class="tab-btn" data-tab="parent-tab-meetings"><i data-lucide="calendar-days"></i> <span>Meetings</span><span class="nav-badge hidden" id="badge-meetings">1</span></button>
+        <button class="tab-btn" data-tab="parent-tab-feedback"><i data-lucide="message-square"></i> <span>Feedback</span><span class="nav-badge hidden" id="badge-feedback">1</span></button>
     </div>
 
     <!-- OVERVIEW TAB -->
@@ -822,7 +892,7 @@
     </div>
 
     <!-- MEETINGS TAB -->
-    <div class="tab-content hidden" id="tab-meetings">
+    <div class="tab-content hidden" id="parent-tab-meetings">
         <div class="section-card card-full">
             <h3 class="section-title"><i data-lucide="calendar-days"></i> Scheduled Parent Meetings</h3>
             <div id="student-meetings-list"></div>
@@ -834,7 +904,7 @@
     </div>
 
     <!-- FEEDBACK TAB -->
-    <div class="tab-content hidden" id="tab-feedback">
+    <div class="tab-content hidden" id="parent-tab-feedback">
         <div class="section-card card-full">
             <h3 class="section-title"><i data-lucide="message-square"></i> Parent Feedback</h3>
             <textarea id="parent-feedback-text" class="form-input" rows="4"
@@ -1116,6 +1186,11 @@
                     </div>
                 </div>
             </div>
+            <div class="form-group" style="margin-top: 1rem; margin-bottom: 1rem;">
+                <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;">
+                    <input type="checkbox" id="tf-can-edit-timetable" value="true"> Allow this teacher to edit Class Timetables
+                </label>
+            </div>
             <div id="teacher-form-error" class="auth-error hidden" style="margin-bottom:1rem;"></div>
             <div style="display:flex;justify-content:flex-end;gap:0.75rem;padding-top:1rem;border-top:1px solid var(--border-color);">
                 <button type="button" class="btn btn-secondary" id="teacher-modal-cancel">Cancel</button>
@@ -1302,6 +1377,56 @@
             <div style="display:flex;justify-content:center;gap:1rem;margin-top:1.5rem;">
                 <button class="btn btn-secondary" id="confirm-delete-cancel">Cancel</button>
                 <button class="btn btn-danger" id="confirm-delete-ok">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =====================================================
+     FORGOT PASSWORD MODAL (OTP Reset Flow)
+     ===================================================== -->
+<div class="modal-overlay hidden" id="forgot-password-modal">
+    <div class="modal-container" style="max-width:400px;">
+        <div class="modal-header">
+            <h3>Forgot Password?</h3>
+            <button class="modal-close-btn" id="forgot-pwd-close"><i data-lucide="x"></i></button>
+        </div>
+        <div style="padding:1.5rem;" id="forgot-pwd-step-1">
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
+                Enter your registered 10-digit mobile number. We will send a 6-digit OTP code to verify your identity.
+            </p>
+            <div class="form-group">
+                <label>Portal Role</label>
+                <input type="text" id="forgot-pwd-role-display" class="form-input" readonly style="text-transform: capitalize;">
+            </div>
+            <div class="form-group">
+                <label>Registered Phone Number *</label>
+                <input type="text" id="forgot-pwd-phone" class="form-input" placeholder="e.g. 9999999999" maxlength="15">
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem;padding-top:1rem;border-top:1px solid var(--border-color);">
+                <button class="btn btn-secondary" id="forgot-pwd-cancel-1">Cancel</button>
+                <button class="btn btn-primary" id="forgot-pwd-send-otp-btn">Send OTP</button>
+            </div>
+        </div>
+        <div style="padding:1.5rem;" id="forgot-pwd-step-2" class="hidden">
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
+                Enter the 6-digit OTP sent to your phone number and set your new password.
+            </p>
+            <div class="form-group">
+                <label>6-Digit OTP *</label>
+                <input type="text" id="forgot-pwd-otp" class="form-input" placeholder="Enter 6-digit OTP" maxlength="6">
+            </div>
+            <div class="form-group">
+                <label>New Password *</label>
+                <input type="password" id="forgot-pwd-new-pass" class="form-input" placeholder="Min 6 characters">
+            </div>
+            <div class="form-group">
+                <label>Confirm Password *</label>
+                <input type="password" id="forgot-pwd-confirm-pass" class="form-input" placeholder="Re-enter password">
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem;padding-top:1rem;border-top:1px solid var(--border-color);">
+                <button class="btn btn-secondary" id="forgot-pwd-cancel-2">Cancel</button>
+                <button class="btn btn-primary" id="forgot-pwd-reset-save-btn">Reset Password</button>
             </div>
         </div>
     </div>

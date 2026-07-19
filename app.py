@@ -52,6 +52,58 @@ def save_settings(d): return save_json('settings.json', d)
 def load_meetings(): return load_json('meetings_db.json', [])
 def save_meetings(d): return save_json('meetings_db.json', d)
 
+def load_activities(): return load_json('activities_db.json', [])
+def save_activities(d): return save_json('activities_db.json', d)
+
+def log_activity(role, name, description):
+    import time
+    activities = load_activities()
+    new_act = {
+        "id": f"act_{int(time.time())}_{random.randint(1000, 9999)}",
+        "role": role,
+        "name": name,
+        "description": description,
+        "timestamp": datetime.now().strftime("%d %b %Y, %I:%M %p")
+    }
+    activities.insert(0, new_act)
+    save_activities(activities[:100])
+
+
+DEFAULT_GOVT_HOLIDAYS = [
+    "2026-01-01", "2026-01-14", "2026-01-15", "2026-01-26",
+    "2026-03-18", "2026-03-27", "2026-04-05", "2026-04-14",
+    "2026-05-01", "2026-08-15", "2026-09-07", "2026-10-02",
+    "2026-10-20", "2026-11-08", "2026-12-25"
+]
+
+def is_school_holiday(date_str):
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        return False, ""
+    
+    settings = load_settings()
+    custom_holidays = settings.get("custom_holidays", [])
+    custom_working_days = settings.get("custom_working_days", [])
+    
+    # Custom working day overrides Sunday/Govt holiday
+    if date_str in custom_working_days:
+        return False, "Working Day"
+        
+    # Custom holiday overrides Sunday/Govt holiday
+    if date_str in custom_holidays:
+        return True, "School Holiday"
+        
+    # Govt holiday
+    if date_str in DEFAULT_GOVT_HOLIDAYS:
+        return True, "Govt Holiday"
+        
+    # Sunday
+    if dt.weekday() == 6: # Sunday
+        return True, "Sunday"
+        
+    return False, ""
+
 def clean_phone(phone):
     if not phone: return ""
     return str(phone).replace(" ","").replace("-","").replace("+91","").strip()
@@ -70,8 +122,31 @@ def get_stats():
     total = len(students)
     classes = len(set(f"{s['class']}-{s['section']}" for s in students)) if students else 0
     avg_att = f"{sum(s['current_status']['attendance_percentage'] for s in students)/total:.1f}%" if total else "0%"
-    return jsonify({"total_students": total, "active_classes": classes,
-                    "overall_attendance": avg_att, "teachers": len(teachers)})
+    
+    # Today's attendance ratio
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_present = 0
+    for s in students:
+        rec = next((r for r in s.get("attendance_records", []) if r["date"] == today_str), None)
+        if rec:
+            if rec["status"] == "Present":
+                today_present += 1
+            elif rec["status"] == "Half Day":
+                today_present += 0.5
+        else:
+            if s.get("attendance_status") == "Present":
+                today_present += 1
+            elif s.get("attendance_status") == "Half Day":
+                today_present += 0.5
+
+    return jsonify({
+        "total_students": total,
+        "active_classes": classes,
+        "overall_attendance": avg_att,
+        "teachers": len(teachers),
+        "today_present": today_present,
+        "today_total": total
+    })
 
 # =========================================================
 # SETTINGS
@@ -88,7 +163,46 @@ def update_settings():
     s = load_settings()
     if "principal_name" in data: s["principal_name"] = data["principal_name"].strip()
     if "school_name" in data: s["school_name"] = data["school_name"].strip()
-    return jsonify({"success": True}) if save_settings(s) else jsonify({"success": False}), 500
+    if save_settings(s):
+        return jsonify({"success": True})
+    return jsonify({"success": False}), 500
+
+@app.route('/api/holidays', methods=['GET'])
+def get_holidays():
+    settings = load_settings()
+    return jsonify({
+        "default_govt_holidays": DEFAULT_GOVT_HOLIDAYS,
+        "custom_holidays": settings.get("custom_holidays", []),
+        "custom_working_days": settings.get("custom_working_days", [])
+    })
+
+@app.route('/api/holidays/set', methods=['POST'])
+def set_holiday_status():
+    data = request.get_json() or {}
+    date_str = data.get("date", "").strip()
+    status = data.get("status", "").strip() # "holiday", "working", or "clear"
+    if not date_str:
+        return jsonify({"success": False, "message": "Date is required."}), 400
+        
+    settings = load_settings()
+    custom_holidays = set(settings.get("custom_holidays", []))
+    custom_working_days = set(settings.get("custom_working_days", []))
+    
+    # Reset existing
+    custom_holidays.discard(date_str)
+    custom_working_days.discard(date_str)
+    
+    if status == "holiday":
+        custom_holidays.add(date_str)
+    elif status == "working":
+        custom_working_days.add(date_str)
+        
+    settings["custom_holidays"] = sorted(list(custom_holidays))
+    settings["custom_working_days"] = sorted(list(custom_working_days))
+    
+    if save_settings(settings):
+        return jsonify({"success": True, "message": "Holiday status updated."})
+    return jsonify({"success": False, "message": "Failed to save settings."}), 500
 
 # =========================================================
 # AUTHENTICATION
@@ -141,8 +255,50 @@ def login():
     return jsonify({"success": False, "message": "Invalid role."})
 
 # =========================================================
-# OTP — Forgot Password
+# OTP — Forgot Password & Activity Log
 # =========================================================
+def get_log_identity():
+    role = request.headers.get('X-User-Role', 'Unknown')
+    name = request.headers.get('X-User-Name', 'Unknown')
+    return role.capitalize(), name
+
+@app.route('/api/activities', methods=['GET'])
+def get_activities_log():
+    return jsonify(load_activities()[:100])
+
+@app.route('/api/admin/reset-password', methods=['POST'])
+def admin_reset_password_endpoint():
+    data = request.get_json() or {}
+    entity_id = data.get("id", "")
+    entity_type = data.get("type", "")
+    new_pwd = data.get("password", "").strip()
+    
+    if not entity_id or not entity_type or not new_pwd:
+        return jsonify({"success": False, "message": "Missing required fields"}), 400
+        
+    role, name = get_log_identity()
+    if entity_type == "student":
+        students = load_db()
+        for s in students:
+            if s["id"] == entity_id:
+                s["parent_password"] = new_pwd
+                save_db(students)
+                log_activity(role, name, f"Reset password for Student/Parent: {s['name']} (Class {s['class']}-{s['section']})")
+                return jsonify({"success": True, "message": f"Password reset successful for {s['name']}."})
+        return jsonify({"success": False, "message": "Student not found"}), 404
+        
+    elif entity_type == "teacher":
+        teachers = load_teachers()
+        for t in teachers:
+            if t["id"] == entity_id:
+                t["password"] = new_pwd
+                save_teachers(teachers)
+                log_activity(role, name, f"Reset password for Teacher: {t['name']}")
+                return jsonify({"success": True, "message": f"Password reset successful for {t['name']}."})
+        return jsonify({"success": False, "message": "Teacher not found"}), 404
+        
+    return jsonify({"success": False, "message": "Invalid entity type"}), 400
+
 @app.route('/api/otp/send', methods=['POST'])
 def send_otp():
     data = request.get_json() or {}
@@ -151,7 +307,9 @@ def send_otp():
     if not phone:
         return jsonify({"success": False, "message": "Phone number required."}), 400
 
-    # Check phone exists
+    settings = load_settings()
+    principal_phone = clean_phone(settings.get("principal_phone", "9999999999"))
+
     found = False
     if role == "teacher":
         found = any(clean_phone(t.get("phone","")) == phone for t in load_teachers())
@@ -161,14 +319,13 @@ def send_otp():
                     clean_phone(s.get("parent_alt_contact","")) == phone):
                 found = True; break
     elif role == "principal":
-        found = True  # Principal always can reset
+        found = (phone == principal_phone)
 
     if not found:
-        return jsonify({"success": False, "message": "Phone number not found in records."}), 404
+        return jsonify({"success": False, "message": "Phone number not registered or incorrect."}), 404
 
-    otp = ''.join(random.choices(string.digits, k=4))
+    otp = ''.join(random.choices(string.digits, k=6))
     OTP_STORE[phone] = otp
-    # In production, send SMS. For demo, return OTP in response.
     return jsonify({"success": True, "otp_demo": otp,
                     "message": f"OTP sent to {phone[-4:].rjust(10,'*')}"})
 
@@ -197,6 +354,7 @@ def reset_password():
                 t["password"] = new_pwd
                 save_teachers(teachers)
                 OTP_STORE.pop(phone, None)
+                log_activity("Teacher", t["name"], "Reset password using OTP Forgot Password flow")
                 return jsonify({"success": True})
     elif role == "parent":
         students = load_db()
@@ -206,12 +364,14 @@ def reset_password():
                 s["parent_password"] = new_pwd
                 save_db(students)
                 OTP_STORE.pop(phone, None)
+                log_activity("Parent", s["parent_name"], f"Reset password using OTP Forgot Password flow for {s['name']}")
                 return jsonify({"success": True})
     elif role == "principal":
         settings = load_settings()
         settings["principal_password"] = new_pwd
         save_settings(settings)
         OTP_STORE.pop(phone, None)
+        log_activity("Principal", settings.get("principal_name", "Principal"), "Reset password using OTP Forgot Password flow")
         return jsonify({"success": True})
 
     return jsonify({"success": False, "message": "Reset failed."}), 400
@@ -281,7 +441,8 @@ def get_teachers():
         "id": t["id"], "name": t["name"], "phone": t["phone"],
         "subjects": t.get("subjects",[]), "classes": t.get("classes",[]),
         "attendance_status": t.get("attendance_status","Present"),
-        "email": t.get("email",""), "has_password": bool(t.get("password",""))
+        "email": t.get("email",""), "has_password": bool(t.get("password","")),
+        "can_edit_timetable": t.get("can_edit_timetable", False)
     } for t in teachers])
 
 @app.route('/api/teacher/create', methods=['POST'])
@@ -299,12 +460,17 @@ def create_teacher():
         "id": f"t{int(time.time())}",
         "name": name, "phone": phone, "password": "",
         "subjects": data.get("subjects",[]),
-        "classes": data.get("classes",[]),  # list of "Class-Section" strings
+        "classes": data.get("classes",[]),
         "attendance_status": "Present",
-        "email": data.get("email","")
+        "email": data.get("email",""),
+        "can_edit_timetable": data.get("can_edit_timetable", False)
     }
     teachers.append(new_t)
-    return jsonify({"success": True, "teacher_id": new_t["id"]}) if save_teachers(teachers) else jsonify({"success": False}), 500
+    if save_teachers(teachers):
+        role, u_name = get_log_identity()
+        log_activity(role, u_name, f"Added teacher staff profile: {name}")
+        return jsonify({"success": True, "teacher_id": new_t["id"]})
+    return jsonify({"success": False}), 500
 
 @app.route('/api/teacher/update/<tid>', methods=['POST'])
 def update_teacher(tid):
@@ -318,15 +484,26 @@ def update_teacher(tid):
             if "classes" in data: t["classes"] = data["classes"]
             if "email" in data: t["email"] = data["email"]
             if "attendance_status" in data: t["attendance_status"] = data["attendance_status"]
-            return jsonify({"success": True}) if save_teachers(teachers) else jsonify({"success": False}), 500
+            t["can_edit_timetable"] = data.get("can_edit_timetable", False)
+            if save_teachers(teachers):
+                role, u_name = get_log_identity()
+                log_activity(role, u_name, f"Edited teacher staff profile: {t['name']}")
+                return jsonify({"success": True})
+            return jsonify({"success": False}), 500
     return jsonify({"success": False}), 404
 
 @app.route('/api/teacher/delete/<tid>', methods=['POST', 'DELETE'])
 def delete_teacher(tid):
     teachers = load_teachers()
+    t_obj = next((x for x in teachers if x["id"] == tid), None)
     new_list = [t for t in teachers if t["id"] != tid]
     if len(new_list) == len(teachers): return jsonify({"success": False}), 404
-    return jsonify({"success": True}) if save_teachers(new_list) else jsonify({"success": False}), 500
+    if save_teachers(new_list):
+        if t_obj:
+            role, u_name = get_log_identity()
+            log_activity(role, u_name, f"Removed teacher staff profile: {t_obj['name']}")
+        return jsonify({"success": True})
+    return jsonify({"success": False}), 500
 
 @app.route('/api/teacher/attendance', methods=['POST'])
 def update_teacher_attendance():
@@ -335,7 +512,9 @@ def update_teacher_attendance():
     for t in teachers:
         if t["id"] == data.get("teacher_id",""):
             t["attendance_status"] = data.get("status","Present")
-            return jsonify({"success": True}) if save_teachers(teachers) else jsonify({"success": False}), 500
+            if save_teachers(teachers):
+                return jsonify({"success": True})
+            return jsonify({"success": False}), 500
     return jsonify({"success": False}), 404
 
 # =========================================================
@@ -366,6 +545,28 @@ def save_timetable():
         return jsonify({"success": True})
     return jsonify({"success": False}), 500
 
+@app.route('/api/timetable/subjects/<class_key>', methods=['GET'])
+def get_timetable_subjects(class_key):
+    parts = class_key.split("-", 1)
+    if len(parts) != 2:
+        return jsonify({"success": False, "message": "Invalid class key"}), 400
+    subs = get_subjects_from_timetable(parts[0], parts[1])
+    return jsonify({"success": True, "subjects": subs or []})
+
+@app.route('/api/exams/list', methods=['GET'])
+def list_published_exams():
+    students = load_db()
+    exams = set()
+    for s in students:
+        for e in s.get('examination_progress', []):
+            name = e.get('exam_name') or e.get('exam')
+            if name:
+                exams.add(name)
+    # Fallback to standard exams if empty
+    standard = ['Unit Test 1', 'Unit Test 2', 'Quarterly', 'Half-Yearly', 'Pre-Final', 'Final Examination']
+    all_exams = sorted(list(exams)) if exams else standard
+    return jsonify({"success": True, "exams": all_exams})
+
 # =========================================================
 # ATTENDANCE
 # =========================================================
@@ -383,7 +584,22 @@ def save_attendance():
                 if existing: existing["status"] = rec["status"]
                 else: s["attendance_records"].append({"date": date, "status": rec["status"]})
                 s["attendance_status"] = "Absent" if rec["status"]=="Absent" else "Present"
-    return jsonify({"success": True, "updated": len(records)}) if save_db(students) else jsonify({"success": False}), 500
+                
+                # Recalculate attendance percentage
+                recs = s.get('attendance_records', [])
+                workdays = sum(1 for item in recs if item.get('status') != 'Holiday')
+                present_days = sum(1 for item in recs if item.get('status') == 'Present')
+                half_days = sum(1 for item in recs if item.get('status') == 'Half Day')
+                effective_present = present_days + (half_days / 2.0)
+                
+                if workdays > 0:
+                    s['current_status']['attendance_percentage'] = round((effective_present / workdays) * 100, 1)
+                else:
+                    s['current_status']['attendance_percentage'] = 100.0
+
+    if save_db(students):
+        return jsonify({"success": True, "updated": len(records)})
+    return jsonify({"success": False}), 500
 
 @app.route('/api/attendance/class', methods=['GET'])
 def get_class_attendance():
@@ -414,15 +630,17 @@ def attendance_report():
         if cls and str(s["class"]) != cls: continue
         if sec and s["section"] != sec: continue
         recs = [r for r in s.get("attendance_records",[]) if (not month or r["date"].startswith(month))]
-        present = sum(1 for r in recs if r["status"] in ["Present","Half Day"])
-        absent = sum(1 for r in recs if r["status"]=="Absent")
-        half = sum(1 for r in recs if r["status"]=="Half Day")
-        total = len(recs)
+        workdays = sum(1 for r in recs if r["status"] != "Holiday")
+        present = sum(1 for r in recs if r["status"] == "Present")
+        absent = sum(1 for r in recs if r["status"] == "Absent")
+        half = sum(1 for r in recs if r["status"] == "Half Day")
+        effective_present = present + (half / 2.0)
+        percentage = round((effective_present / workdays) * 100, 1) if workdays > 0 else 0.0
         report.append({"id": s["id"], "name": s["name"], "roll_no": s["roll_no"],
                         "class": s["class"], "section": s["section"],
                         "present_days": present, "absent_days": absent, "half_days": half,
-                        "total_days": total,
-                        "percentage": round(present/total*100,1) if total else 0})
+                        "total_days": workdays,
+                        "percentage": percentage})
     return jsonify(report)
 
 # =========================================================
@@ -442,7 +660,9 @@ def save_meeting():
         for m in meetings:
             if m["id"] == meeting_id:
                 m.update({k: data[k] for k in ["title","date","time","venue","classes","notes"] if k in data})
-                return jsonify({"success": True}) if save_meetings(meetings) else jsonify({"success": False}), 500
+                if save_meetings(meetings):
+                    return jsonify({"success": True})
+                return jsonify({"success": False}), 500
     else:
         new_m = {
             "id": f"mtg{int(time.time())}",
@@ -454,13 +674,17 @@ def save_meeting():
             "notes": data.get("notes","")
         }
         meetings.append(new_m)
-        return jsonify({"success": True, "id": new_m["id"]}) if save_meetings(meetings) else jsonify({"success": False}), 500
+        if save_meetings(meetings):
+            return jsonify({"success": True, "id": new_m["id"]})
+        return jsonify({"success": False}), 500
 
 @app.route('/api/meetings/delete/<mid>', methods=['POST','DELETE'])
 def delete_meeting(mid):
     meetings = load_meetings()
     new_list = [m for m in meetings if m["id"] != mid]
-    return jsonify({"success": True}) if save_meetings(new_list) else jsonify({"success": False}), 500
+    if save_meetings(new_list):
+        return jsonify({"success": True})
+    return jsonify({"success": False}), 500
 
 # =========================================================
 # STUDENT CRUD
@@ -520,7 +744,9 @@ def admin_create_student():
         "parent_meetings": data.get("parent_meetings",[])
     }
     students.append(new_student)
-    return jsonify({"success": True, "student_id": student_id}) if save_db(students) else jsonify({"success": False}), 500
+    if save_db(students):
+        return jsonify({"success": True, "student_id": student_id})
+    return jsonify({"success": False}), 500
 
 @app.route('/api/admin/student/update/<student_id>', methods=['POST'])
 def admin_update_student(student_id):
@@ -557,7 +783,9 @@ def admin_update_student(student_id):
             s["parent_feedback"] = old_fb
             s["principal_reply"] = data.get("principal_reply", old_reply)
 
-            return jsonify({"success": True}) if save_db(students) else jsonify({"success": False}), 500
+            if save_db(students):
+                return jsonify({"success": True})
+            return jsonify({"success": False}), 500
     return jsonify({"success": False, "message": "Not found"}), 404
 
 @app.route('/api/admin/student/delete/<student_id>', methods=['POST','DELETE'])
@@ -565,13 +793,26 @@ def admin_delete_student(student_id):
     students = load_db()
     new_s = [s for s in students if s["id"] != student_id]
     if len(new_s) == len(students): return jsonify({"success": False}), 404
-    return jsonify({"success": True}) if save_db(new_s) else jsonify({"success": False}), 500
+    if save_db(new_s):
+        return jsonify({"success": True})
+    return jsonify({"success": False}), 500
+
+def get_teacher_classes(teacher_id):
+    if not teacher_id:
+        return None
+    for t in load_teachers():
+        if t["id"] == teacher_id:
+            return t.get("classes", [])
+    return []
 
 @app.route('/api/search', methods=['GET'])
 def search_students():
     q = request.args.get('q','').lower()
     cls = request.args.get('class','')
     sec = request.args.get('section','')
+    teacher_id = request.headers.get('X-Teacher-Id', '')
+    allowed_classes = get_teacher_classes(teacher_id)
+    
     students = load_db()
     def summary(s):
         return {"id": s["id"], "name": s["name"], "admission_no": s.get("admission_no",""),
@@ -584,6 +825,9 @@ def search_students():
                 "attendance_status": s.get("attendance_status","Present")}
     results = []
     for s in students:
+        s_key = f"{s['class']}-{s['section']}"
+        if allowed_classes is not None and s_key not in allowed_classes:
+            continue
         if cls and str(s["class"]) != cls: continue
         if sec and s["section"] != sec: continue
         if q and not any([q in s["name"].lower(), q in s.get("admission_no","").lower(),
@@ -594,8 +838,15 @@ def search_students():
 
 @app.route('/api/student/<student_id>', methods=['GET'])
 def get_student(student_id):
+    teacher_id = request.headers.get('X-Teacher-Id', '')
+    allowed_classes = get_teacher_classes(teacher_id)
+    
     for s in load_db():
-        if s["id"] == student_id: return jsonify(s)
+        if s["id"] == student_id:
+            s_key = f"{s['class']}-{s['section']}"
+            if allowed_classes is not None and s_key not in allowed_classes:
+                return jsonify({"error": "Unauthorized"}), 403
+            return jsonify(s)
     return jsonify({"error": "Not found"}), 404
 
 # =========================================================
@@ -644,10 +895,12 @@ def get_subjects_from_timetable(cls, sec):
     timetables = load_timetables()
     timetable = timetables.get(class_key, {})
     subjects = set()
+    non_subjects = ["free", "lunch", "break", "recess", "interval", "games", "sports", "pt", "lib", "library", "breakfast", "play", "assembly", "prayer", "leisure", "zero"]
     for day, periods in timetable.items():
         for p in periods:
             sub = p.get("subject", "").strip()
-            if sub and sub.lower() not in ["free", "lunch", "break", "interval", "games", "sports", "pt", "lib", "library"]:
+            sub_lower = sub.lower()
+            if sub and not any(ns in sub_lower for ns in non_subjects):
                 subjects.add(sub)
     return sorted(list(subjects)) if subjects else None
 
@@ -796,10 +1049,10 @@ def download_sample_attendance():
     from datetime import date
     today = date.today()
     month_days = calendar.monthrange(today.year, today.month)[1]
-    dates = [f'{today.year}-{today.month:02d}-{d:02d}' for d in range(1, month_days + 1)
-             if date(today.year, today.month, d).weekday() < 6]  # exclude Sunday
+    dates = [f'{today.year}-{today.month:02d}-{d:02d}' for d in range(1, month_days + 1)]
 
-    total_cols = 4 + len(dates) + 4
+    # 4 (Roll, Name, Class, Sec) + len(dates) + 5 (Work Days, Present, Absent, Half Day, Attendance %)
+    total_cols = 4 + len(dates) + 5
     att.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
     title_cell = att.cell(row=1, column=1)
     title_cell.value = f'SPTAS — Attendance Register | Class {cls}-{sec} | Month: {today.strftime("%B %Y")}'
@@ -809,48 +1062,86 @@ def download_sample_attendance():
     att.row_dimensions[1].height = 28
 
     headers = ['Roll No', 'Student Name', 'Class', 'Section'] + dates + \
-              ['Present', 'Absent', 'Half Day', 'Attendance %']
+              ['Work Days', 'Present Days', 'Absent Days', 'Half Days', 'Attendance %']
     for col, h in enumerate(headers, 1):
         att.cell(row=2, column=col).value = h
     style_header(att, 2, len(headers), fill_hex='064E3B')
 
-    status_fill = PatternFill(start_color='D1FAE5', end_color='D1FAE5', fill_type='solid')
-    
-    # Prefill student rows
-    for row_i, student in enumerate(class_students, start=3):
-        row_data = [student['roll_no'], student['name'], student['class'], student['section']]
-        row_data += ['P'] * len(dates)  # default Present
-        row_data += ['', '', '', '']    # calculated columns
-        for col, val in enumerate(row_data, 1):
-            cell = att.cell(row=row_i, column=col, value=val)
-            if col <= 4:
-                cell.fill = PatternFill(start_color='E8F4F8', end_color='E8F4F8', fill_type='solid')
-            elif col <= 4 + len(dates):
-                cell.fill = status_fill
-            thin = Side(style='thin', color='CCCCCC')
-            cell.border = Border(left=thin, right=thin, top=thin, bottom=thin)
-            cell.alignment = Alignment(horizontal='center', vertical='center')
+    # Color definitions
+    lock_fill = PatternFill(start_color='E8F4F8', end_color='E8F4F8', fill_type='solid')
+    holiday_fill = PatternFill(start_color='F8D7DA', end_color='F8D7DA', fill_type='solid')
+    holiday_font = Font(color='842029', bold=True, size=10)
+    workday_fill = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
+    calc_fill = PatternFill(start_color='D1FAE5', end_color='D1FAE5', fill_type='solid')
+    calc_font = Font(bold=True, color='065F46')
 
-    # If no students, add example rows
+    # Prefill rows helper
+    def write_student_row(row_idx, roll_val, name_val, class_val, sec_val):
+        # 1. Basic details
+        for col_idx, val in enumerate([roll_val, name_val, class_val, sec_val], 1):
+            c = att.cell(row=row_idx, column=col_idx, value=val)
+            c.fill = lock_fill
+            c.alignment = Alignment(horizontal='center', vertical='center')
+            thin = Side(style='thin', color='CCCCCC')
+            c.border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+        # 2. Date columns
+        for d_idx, date_str in enumerate(dates, start=5):
+            is_hol, reason = is_school_holiday(date_str)
+            c = att.cell(row=row_idx, column=d_idx)
+            c.alignment = Alignment(horizontal='center', vertical='center')
+            thin = Side(style='thin', color='CCCCCC')
+            c.border = Border(left=thin, right=thin, top=thin, bottom=thin)
+            if is_hol:
+                c.value = 'Holiday'
+                c.fill = holiday_fill
+                c.font = holiday_font
+            else:
+                c.value = ''
+                c.fill = workday_fill
+
+        # 3. Dynamic Excel Formulas
+        # Let's find column names
+        n_dates = len(dates)
+        col_work = get_column_letter(5 + n_dates)
+        col_pres = get_column_letter(6 + n_dates)
+        col_abs  = get_column_letter(7 + n_dates)
+        col_half = get_column_letter(8 + n_dates)
+        col_pct  = get_column_letter(9 + n_dates)
+
+        # Formulas
+        f_work = f'={n_dates}-COUNTIF(E{row_idx}:{get_column_letter(4+n_dates)}{row_idx},"Holiday")'
+        f_pres = f'=COUNTIF(E{row_idx}:{get_column_letter(4+n_dates)}{row_idx},"P")'
+        f_abs  = f'=COUNTIF(E{row_idx}:{get_column_letter(4+n_dates)}{row_idx},"A")'
+        f_half = f'=COUNTIF(E{row_idx}:{get_column_letter(4+n_dates)}{row_idx},"HD")'
+        f_pct  = f'=IF({col_work}{row_idx}>0,ROUND((({col_pres}{row_idx}+({col_half}{row_idx}/2))/{col_work}{row_idx})*100,2),0)'
+
+        for c_idx, f_val in enumerate([f_work, f_pres, f_abs, f_half, f_pct], start=5+n_dates):
+            c = att.cell(row=row_idx, column=c_idx, value=f_val)
+            c.fill = calc_fill
+            c.font = calc_font
+            c.alignment = Alignment(horizontal='center', vertical='center')
+            thin = Side(style='thin', color='CCCCCC')
+            c.border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    # Write student rows
+    for r_i, student in enumerate(class_students, start=3):
+        write_student_row(r_i, student['roll_no'], student['name'], student['class'], student['section'])
+
+    # Fallback to example rows if empty class
     if not class_students:
         for ex_i, ex_name in enumerate(['Example Student 1', 'Example Student 2'], start=3):
-            row_data = [ex_i - 2, ex_name, cls, sec] + ['P']*len(dates) + ['','','','']
-            for col, val in enumerate(row_data, 1):
-                cell = att.cell(row=ex_i, column=col, value=val)
-                if col <= 4:
-                    cell.fill = PatternFill(start_color='E8F4F8', end_color='E8F4F8', fill_type='solid')
-                else:
-                    cell.fill = status_fill
-                thin = Side(style='thin', color='CCCCCC')
-                cell.border = Border(left=thin, right=thin, top=thin, bottom=thin)
-                cell.alignment = Alignment(horizontal='center', vertical='center')
+            write_student_row(ex_i, ex_i - 2, ex_name, cls, sec)
 
+    # Apply column widths
     att.column_dimensions['A'].width = 10
     att.column_dimensions['B'].width = 24
     att.column_dimensions['C'].width = 8
     att.column_dimensions['D'].width = 10
-    for c in range(5, 5 + len(dates) + 4):
+    for c in range(5, 5 + len(dates)):
         att.column_dimensions[get_column_letter(c)].width = 12
+    for c in range(5 + len(dates), 5 + len(dates) + 5):
+        att.column_dimensions[get_column_letter(c)].width = 15
 
     buf = io.BytesIO()
     wb.save(buf)
@@ -1035,6 +1326,20 @@ def download_results_report():
     sec  = request.args.get('section', '')
     exam = request.args.get('exam', '')
 
+    teacher_id = request.headers.get('X-Teacher-Id', '')
+    allowed_classes = get_teacher_classes(teacher_id)
+    if allowed_classes is not None:
+        if cls and sec:
+            s_key = f"{cls}-{sec}"
+            if s_key not in allowed_classes:
+                return jsonify({"error": "Forbidden: This is not your Class"}), 403
+        elif cls:
+            matched = [ac for ac in allowed_classes if ac.split('-')[0] == cls]
+            if not matched:
+                return jsonify({"error": "Forbidden: This is not your Class"}), 403
+        else:
+            return jsonify({"error": "Forbidden: Teacher must specify an assigned Class"}), 403
+
     students = load_db()
     filtered = sorted([s for s in students if (not cls or str(s['class'])==cls) and
                 (not sec or s['section']==sec)], key=lambda x: x['roll_no'])
@@ -1049,15 +1354,17 @@ def download_results_report():
             break
             
     if not subjects:
-        # Fallback to default
-        subjects = ['Telugu', 'Hindi', 'English', 'Mathematics', 'Science', 'Social Studies']
+        if cls:
+            subjects = get_subjects_from_timetable(cls, sec or 'A')
+        if not subjects:
+            subjects = ['Telugu', 'Hindi', 'English', 'Mathematics', 'Science', 'Social Studies']
 
     wb = openpyxl.Workbook()
     ws = wb.active; ws.title = 'Results Report'
     ws.freeze_panes = 'E3'
 
     # Title
-    total_cols = 4 + len(subjects) + 6  # roll,name,class,sec + subjects + total, pct, grade, rank, result, remarks
+    total_cols = 4 + len(subjects) + 6
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
     ws['A1'] = f'SPTAS — Results Report | Class {cls or "All"}-{sec or "All"} | {exam or "All Exams"}'
     ws['A1'].font = Font(bold=True, size=14, color='FFFFFF')
@@ -1070,7 +1377,6 @@ def download_results_report():
     for c, h in enumerate(headers, 1): ws.cell(2, c).value = h
     style_header(ws, 2, len(headers))
 
-    # Color subjects and calculated headers
     for col in range(5, 5 + len(subjects)):
         ws.cell(row=2, column=col).fill = PatternFill(start_color='1D6A3A', end_color='1D6A3A', fill_type='solid')
         ws.cell(row=2, column=col).font = Font(bold=True, color='FFFFFF', size=11)
@@ -1085,12 +1391,11 @@ def download_results_report():
         prog = s.get('examination_progress', [])
         exam_entry = next((e for e in prog if (e.get('exam_name') or e.get('exam','')) == exam), None)
         
-        # Build scores map
         scores = {sub: '' for sub in subjects}
         total = ''
         pct = ''
         grade = ''
-        rank = 9999 # fallback high rank for sorting
+        rank = 9999
         result = ''
         remarks = ''
         
@@ -1102,7 +1407,6 @@ def download_results_report():
             total = exam_entry.get('total', 0)
             pct = exam_entry.get('percentage', 0)
             grade = exam_entry.get('grade', '')
-            rank = exam_entry.get('rank', 9999)
             result = 'FAIL' if pct < 35 else 'PASS'
             remarks = 'Needs Improvement' if pct < 35 else 'Passed'
         
@@ -1121,7 +1425,13 @@ def download_results_report():
         }
         rows_data.append(row_dict)
 
-    # Sort by Class Rank ascending (1 first, then 2, 3...)
+    # Dynamic ranking
+    scored_students = [r for r in rows_data if r['pct'] != '']
+    scored_students.sort(key=lambda x: -x['pct'])
+    for idx, r in enumerate(scored_students, start=1):
+        r['rank'] = idx
+        r['remarks'] = 'Needs Improvement' if r['pct'] < 35 else 'Passed'
+
     rows_data.sort(key=lambda x: x['rank'])
 
     grade_colors = {'A+':'D4EDDA','A':'C3E6CB','B+':'D1ECF1','B':'BEE5EB',
@@ -1171,6 +1481,121 @@ def download_results_report():
     fname = f'SPTAS_Ranks_Report_Class{cls or "All"}{sec or ""}_{exam.replace(" ","_")}.xlsx'
     return send_file(buf, as_attachment=True, download_name=fname,
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+
+# =========================================================
+# DOWNLOAD MONTHLY ATTENDANCE EXCEL REPORT
+# =========================================================
+@app.route('/api/excel/attendance-report', methods=['GET'])
+def download_attendance_report():
+    if not OPENPYXL_AVAILABLE:
+        return jsonify({'error': 'openpyxl not installed'}), 500
+    cls = request.args.get('class', '')
+    sec = request.args.get('section', '')
+    month = request.args.get('month', '')
+    
+    if not month:
+        return jsonify({"error": "Month is required"}), 400
+        
+    teacher_id = request.headers.get('X-Teacher-Id', '')
+    allowed_classes = get_teacher_classes(teacher_id)
+    if allowed_classes is not None:
+        if cls and sec:
+            s_key = f"{cls}-{sec}"
+            if s_key not in allowed_classes:
+                return jsonify({"error": "Forbidden: This is not your Class"}), 403
+        elif cls:
+            matched = [ac for ac in allowed_classes if ac.split('-')[0] == cls]
+            if not matched:
+                return jsonify({"error": "Forbidden: This is not your Class"}), 403
+        else:
+            return jsonify({"error": "Forbidden: Teacher must specify an assigned Class"}), 403
+
+    students = load_db()
+    filtered = sorted([s for s in students if (not cls or str(s['class'])==cls) and
+                (not sec or s['section']==sec)], key=lambda x: x['roll_no'])
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Attendance Report'
+    ws.freeze_panes = 'E3'
+
+    # Title banner
+    ws.merge_cells('A1:J1')
+    ws['A1'] = f'SPTAS — Monthly Attendance Report | Class {cls or "All"}-{sec or "All"} | Month: {month}'
+    ws['A1'].font = Font(bold=True, size=13, color='FFFFFF')
+    ws['A1'].fill = PatternFill(start_color='1E3A5F', end_color='1E3A5F', fill_type='solid')
+    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 28
+
+    headers = ['Roll No', 'Student Name', 'Class', 'Section', 'Present Days', 'Absent Days', 'Half Days', 'Total Work Days', 'Attendance %', 'Status']
+    for col_idx, h in enumerate(headers, 1):
+        ws.cell(row=2, column=col_idx, value=h)
+    style_header(ws, 2, len(headers))
+
+    # Add rows
+    thin = Side(style='thin', color='CCCCCC')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    row_idx = 3
+    for s in filtered:
+        recs = [r for r in s.get("attendance_records", []) if r["date"].startswith(month)]
+        workdays = sum(1 for r in recs if r["status"] != "Holiday")
+        present = sum(1 for r in recs if r["status"] == "Present")
+        absent = sum(1 for r in recs if r["status"] == "Absent")
+        half = sum(1 for r in recs if r["status"] == "Half Day")
+        effective_present = present + (half / 2.0)
+        percentage = round((effective_present / workdays) * 100, 1) if workdays > 0 else 0.0
+        status_str = "Good Standing" if percentage >= 75 else "Shortage"
+
+        vals = [
+            s['roll_no'],
+            s['name'],
+            s['class'],
+            s['section'],
+            present,
+            absent,
+            half,
+            workdays,
+            f"{percentage}%" if workdays > 0 else "0.0%",
+            status_str
+        ]
+
+        even = row_idx % 2 == 0
+        bg_color = 'F8F9FA' if even else 'FFFFFF'
+        row_fill = PatternFill(start_color=bg_color, end_color=bg_color, fill_type='solid')
+
+        for col_idx, val in enumerate(vals, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = border
+            cell.fill = row_fill
+            if col_idx == 10:
+                sc = 'D4EDDA' if percentage >= 75 else 'F8D7DA'
+                st = '065F46' if percentage >= 75 else '842029'
+                cell.fill = PatternFill(start_color=sc, end_color=sc, fill_type='solid')
+                cell.font = Font(bold=True, color=st)
+
+        row_idx += 1
+
+    # Set column widths
+    col_widths = [10, 24, 8, 10, 14, 14, 14, 16, 16, 16]
+    for c_idx, w in enumerate(col_widths, 1):
+        ws.column_dimensions[get_column_letter(c_idx)].width = w
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    fname = f'SPTAS_Attendance_Report_Class{cls or "All"}{sec or ""}_{month}.xlsx'
+    return send_file(buf, as_attachment=True, download_name=fname,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.route('/api/teacher/profile/<tid>', methods=['GET'])
+def get_teacher_profile(tid):
+    for t in load_teachers():
+        if t["id"] == tid:
+            return jsonify(t)
+    return jsonify({"error": "Not found"}), 404
 
 
 # =========================================================
@@ -1604,10 +2029,16 @@ def confirm_import():
                 if existing: existing['status'] = status
                 else: s['attendance_records'].append({'date': date_str, 'status': status})
             
-            recs = s['attendance_records']
-            total = len(recs)
-            present = sum(1 for item in recs if item['status'] in ['Present', 'Half Day'])
-            s['current_status']['attendance_percentage'] = round(present/total*100, 1) if total else 90
+            recs = s.get('attendance_records', [])
+            workdays = sum(1 for item in recs if item.get('status') != 'Holiday')
+            present_days = sum(1 for item in recs if item.get('status') == 'Present')
+            half_days = sum(1 for item in recs if item.get('status') == 'Half Day')
+            effective_present = present_days + (half_days / 2.0)
+            
+            if workdays > 0:
+                s['current_status']['attendance_percentage'] = round((effective_present / workdays) * 100, 1)
+            else:
+                s['current_status']['attendance_percentage'] = 100.0
             updated += 1
             
         if save_db(students):
