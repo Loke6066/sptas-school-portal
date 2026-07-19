@@ -1447,6 +1447,7 @@ select option {
     color: #ffffff;
     font-size: 1.2rem;
 }
+.color-admin { background: linear-gradient(135deg, #be123c, #e11d48); }
 .color-principal { background: linear-gradient(135deg, #4f46e5, #6366f1); }
 .color-teacher { background: linear-gradient(135deg, #059669, #10b981); }
 .color-parent { background: linear-gradient(135deg, #d97706, #f59e0b); }

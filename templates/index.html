@@ -54,12 +54,18 @@
             Select your portal to log in
         </p>
         <div class="portal-cards-grid">
+            <!-- 0. Administration Portal Card -->
+            <div class="portal-select-card" data-role="admin">
+                <div class="portal-card-icon color-admin"><i data-lucide="key-round"></i></div>
+                <div class="portal-card-info">
+                    <h3>Administration Portal</h3>
+                </div>
+            </div>
             <!-- 1. Principal Portal Card -->
             <div class="portal-select-card" data-role="principal">
                 <div class="portal-card-icon color-principal"><i data-lucide="shield"></i></div>
                 <div class="portal-card-info">
                     <h3>Principal Portal</h3>
-                    <p>Access full administration, reports, meetings, and teacher settings.</p>
                 </div>
             </div>
             <!-- 2. Teacher Portal Card -->
@@ -67,7 +73,6 @@
                 <div class="portal-card-icon color-teacher"><i data-lucide="user-check"></i></div>
                 <div class="portal-card-info">
                     <h3>Teacher Portal</h3>
-                    <p>Manage your class students, mark attendance, and input scorecard marks.</p>
                 </div>
             </div>
             <!-- 3. Parent Portal Card -->
@@ -75,7 +80,6 @@
                 <div class="portal-card-icon color-parent"><i data-lucide="users"></i></div>
                 <div class="portal-card-info">
                     <h3>Parent Portal</h3>
-                    <p>Track your child's live classroom activity, marks, and suggest feedback.</p>
                 </div>
             </div>
         </div>
@@ -158,8 +162,21 @@
                 <button type="button" class="btn btn-primary full-width" id="principal-login-btn">
                     <i data-lucide="log-in"></i> Login to Principal Portal
                 </button>
-                <button type="button" class="forgot-pwd-link" data-role="principal">
-                    <i data-lucide="key"></i> Forgot Password?
+            <!-- ADMINISTRATION LOGIN -->
+            <div id="admin-login-form" class="login-form hidden">
+                <div class="form-group">
+                    <label><i data-lucide="user" style="width:14px;height:14px;"></i> Username</label>
+                    <input type="text" id="admin-username" class="form-input" placeholder="admin" value="admin">
+                </div>
+                <div class="form-group">
+                    <label><i data-lucide="lock" style="width:14px;height:14px;"></i> Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="admin-password" class="form-input" placeholder="Enter password">
+                        <button type="button" class="show-pwd-btn" data-target="admin-password"><i data-lucide="eye"></i></button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary full-width" id="admin-login-btn">
+                    <i data-lucide="log-in"></i> Login to Administration Portal
                 </button>
             </div>
         </div>
@@ -213,14 +230,14 @@
 
     <!-- Stats -->
     <div class="school-stats-grid">
-        <div class="stat-card">
+        <div class="stat-card" id="dashboard-card-students">
             <div class="stat-icon-wrapper color-students"><i data-lucide="users"></i></div>
             <div class="stat-content">
                 <h3 id="admin-stat-students">-</h3>
                 <p>Total Students</p>
             </div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="dashboard-card-attendance">
             <div class="stat-icon-wrapper color-attendance"><i data-lucide="calendar-check"></i></div>
             <div class="stat-content">
                 <h3 id="admin-stat-attendance">-</h3>
@@ -228,14 +245,14 @@
                 <small id="admin-stat-attendance-ratio" style="font-size:0.75rem;color:var(--text-muted);display:block;margin-top:0.2rem;"></small>
             </div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="dashboard-card-classes">
             <div class="stat-icon-wrapper color-classes"><i data-lucide="school"></i></div>
             <div class="stat-content">
                 <h3 id="admin-stat-classes">-</h3>
                 <p>Active Classes</p>
             </div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="dashboard-card-teachers">
             <div class="stat-icon-wrapper" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);"><i data-lucide="user-check"></i></div>
             <div class="stat-content">
                 <h3 id="admin-stat-teachers">-</h3>
@@ -246,15 +263,16 @@
 
     <!-- Admin Portal Tabs -->
     <div class="admin-portal-tabs">
-        <button class="admin-tab-pill active" data-admin-tab="tab-students"><i data-lucide="users"></i> <span>Students</span></button>
-        <button class="admin-tab-pill" data-admin-tab="tab-attendance"><i data-lucide="clipboard-list"></i> <span>Attendance</span></button>
-        <button class="admin-tab-pill" data-admin-tab="tab-timetable"><i data-lucide="calendar-days"></i> <span>Timetable</span></button>
-        <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-teachers"><i data-lucide="user-cog"></i> <span>Teachers</span></button>
-        <button class="admin-tab-pill hidden" id="admin-meetings-tab-btn" data-admin-tab="tab-meetings"><i data-lucide="calendar-heart"></i> <span>Meetings</span></button>
-        <button class="admin-tab-pill hidden" id="admin-reports-tab-btn" data-admin-tab="tab-reports"><i data-lucide="bar-chart-2"></i> <span>Reports</span></button>
-        <button class="admin-tab-pill principal-only hidden" data-admin-tab="tab-activities-log"><i data-lucide="activity"></i> <span>Activity Log</span></button>
-        <button class="admin-tab-pill" data-admin-tab="tab-excel"><i data-lucide="file-spreadsheet"></i> <span>Import/Export</span></button>
-
+        <button class="admin-tab-pill active" id="admin-students-tab-btn" data-admin-tab="tab-students"><i data-lucide="users"></i> <span>Students</span></button>
+        <button class="admin-tab-pill" id="admin-attendance-tab-btn" data-admin-tab="tab-attendance"><i data-lucide="clipboard-list"></i> <span>Attendance</span></button>
+        <button class="admin-tab-pill" id="admin-timetable-tab-btn" data-admin-tab="tab-timetable"><i data-lucide="calendar-days"></i> <span>Timetable</span></button>
+        <button class="admin-tab-pill" id="admin-teachers-tab-btn" data-admin-tab="tab-teachers"><i data-lucide="user-cog"></i> <span>Teachers</span></button>
+        <button class="admin-tab-pill" id="admin-meetings-tab-btn" data-admin-tab="tab-meetings"><i data-lucide="calendar-heart"></i> <span>Meetings</span></button>
+        <button class="admin-tab-pill" id="admin-reports-tab-btn" data-admin-tab="tab-reports"><i data-lucide="bar-chart-2"></i> <span>Reports</span></button>
+        <button class="admin-tab-pill" id="admin-activities-tab-btn" data-admin-tab="tab-activities-log"><i data-lucide="activity"></i> <span>Activity Log</span></button>
+        <button class="admin-tab-pill" id="admin-excel-tab-btn" data-admin-tab="tab-excel"><i data-lucide="file-spreadsheet"></i> <span>Import/Export</span></button>
+        <button class="admin-tab-pill" id="admin-fees-tab-btn" data-admin-tab="tab-fees"><i data-lucide="indian-rupee"></i> <span>Fees Info</span></button>
+        <button class="admin-tab-pill" id="admin-services-tab-btn" data-admin-tab="tab-services"><i data-lucide="wrench"></i> <span>Services Info</span></button>
     </div>
 
     <!-- ===== STUDENTS TAB ===== -->
@@ -725,6 +743,85 @@
         </div>
 
     </div>
+
+    <!-- ===== FEES TAB ===== -->
+    <div class="admin-tab-content hidden" id="tab-fees">
+        <div class="section-card card-full">
+            <div class="table-card-header" style="background: linear-gradient(135deg, #be123c, #e11d48); color: white;">
+                <h3><i data-lucide="indian-rupee" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Student Fees Monitoring</h3>
+            </div>
+            <div style="padding:1.25rem;">
+                <div class="filter-bar" style="margin-bottom:1.5rem;">
+                    <div class="filter-item">
+                        <label>Class</label>
+                        <select id="fees-class-filter" class="form-select"></select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Section</label>
+                        <select id="fees-section-filter" class="form-select">
+                            <option value="A">A</option><option value="B">B</option>
+                            <option value="C">C</option><option value="D">D</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button id="fees-load-btn" class="btn btn-primary"><i data-lucide="search"></i> Load Class</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Roll No</th>
+                                <th>Name</th>
+                                <th>Tuition Fee (₹)</th>
+                                <th>Books Fee (₹)</th>
+                                <th>Dresses Fee (₹)</th>
+                                <th>Extra Fee (₹)</th>
+                                <th>Paid Amount (₹)</th>
+                                <th>Due Balance (₹)</th>
+                                <th class="admin-only-cell">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fees-table-body">
+                            <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:2rem;">Select class/section and click Load.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SERVICES INFO TAB ===== -->
+    <div class="admin-tab-content hidden" id="tab-services">
+        <div class="section-card card-full">
+            <div class="table-card-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white;">
+                <h3><i data-lucide="wrench" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Services Helper Contacts</h3>
+                <button id="services-add-contact-btn" class="btn btn-secondary btn-sm admin-principal-btn" style="border-color: rgba(255,255,255,0.25); color: white;"><i data-lucide="plus"></i> Add Helper</button>
+            </div>
+            <div style="padding:1.25rem;">
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.25rem;">
+                    List of helper contacts (e.g. Plumbers, Ayas, Water boys, Security, etc.) for school management references.
+                </p>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Helper Name</th>
+                                <th>Role</th>
+                                <th>Phone Number</th>
+                                <th class="admin-principal-cell">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="services-table-body">
+                            <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:2rem;">No helpers added yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </main>
 
 
@@ -1438,6 +1535,71 @@
             <div style="display:flex;justify-content:flex-end;gap:0.75rem;padding-top:1rem;border-top:1px solid var(--border-color);">
                 <button class="btn btn-secondary" id="forgot-pwd-cancel-2">Cancel</button>
                 <button class="btn btn-primary" id="forgot-pwd-reset-save-btn">Reset Password</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Fees Modal -->
+<div id="edit-fees-modal" class="modal-overlay hidden">
+    <div class="modal-container" style="max-width:440px;">
+        <div class="modal-header">
+            <h3><i data-lucide="indian-rupee"></i> Edit Student Fees</h3>
+            <button type="button" class="modal-close-btn" onclick="hideModal('edit-fees-modal')"><i data-lucide="x"></i></button>
+        </div>
+        <div style="padding:1.5rem;">
+            <input type="hidden" id="edit-fees-student-id">
+            <div class="form-group">
+                <label>Tuition Fee (₹)</label>
+                <input type="number" id="edit-fees-tuition" class="form-input" min="0">
+            </div>
+            <div class="form-group">
+                <label>Books Fee (₹)</label>
+                <input type="number" id="edit-fees-books" class="form-input" min="0">
+            </div>
+            <div class="form-group">
+                <label>Uniform/Dresses Fee (₹)</label>
+                <input type="number" id="edit-fees-dresses" class="form-input" min="0">
+            </div>
+            <div class="form-group">
+                <label>Extra / Other Fees (₹)</label>
+                <input type="number" id="edit-fees-extra" class="form-input" min="0">
+            </div>
+            <div class="form-group">
+                <label>Paid Amount (₹)</label>
+                <input type="number" id="edit-fees-paid" class="form-input" min="0">
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem;padding-top:1rem;border-top:1px solid var(--border-color);">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('edit-fees-modal')">Cancel</button>
+                <button type="button" class="btn btn-primary" id="edit-fees-save-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Service Helper Modal -->
+<div id="add-service-modal" class="modal-overlay hidden">
+    <div class="modal-container" style="max-width:400px;">
+        <div class="modal-header">
+            <h3><i data-lucide="wrench"></i> Add Service Contact</h3>
+            <button type="button" class="modal-close-btn" onclick="hideModal('add-service-modal')"><i data-lucide="x"></i></button>
+        </div>
+        <div style="padding:1.5rem;">
+            <div class="form-group">
+                <label>Helper Name</label>
+                <input type="text" id="add-service-name" class="form-input" placeholder="e.g. Ramesh Kumar">
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <input type="text" id="add-service-role" class="form-input" placeholder="e.g. Plumber / Aya / Water Boy">
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="text" id="add-service-phone" class="form-input" placeholder="e.g. 9876543210" maxlength="15">
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem;padding-top:1rem;border-top:1px solid var(--border-color);">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('add-service-modal')">Cancel</button>
+                <button type="button" class="btn btn-primary" id="add-service-save-btn">Add Contact</button>
             </div>
         </div>
     </div>

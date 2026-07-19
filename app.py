@@ -295,6 +295,14 @@ def login():
                                     "require_password_setup": not bool(saved)})
         return jsonify({"success": False, "message": "Roll number and phone do not match."})
 
+    elif role == "admin":
+        s = load_settings()
+        if (data.get("username") == s.get("admin_username","admin") and
+                data.get("password") == s.get("admin_password","admin123")):
+            return jsonify({"success": True, "role": "admin",
+                            "name": s.get("admin_name","School Administrator")})
+        return jsonify({"success": False, "message": "Invalid credentials."})
+
     return jsonify({"success": False, "message": "Invalid role."})
 
 # =========================================================
@@ -845,6 +853,13 @@ def admin_create_student():
         "parent_password": "", "parent_feedback": "", "principal_reply": "",
         "attendance_status": data.get("attendance_status","Present"),
         "attendance_records": [],
+        "fees": {
+            "tuition": 30000,
+            "books": 5000,
+            "dresses": 3000,
+            "extra": 0,
+            "paid": 0
+        },
         "current_status": {
             "standard": f"Class {s_class}", "section": f"Section {s_section}",
             "class_teacher": data.get("class_teacher","Class Teacher"),
@@ -2267,6 +2282,91 @@ def teacher_reply():
             save_db(students)
             return jsonify({"success": True})
     return jsonify({"success": False}), 404
+
+
+# =========================================================
+# FEES & SERVICES API
+# =========================================================
+@app.route('/api/students/fees', methods=['PUT'])
+def update_student_fees():
+    role, name = get_log_identity()
+    if role != "admin":
+        return jsonify({"success": False, "message": "Access denied: Administrator role required."}), 403
+        
+    data = request.get_json() or {}
+    student_id = data.get("student_id")
+    if not student_id:
+        return jsonify({"success": False, "message": "student_id is required."}), 400
+        
+    students = load_db()
+    student = None
+    for s in students:
+        if s["id"] == student_id:
+            student = s
+            break
+            
+    if not student:
+        return jsonify({"success": False, "message": "Student not found."}), 404
+        
+    fees = student.get("fees", {})
+    fees["tuition"] = int(data.get("tuition", fees.get("tuition", 30000)))
+    fees["books"] = int(data.get("books", fees.get("books", 5000)))
+    fees["dresses"] = int(data.get("dresses", fees.get("dresses", 3000)))
+    fees["extra"] = int(data.get("extra", fees.get("extra", 0)))
+    fees["paid"] = int(data.get("paid", fees.get("paid", 0)))
+    student["fees"] = fees
+    
+    if save_db(students):
+        log_activity(role, name, f"Updated fees for student {student['name']} ({student_id})")
+        return jsonify({"success": True, "message": "Fees updated successfully."})
+    return jsonify({"success": False, "message": "Failed to save to database."}), 500
+
+
+@app.route('/api/services', methods=['GET'])
+def get_services():
+    return jsonify(load_json('services_db.json', []))
+
+
+@app.route('/api/services/add', methods=['POST'])
+def add_service():
+    role, name = get_log_identity()
+    if role not in ["admin", "principal"]:
+        return jsonify({"success": False, "message": "Access denied."}), 403
+    data = request.get_json() or {}
+    s_name = data.get("name", "").strip()
+    s_role = data.get("role", "").strip()
+    s_phone = data.get("phone", "").strip()
+    if not s_name or not s_role or not s_phone:
+        return jsonify({"success": False, "message": "All fields are required."}), 400
+        
+    import time
+    services = load_json('services_db.json', [])
+    new_s = {
+        "id": str(int(time.time())) + str(random.randint(10, 99)),
+        "name": s_name,
+        "role": s_role,
+        "phone": s_phone
+    }
+    services.append(new_s)
+    if save_json('services_db.json', services):
+        log_activity(role, name, f"Added service contact: {s_name} ({s_role})")
+        return jsonify({"success": True, "message": "Service contact added."})
+    return jsonify({"success": False, "message": "Failed to save."}), 500
+
+
+@app.route('/api/services/delete/<sid>', methods=['POST', 'DELETE'])
+def delete_service(sid):
+    role, name = get_log_identity()
+    if role not in ["admin", "principal"]:
+        return jsonify({"success": False, "message": "Access denied."}), 403
+    services = load_json('services_db.json', [])
+    filtered = [s for s in services if s["id"] != sid]
+    if len(filtered) == len(services):
+        return jsonify({"success": False, "message": "Contact not found."}), 404
+    if save_json('services_db.json', filtered):
+        log_activity(role, name, f"Deleted service contact ID {sid}")
+        return jsonify({"success": True, "message": "Service contact deleted."})
+    return jsonify({"success": False, "message": "Failed to save."}), 500
 
 
 

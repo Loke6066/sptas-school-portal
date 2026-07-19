@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function resetAllClassSelects() {
-        const classSelectIds = ['filter-class','att-class-filter','tt-class-select','report-class','tf-class-pick','excel-dl-class','excel-rep-class','excel-reg-dl-class','excel-att-dl-class'];
+        const classSelectIds = ['filter-class','att-class-filter','tt-class-select','report-class','tf-class-pick','excel-dl-class','excel-rep-class','excel-reg-dl-class','excel-att-dl-class','fees-class-filter'];
         classSelectIds.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -186,7 +186,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (currentRole !== 'teacher' || !activeTeacherProfile) return;
         const assigned = activeTeacherProfile.classes || [];
         const classes = Array.from(new Set(assigned.map(c => c.split('-')[0])));
-        const selects = ['filter-class','att-class-filter','tt-class-select','report-class','excel-dl-class','excel-rep-class','excel-reg-dl-class','excel-att-dl-class'];
+        const selects = ['filter-class','att-class-filter','tt-class-select','report-class','excel-dl-class','excel-rep-class','excel-reg-dl-class','excel-att-dl-class','fees-class-filter'];
         selects.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -319,13 +319,14 @@ document.addEventListener("DOMContentLoaded", function () {
             
             // Format titles
             const roleTitles = {
+                admin: 'Administration Portal Login',
                 principal: 'Principal Portal Login',
                 teacher: 'Teacher Portal Login',
                 parent: 'Parent Portal Login'
             };
             
             const formTitle = document.getElementById('auth-form-title');
-            if (formTitle) formTitle.textContent = roleTitles[role];
+            if (formTitle) formTitle.textContent = roleTitles[role] || 'Login';
             
             // Toggle login forms
             document.querySelectorAll('.login-form').forEach(f => f.classList.add('hidden'));
@@ -412,23 +413,102 @@ document.addEventListener("DOMContentLoaded", function () {
         } else { showLoginError(data.message||'Invalid credentials.'); }
     });
 
+    // ============================================================
+    // ADMINISTRATION LOGIN
+    // ============================================================
+    document.getElementById('admin-login-btn')?.addEventListener('click', async function() {
+        loginErrorMsg.classList.add('hidden');
+        const username = document.getElementById('admin-username').value.trim();
+        const password = document.getElementById('admin-password').value.trim();
+        const res = await fetch('/api/login',{ method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({role:'admin', username, password}) });
+        const data = await res.json();
+        if (data.success) {
+            currentRole = 'admin';
+            localStorage.setItem('sptas_role','admin');
+            localStorage.setItem('sptas_user_name', data.name);
+            proceedToPortal('admin', data.name);
+        } else { showLoginError(data.message||'Invalid credentials.'); }
+    });
+
     function proceedToPortal(role, name) {
         currentRole = role;
         authView.classList.add('hidden');
         appNavHeader.classList.remove('hidden');
         if (role === 'teacher') {
             userGreetingLabel.textContent = `Teacher: ${name}`;
+        } else if (role === 'admin') {
+            userGreetingLabel.textContent = `Administrator: ${name}`;
         } else {
             userGreetingLabel.textContent = `Logged in as: ${name}`;
         }
+        
         const isPrincipal = role === 'principal';
         const isTeacher = role === 'teacher';
-        document.getElementById('edit-principal-name-btn')?.classList.toggle('hidden', !isPrincipal);
-        document.querySelectorAll('.principal-only').forEach(el=>el.classList.toggle('hidden', !isPrincipal));
-        document.getElementById('admin-meetings-tab-btn')?.classList.toggle('hidden', !(isPrincipal || isTeacher));
-        document.getElementById('add-meeting-btn')?.classList.toggle('hidden', !isPrincipal);
-        document.getElementById('admin-reports-tab-btn')?.classList.toggle('hidden', !(isPrincipal || isTeacher));
-        document.querySelectorAll('[data-admin-tab="tab-activities-log"]').forEach(el => el.classList.toggle('hidden', !isPrincipal));
+        const isAdmin = role === 'admin';
+        
+        // Hide edit principal name button except for principal/admin
+        document.getElementById('edit-principal-name-btn')?.classList.toggle('hidden', !isPrincipal && !isAdmin);
+        
+        // Configure tab visibilities:
+        const showTab = (id, visible) => {
+            const btn = document.getElementById(id);
+            if (btn) btn.classList.toggle('hidden', !visible);
+        };
+        
+        if (isAdmin) {
+            showTab('admin-students-tab-btn', true);
+            showTab('admin-attendance-tab-btn', true);
+            showTab('admin-timetable-tab-btn', true);
+            showTab('admin-teachers-tab-btn', true);
+            showTab('admin-meetings-tab-btn', true);
+            showTab('admin-reports-tab-btn', true);
+            showTab('admin-activities-tab-btn', true);
+            showTab('admin-excel-tab-btn', true);
+            showTab('admin-fees-tab-btn', true);
+            showTab('admin-services-tab-btn', true);
+        } else if (isPrincipal) {
+            showTab('admin-students-tab-btn', true);
+            showTab('admin-attendance-tab-btn', false); // No attendance tab
+            showTab('admin-timetable-tab-btn', true);
+            showTab('admin-teachers-tab-btn', true);
+            showTab('admin-meetings-tab-btn', true);
+            showTab('admin-reports-tab-btn', true);
+            showTab('admin-activities-tab-btn', true);
+            showTab('admin-excel-tab-btn', false); // No import/export
+            showTab('admin-fees-tab-btn', true);
+            showTab('admin-services-tab-btn', true);
+        } else if (isTeacher) {
+            showTab('admin-students-tab-btn', true);
+            showTab('admin-attendance-tab-btn', true);
+            showTab('admin-timetable-tab-btn', true);
+            showTab('admin-teachers-tab-btn', false);
+            showTab('admin-meetings-tab-btn', true);
+            showTab('admin-reports-tab-btn', true);
+            showTab('admin-activities-tab-btn', false);
+            showTab('admin-excel-tab-btn', false);
+            showTab('admin-fees-tab-btn', false);
+            showTab('admin-services-tab-btn', false);
+        }
+        
+        // Hide add student button except for Admin
+        document.getElementById('admin-add-student-btn')?.classList.toggle('hidden', !isAdmin);
+        
+        // Hide add meeting button except for Admin and Principal
+        document.getElementById('add-meeting-btn')?.classList.toggle('hidden', !isAdmin && !isPrincipal);
+        
+        // Hide add teacher button except for Admin
+        document.getElementById('admin-add-teacher-btn')?.classList.toggle('hidden', !isAdmin);
+        
+        // Hide holiday configuration block inside Attendance view unless Admin
+        const holidayMgrCard = document.getElementById('holiday-mgr-section-card');
+        if (holidayMgrCard) {
+            holidayMgrCard.style.display = isAdmin ? 'block' : 'none';
+        }
+
+        // Stats card visibilities on homepage
+        document.getElementById('dashboard-card-classes')?.classList.toggle('hidden', isTeacher);
+        document.getElementById('dashboard-card-teachers')?.classList.toggle('hidden', isTeacher);
 
         if (role !== 'parent') {
             if (role === 'teacher') {
@@ -788,9 +868,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 <td>
                     <div class="action-btns">
                         <button class="btn-action btn-view" onclick="viewStudent('${s.id}')" title="View"><i data-lucide="eye"></i></button>
-                        <button class="btn-action btn-edit" onclick="editStudentById('${s.id}')" title="Edit"><i data-lucide="pencil"></i></button>
-                        ${isPrincipal ? `<button class="btn-action btn-edit" style="background:#0c4a6e; border-color:#0c4a6e; color:white;" onclick="adminResetPassword('${s.id}', 'student')" title="Reset Password"><i data-lucide="key"></i></button>` : ''}
-                        <button class="btn-action btn-delete" onclick="requestDeleteStudent('${s.id}','${s.name.replace(/'/g,'')}')" title="Delete"><i data-lucide="trash-2"></i></button>
+                        ${currentRole === 'admin' ? `<button class="btn-action btn-edit" onclick="editStudentById('${s.id}')" title="Edit"><i data-lucide="pencil"></i></button>` : ''}
+                        ${(currentRole === 'admin' || currentRole === 'principal') ? `<button class="btn-action btn-edit" style="background:#0c4a6e; border-color:#0c4a6e; color:white;" onclick="adminResetPassword('${s.id}', 'student')" title="Reset Password"><i data-lucide="key"></i></button>` : ''}
+                        ${currentRole === 'admin' ? `<button class="btn-action btn-delete" onclick="requestDeleteStudent('${s.id}','${s.name.replace(/'/g,'')}')" title="Delete"><i data-lucide="trash-2"></i></button>` : ''}
                     </div>
                 </td>`;
             tbody.appendChild(tr);
@@ -1708,23 +1788,33 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
         teachersCache.forEach(t=>{
-            const attBadge=t.attendance_status==='Present'
-                ?`<span class="badge badge-success" style="cursor:pointer;" onclick="toggleTeacherAtt('${t.id}','Absent')">🟢 Present</span>`
-                :`<span class="badge badge-danger" style="cursor:pointer;" onclick="toggleTeacherAtt('${t.id}','Present')">🔴 Absent</span>`;
+            const isClickable = (currentRole === 'admin');
+            const attBadge = t.attendance_status==='Present'
+                ? (isClickable 
+                    ? `<span class="badge badge-success" style="cursor:pointer;" onclick="toggleTeacherAtt('${t.id}','Absent')">🟢 Present</span>`
+                    : `<span class="badge badge-success">🟢 Present</span>`)
+                : (isClickable 
+                    ? `<span class="badge badge-danger" style="cursor:pointer;" onclick="toggleTeacherAtt('${t.id}','Present')">🔴 Absent</span>`
+                    : `<span class="badge badge-danger">🔴 Absent</span>`);
             const pwdBadge=t.has_password?`<span class="badge badge-success">Set</span>`:`<span class="badge badge-warning">Not Set</span>`;
             const classesText=(t.classes||[]).join(', ')||'—';
             const tr=document.createElement('tr');
+            
+            const actionsHtml = `
+                <div class="action-btns">
+                    ${currentRole === 'admin' ? `<button class="btn-action btn-edit" onclick="openEditTeacher('${t.id}')" title="Edit"><i data-lucide="pencil"></i></button>` : ''}
+                    ${(currentRole === 'admin' || currentRole === 'principal') ? `<button class="btn-action btn-edit" style="background:#0c4a6e; border-color:#0c4a6e; color:white;" onclick="adminResetPassword('${t.id}', 'teacher')" title="Reset Password"><i data-lucide="key"></i></button>` : ''}
+                    ${currentRole === 'admin' ? `<button class="btn-action btn-delete" onclick="requestDeleteTeacher('${t.id}','${t.name.replace(/'/g,'')}')" title="Delete"><i data-lucide="trash-2"></i></button>` : ''}
+                </div>
+            `;
+            
             tr.innerHTML=`<td><strong>${t.name}</strong></td>
                 <td>${t.phone}</td>
                 <td>${(t.subjects||[]).join(', ')||'—'}</td>
                 <td>${classesText}</td>
                 <td>${attBadge}</td>
                 <td>${pwdBadge}</td>
-                <td><div class="action-btns">
-                    <button class="btn-action btn-edit" onclick="openEditTeacher('${t.id}')" title="Edit"><i data-lucide="pencil"></i></button>
-                    <button class="btn-action btn-edit" style="background:#0c4a6e; border-color:#0c4a6e; color:white;" onclick="adminResetPassword('${t.id}', 'teacher')" title="Reset Password"><i data-lucide="key"></i></button>
-                    <button class="btn-action btn-delete" onclick="requestDeleteTeacher('${t.id}','${t.name.replace(/'/g,'')}')" title="Delete"><i data-lucide="trash-2"></i></button>
-                </div></td>`;
+                <td>${actionsHtml}</td>`;
             tbody.appendChild(tr);
         });
         lucide.createIcons();
@@ -1914,8 +2004,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ============================================================
     document.getElementById('tt-load-btn')?.addEventListener('click',loadTimetableEditor);
     function canEditTimetable() {
-        if (currentRole === 'principal') return true;
-        if (currentRole === 'teacher' && activeTeacherProfile?.can_edit_timetable === true) return true;
+        if (currentRole === 'admin') return true;
         return false;
     }
 
@@ -2997,5 +3086,208 @@ document.addEventListener("DOMContentLoaded", function () {
             showToast(data.message || 'Error.', 'error');
         }
     });
+
+    // ============================================================
+    // STUDENT FEES MONITORING
+    // ============================================================
+    async function loadFeesManager() {
+        const cls = document.getElementById('fees-class-filter').value;
+        const sec = document.getElementById('fees-section-filter').value;
+        if (!cls) { showToast('Please select a class.', 'error'); return; }
+        
+        const res = await fetch(`/api/search?class=${cls}&section=${sec}`);
+        const students = await res.json();
+        const tbody = document.getElementById('fees-table-body');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
+        if (!students.length) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted);">No students found.</td></tr>`;
+            return;
+        }
+        
+        students.forEach(s => {
+            const fees = s.fees || { tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
+            const total = (fees.tuition || 0) + (fees.books || 0) + (fees.dresses || 0) + (fees.extra || 0);
+            const due = total - (fees.paid || 0);
+            
+            const actionHtml = currentRole === 'admin' 
+                ? `<button class="btn-action btn-edit" onclick="openEditFees('${s.id}')" title="Edit Fees"><i data-lucide="pencil"></i></button>`
+                : `—`;
+                 
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${s.roll_no}</strong></td>
+                <td>${s.name}</td>
+                <td>₹${fees.tuition || 0}</td>
+                <td>₹${fees.books || 0}</td>
+                <td>₹${fees.dresses || 0}</td>
+                <td>₹${fees.extra || 0}</td>
+                <td style="color:var(--accent-success);font-weight:600;">₹${fees.paid || 0}</td>
+                <td style="color:${due > 0 ? 'var(--accent-danger)' : 'var(--accent-success)'};font-weight:700;">₹${due}</td>
+                <td class="admin-only-cell">${actionHtml}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        lucide.createIcons();
+        
+        const actionCells = document.querySelectorAll('.admin-only-cell');
+        actionCells.forEach(cell => {
+            cell.style.display = (currentRole === 'admin') ? '' : 'none';
+        });
+    }
+
+    window.openEditFees = async function(id) {
+        const res = await fetch(`/api/student/${id}`);
+        const s = await res.json();
+        if (s.error) { showToast('Student not found.', 'error'); return; }
+        
+        const fees = s.fees || { tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
+        document.getElementById('edit-fees-student-id').value = id;
+        document.getElementById('edit-fees-tuition').value = fees.tuition || 0;
+        document.getElementById('edit-fees-books').value = fees.books || 0;
+        document.getElementById('edit-fees-dresses').value = fees.dresses || 0;
+        document.getElementById('edit-fees-extra').value = fees.extra || 0;
+        document.getElementById('edit-fees-paid').value = fees.paid || 0;
+        showModal('edit-fees-modal');
+    };
+
+    document.getElementById('edit-fees-save-btn')?.addEventListener('click', async function() {
+        const id = document.getElementById('edit-fees-student-id').value;
+        const tuition = parseInt(document.getElementById('edit-fees-tuition').value) || 0;
+        const books = parseInt(document.getElementById('edit-fees-books').value) || 0;
+        const dresses = parseInt(document.getElementById('edit-fees-dresses').value) || 0;
+        const extra = parseInt(document.getElementById('edit-fees-extra').value) || 0;
+        const paid = parseInt(document.getElementById('edit-fees-paid').value) || 0;
+        
+        const res = await fetch('/api/students/fees', {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ student_id: id, tuition, books, dresses, extra, paid })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Fees updated successfully!', 'success');
+            hideModal('edit-fees-modal');
+            loadFeesManager();
+        } else {
+            showToast(data.message || 'Error updating fees.', 'error');
+        }
+    });
+
+    document.getElementById('fees-load-btn')?.addEventListener('click', loadFeesManager);
+
+    // ============================================================
+    // SERVICES CONTACTS MANAGER
+    // ============================================================
+    async function loadServicesManager() {
+        const res = await fetch('/api/services');
+        const list = await res.json();
+        const tbody = document.getElementById('services-table-body');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
+        if (!list.length) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">No service contacts registered.</td></tr>`;
+            return;
+        }
+        
+        list.forEach(s => {
+            const hasDelete = (currentRole === 'admin' || currentRole === 'principal');
+            const actionHtml = hasDelete 
+                ? `<button class="btn-action btn-delete" onclick="deleteServiceContact('${s.id}')" title="Delete Helper"><i data-lucide="trash-2"></i></button>`
+                : `—`;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${s.name}</strong></td>
+                <td><span class="badge badge-info">${s.role}</span></td>
+                <td>${s.phone}</td>
+                <td class="admin-principal-cell">${actionHtml}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        lucide.createIcons();
+        
+        const actionCells = document.querySelectorAll('.admin-principal-cell');
+        actionCells.forEach(cell => {
+            cell.style.display = (currentRole === 'admin' || currentRole === 'principal') ? '' : 'none';
+        });
+    }
+
+    window.deleteServiceContact = async function(id) {
+        if (!confirm("Are you sure you want to delete this helper contact?")) return;
+        const res = await fetch(`/api/services/delete/${id}`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Service contact deleted.', 'success');
+            loadServicesManager();
+        } else {
+            showToast(data.message || 'Error.', 'error');
+        }
+    };
+
+    document.getElementById('services-add-contact-btn')?.addEventListener('click', function() {
+        document.getElementById('add-service-name').value = '';
+        document.getElementById('add-service-role').value = '';
+        document.getElementById('add-service-phone').value = '';
+        showModal('add-service-modal');
+    });
+    
+    document.getElementById('add-service-save-btn')?.addEventListener('click', async function() {
+        const name = document.getElementById('add-service-name').value.trim();
+        const role = document.getElementById('add-service-role').value.trim();
+        const phone = document.getElementById('add-service-phone').value.trim();
+        if (!name || !role || !phone) { showToast('Please fill all fields.', 'error'); return; }
+        
+        const res = await fetch('/api/services/add', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ name, role, phone })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Helper contact added!', 'success');
+            hideModal('add-service-modal');
+            loadServicesManager();
+        } else {
+            showToast(data.message || 'Error.', 'error');
+        }
+    });
+
+    // Configure tab route clicks
+    document.querySelectorAll('.admin-tab-pill').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabId = btn.dataset.adminTab;
+            if (tabId === 'tab-fees') loadFeesManager();
+            if (tabId === 'tab-services') loadServicesManager();
+        });
+    });
+
+    // Refilter dashboard hooks to load custom statistics
+    const originalLoadAdminDashboard = loadAdminDashboard;
+    loadAdminDashboard = async function() {
+        await originalLoadAdminDashboard();
+        if (currentRole === 'teacher' && activeTeacherProfile) {
+            try {
+                const sRes = await fetch('/api/search');
+                const allSt = await sRes.json();
+                const assigned = activeTeacherProfile.classes || [];
+                const teacherSt = allSt.filter(s => assigned.includes(`${s.class}-${s.section}`));
+                
+                const total = teacherSt.length;
+                const present = teacherSt.filter(s => s.attendance_status === 'Present').length;
+                const pct = total > 0 ? Math.round((present / total) * 100) : 0;
+                
+                setEl('admin-stat-students', total);
+                setEl('admin-stat-attendance', `${pct}%`);
+                setEl('admin-stat-attendance-ratio', `Today: ${present}/${total} Present`);
+            } catch(e) {
+                console.error("Failed to load teacher stats:", e);
+            }
+        }
+    };
 
 }); // end DOMContentLoaded
