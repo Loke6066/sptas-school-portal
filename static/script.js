@@ -15,11 +15,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function resetAllClassSelects() {
-        const classSelectIds = ['filter-class','att-class-filter','tt-class-select','report-class','tf-class-pick','excel-dl-class','excel-rep-class','excel-reg-dl-class','excel-att-dl-class','fees-class-filter'];
+        const classSelectIds = ['filter-class','att-class-filter','tt-class-select','report-class','tf-class-pick','excel-dl-class','excel-rep-class','excel-reg-dl-class','excel-att-dl-class','fees-class-filter','report-daily-class'];
         classSelectIds.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
-            const isAll = ['filter-class','report-class','excel-rep-class','excel-reg-dl-class'].includes(id);
+            const isAll = ['filter-class','report-class','excel-rep-class','excel-reg-dl-class','report-daily-class'].includes(id);
             el.innerHTML = buildClassOptions(isAll, id === 'tf-class-pick');
         });
         const formClass = document.getElementById('form-class');
@@ -186,12 +186,12 @@ document.addEventListener("DOMContentLoaded", function () {
         if (currentRole !== 'teacher' || !activeTeacherProfile) return;
         const assigned = activeTeacherProfile.classes || [];
         const classes = Array.from(new Set(assigned.map(c => c.split('-')[0])));
-        const selects = ['filter-class','att-class-filter','tt-class-select','report-class','excel-dl-class','excel-rep-class','excel-reg-dl-class','excel-att-dl-class','fees-class-filter'];
+        const selects = ['filter-class','att-class-filter','tt-class-select','report-class','excel-dl-class','excel-rep-class','excel-reg-dl-class','excel-att-dl-class','fees-class-filter','report-daily-class'];
         selects.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             let html = '';
-            if (['filter-class','report-class','excel-rep-class'].includes(id)) {
+            if (['filter-class','report-class','excel-rep-class','report-daily-class'].includes(id)) {
                 html += '<option value="">All Assigned</option>';
             } else {
                 html += '<option value="">Select Class</option>';
@@ -231,10 +231,28 @@ document.addEventListener("DOMContentLoaded", function () {
     // THEME
     // ============================================================
     function applyTheme(theme) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        localStorage.setItem('sptas_theme', 'dark');
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('sptas_theme', theme);
+        
+        const btnDark = document.querySelector('.theme-icon-dark');
+        const btnLight = document.querySelector('.theme-icon-light');
+        if (theme === 'dark') {
+            btnDark?.classList.remove('hidden');
+            btnLight?.classList.add('hidden');
+        } else {
+            btnDark?.classList.add('hidden');
+            btnLight?.classList.remove('hidden');
+        }
     }
-    applyTheme('dark');
+    const savedTheme = localStorage.getItem('sptas_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    document.getElementById('theme-toggle-btn')?.addEventListener('click', function() {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const nextTheme = (currentTheme === 'dark') ? 'light' : 'dark';
+        applyTheme(nextTheme);
+        showToast(`Switched to ${nextTheme === 'dark' ? 'Dark' : 'Light'} Mode`, 'info');
+    });
 
     // ============================================================
     // AUTH SESSION
@@ -2969,7 +2987,139 @@ document.addEventListener("DOMContentLoaded", function () {
             showToast('Error downloading report.', 'error');
         }
     });
+    // Set daily report date default to today
+    const reportDailyDateInput = document.getElementById('report-daily-date');
+    if (reportDailyDateInput) {
+        reportDailyDateInput.value = new Date().toLocaleDateString('en-CA'); // local YYYY-MM-DD
+    }
 
+    // ---- GENERATE DAILY ATTENDANCE VIEW ----
+    document.getElementById('report-daily-load-btn')?.addEventListener('click', async function() {
+        const date = document.getElementById('report-daily-date').value;
+        const cls = document.getElementById('report-daily-class').value;
+        const sec = document.getElementById('report-daily-section').value;
+        if (!date) {
+            showToast('Select a date to generate daily attendance report view.', 'error');
+            return;
+        }
+        
+        const container = document.getElementById('daily-report-container');
+        if (!container) return;
+        
+        container.innerHTML = '<div style="text-align:center;padding:2rem;"><span class="spinner"></span> Loading report...</div>';
+        
+        try {
+            const res = await fetch(`/api/attendance/class?class=${cls}&section=${sec}&date=${date}`);
+            const students = await res.json();
+            
+            if (!students.length) {
+                container.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-muted);">No records found for Class ${cls || 'All'}-${sec || 'All'} on ${date}.</div>`;
+                return;
+            }
+            
+            let presentCount = 0;
+            let absentCount = 0;
+            let halfCount = 0;
+            let notMarkedCount = 0;
+            
+            let tbodyHtml = '';
+            students.forEach((s, idx) => {
+                let badgeClass = 'badge-secondary';
+                let statusLabel = s.attendance_status || 'Not Marked';
+                
+                if (statusLabel === 'Present') {
+                    badgeClass = 'badge-success';
+                    presentCount++;
+                } else if (statusLabel === 'Absent') {
+                    badgeClass = 'badge-danger';
+                    absentCount++;
+                } else if (statusLabel === 'Half Day') {
+                    badgeClass = 'badge-warning';
+                    halfCount++;
+                } else {
+                    statusLabel = 'Not Marked';
+                    notMarkedCount++;
+                }
+                
+                tbodyHtml += `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td><strong>${s.roll_no}</strong></td>
+                        <td>${s.name}</td>
+                        <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
+                    </tr>
+                `;
+            });
+            
+            container.innerHTML = `
+                <div style="background:var(--bg-input);padding:1rem;border-radius:var(--radius-md);margin-bottom:1rem;display:flex;gap:1.5rem;flex-wrap:wrap;border:1px solid var(--border-color);">
+                    <div><strong>Total Students:</strong> ${students.length}</div>
+                    <div style="color:var(--accent-success);"><strong>Present:</strong> ${presentCount}</div>
+                    <div style="color:var(--accent-warning);"><strong>Half Day:</strong> ${halfCount}</div>
+                    <div style="color:var(--accent-danger);"><strong>Absent:</strong> ${absentCount}</div>
+                    <div style="color:var(--text-light);"><strong>Not Marked:</strong> ${notMarkedCount}</div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Roll No</th>
+                                <th>Name</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tbodyHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        } catch (e) {
+            container.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--accent-danger);">Failed to load daily attendance view.</div>`;
+        }
+    });
+
+    // ---- DOWNLOAD DAILY ATTENDANCE EXCEL REPORT ----
+    document.getElementById('report-daily-excel-btn')?.addEventListener('click', async function() {
+        const date = document.getElementById('report-daily-date').value;
+        const cls = document.getElementById('report-daily-class').value;
+        const sec = document.getElementById('report-daily-section').value;
+        if (!date) {
+            showToast('Select a date to download daily attendance report.', 'error');
+            return;
+        }
+        
+        const url = `/api/excel/daily-attendance-report?date=${encodeURIComponent(date)}&class=${encodeURIComponent(cls)}&section=${encodeURIComponent(sec)}`;
+        showToast(`Generating daily attendance report... Downloading!`, 'success');
+        
+        const headers = {};
+        const tid = localStorage.getItem('sptas_teacher_id');
+        if (tid) headers['X-Teacher-Id'] = tid;
+        
+        try {
+            const res = await fetch(url, { headers });
+            if (res.status === 403) {
+                showToast('Forbidden: You are not assigned to this class.', 'error');
+                return;
+            }
+            if (!res.ok) {
+                showToast('Failed to generate daily attendance report.', 'error');
+                return;
+            }
+            const blob = await res.blob();
+            const dlUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = dlUrl;
+            a.download = `SPTAS_Daily_Attendance_${cls || 'All'}_${sec || 'All'}_${date}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(dlUrl);
+        } catch(e) {
+            showToast('Error downloading report.', 'error');
+        }
+    });
     async function loadExcelReportsExamDropdown() {
         try {
             const res = await fetch('/api/exams/list');
@@ -3113,7 +3263,7 @@ document.addEventListener("DOMContentLoaded", function () {
         
         tbody.innerHTML = '';
         if (!students.length) {
-            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text-muted);">No students found.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text-muted);">No students found.</td></tr>`;
             return;
         }
         
@@ -3135,8 +3285,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 <td>₹${fees.books || 0}</td>
                 <td>₹${fees.dresses || 0}</td>
                 <td>₹${fees.extra || 0}</td>
+                <td style="font-weight:600;">₹${total}</td>
                 <td style="color:var(--accent-success);font-weight:600;">₹${fees.paid || 0}</td>
-                <td style="color:${due > 0 ? 'var(--accent-danger)' : 'var(--accent-success)'};font-weight:700;">₹${due}</td>
+                <td style="color:${due <= 0 ? 'var(--accent-success)' : 'var(--accent-danger)'};font-weight:700;">₹${due}</td>
                 <td class="admin-only-cell">${actionHtml}</td>
             `;
             tbody.appendChild(tr);

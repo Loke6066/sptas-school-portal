@@ -117,6 +117,21 @@ def clean_phone(phone):
 def index():
     return render_template('index.html')
 
+def is_time_in_period(now, period_time_str):
+    try:
+        parts = period_time_str.split(" - ")
+        if len(parts) != 2:
+            return False
+        start_dt = datetime.strptime(parts[0].strip(), "%I:%M %p")
+        end_dt = datetime.strptime(parts[1].strip(), "%I:%M %p")
+        
+        start_datetime = now.replace(hour=start_dt.hour, minute=start_dt.minute, second=0, microsecond=0)
+        end_datetime = now.replace(hour=end_dt.hour, minute=end_dt.minute, second=0, microsecond=0)
+        
+        return start_datetime <= now <= end_datetime
+    except Exception:
+        return False
+
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     students = load_db()
@@ -145,11 +160,50 @@ def get_stats():
             students = filtered
 
     total = len(students)
-    classes = len(set(f"{s['class']}-{s['section']}" for s in students)) if students else 0
-    avg_att = f"{sum(s['current_status']['attendance_percentage'] for s in students)/total:.1f}%" if total else "0%"
+    
+    # Calculate active classes dynamically based on holidays, period times, and teacher attendance
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    is_holiday, reason = is_school_holiday(today_str)
+    
+    active_classes_count = 0
+    if not is_holiday:
+        timetables = load_timetables()
+        day_name = datetime.now().strftime("%A")
+        
+        teacher_status_map = {}
+        for t in teachers:
+            teacher_status_map[t.get("name", "").strip().lower()] = t.get("attendance_status", "Present").strip().lower()
+            
+        student_classes = set(f"{s['class']}-{s['section']}" for s in students)
+        for class_key in student_classes:
+            class_tt = timetables.get(class_key, {})
+            day_periods = class_tt.get(day_name, [])
+            for period in day_periods:
+                is_class_period = period.get("period", "").strip() != "" and period.get("status") == "Class In Progress"
+                if is_class_period:
+                    time_range = period.get("time", "")
+                    if is_time_in_period(datetime.now(), time_range):
+                        t_name = period.get("teacher", "").strip().lower()
+                        t_status = teacher_status_map.get(t_name, "present")
+                        if t_status != "absent":
+                            active_classes_count += 1
+                        break
+
+    total_pct_sum = 0
+    for s in students:
+        recs = s.get('attendance_records', [])
+        workdays = sum(1 for item in recs if item.get('status') != 'Holiday')
+        present_days = sum(1 for item in recs if item.get('status') == 'Present')
+        half_days = sum(1 for item in recs if item.get('status') == 'Half Day')
+        effective_present = present_days + (half_days / 2.0)
+        if workdays > 0:
+            total_pct_sum += (effective_present / workdays) * 100
+        else:
+            total_pct_sum += 0.0
+
+    avg_att = f"{total_pct_sum/total:.1f}%" if total else "0%"
     
     # Today's attendance ratio
-    today_str = datetime.now().strftime("%Y-%m-%d")
     today_present = 0
     for s in students:
         rec = next((r for r in s.get("attendance_records", []) if r["date"] == today_str), None)
@@ -161,7 +215,7 @@ def get_stats():
 
     return jsonify({
         "total_students": total,
-        "active_classes": classes,
+        "active_classes": active_classes_count,
         "overall_attendance": avg_att,
         "teachers": len(teachers),
         "today_present": today_present,
@@ -1812,6 +1866,109 @@ def download_attendance_report():
     wb.save(buf)
     buf.seek(0)
     fname = f'SPTAS_Attendance_Report_Class{cls or "All"}{sec or ""}_{month}.xlsx'
+    return send_file(buf, as_attachment=True, download_name=fname,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+
+@app.route('/api/excel/daily-attendance-report', methods=['GET'])
+def download_daily_attendance_report():
+    if not OPENPYXL_AVAILABLE:
+        return jsonify({'error': 'openpyxl not installed'}), 500
+    cls = request.args.get('class', '')
+    sec = request.args.get('section', '')
+    date = request.args.get('date', '')
+    
+    if not date:
+        return jsonify({"error": "Date is required"}), 400
+        
+    teacher_id = request.headers.get('X-Teacher-Id', '')
+    allowed_classes = get_teacher_classes(teacher_id)
+    if allowed_classes is not None:
+        if cls and sec:
+            s_key = f"{cls}-{sec}"
+            if s_key not in allowed_classes:
+                return jsonify({"error": "Forbidden: This is not your Class"}), 403
+        elif cls:
+            matched = [ac for ac in allowed_classes if ac.split('-')[0] == cls]
+            if not matched:
+                return jsonify({"error": "Forbidden: This is not your Class"}), 403
+        else:
+            return jsonify({"error": "Forbidden: Teacher must specify an assigned Class"}), 403
+
+    students = load_db()
+    filtered = sorted([s for s in students if (not cls or str(s['class'])==cls) and
+                (not sec or s['section']==sec)], key=lambda x: x['roll_no'])
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Daily Attendance'
+    ws.freeze_panes = 'E3'
+
+    # Title banner
+    ws.merge_cells('A1:F1')
+    ws['A1'] = f'SPTAS — Daily Attendance Report | Class {cls or "All"}-{sec or "All"} | Date: {date}'
+    ws['A1'].font = Font(bold=True, size=13, color='FFFFFF')
+    ws['A1'].fill = PatternFill(start_color='1E3A8A', end_color='1E3A8A', fill_type='solid')
+    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 28
+
+    headers = ['Roll No', 'Student Name', 'Class', 'Section', 'Date', 'Attendance Status']
+    for col_idx, h in enumerate(headers, 1):
+        ws.cell(row=2, column=col_idx, value=h)
+    style_header(ws, 2, len(headers), fill_hex='1E3A8A')
+
+    # Add rows
+    thin = Side(style='thin', color='CCCCCC')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    row_idx = 3
+    for s in filtered:
+        rec = next((r for r in s.get("attendance_records", []) if r["date"] == date), None)
+        status_str = rec["status"] if rec else "Not Marked"
+
+        vals = [
+            s['roll_no'],
+            s['name'],
+            s['class'],
+            s['section'],
+            date,
+            status_str
+        ]
+
+        even = row_idx % 2 == 0
+        bg_color = 'F8F9FA' if even else 'FFFFFF'
+        row_fill = PatternFill(start_color=bg_color, end_color=bg_color, fill_type='solid')
+
+        for col_idx, val in enumerate(vals, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = border
+            cell.fill = row_fill
+            if col_idx == 6:
+                if status_str == 'Present':
+                    cell.fill = PatternFill(start_color='D4EDDA', end_color='D4EDDA', fill_type='solid')
+                    cell.font = Font(bold=True, color='065F46')
+                elif status_str == 'Absent':
+                    cell.fill = PatternFill(start_color='F8D7DA', end_color='F8D7DA', fill_type='solid')
+                    cell.font = Font(bold=True, color='842029')
+                elif status_str == 'Half Day':
+                    cell.fill = PatternFill(start_color='FFF3CD', end_color='FFF3CD', fill_type='solid')
+                    cell.font = Font(bold=True, color='664D03')
+                else:
+                    cell.fill = PatternFill(start_color='E2E3E5', end_color='E2E3E5', fill_type='solid')
+                    cell.font = Font(bold=True, color='383D41')
+
+        row_idx += 1
+
+    # Set column widths
+    col_widths = [10, 24, 8, 10, 16, 20]
+    for c_idx, w in enumerate(col_widths, 1):
+        ws.column_dimensions[get_column_letter(c_idx)].width = w
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    fname = f'SPTAS_Daily_Attendance_Class{cls or "All"}{sec or ""}_{date}.xlsx'
     return send_file(buf, as_attachment=True, download_name=fname,
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 

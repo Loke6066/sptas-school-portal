@@ -207,9 +207,9 @@
         <button class="header-icon-btn principal-only hidden" id="edit-principal-name-btn" title="Edit Name">
             <i data-lucide="pencil"></i>
         </button>
-        <button class="header-icon-btn hidden" id="theme-toggle-btn" title="Toggle Theme">
+        <button class="header-icon-btn" id="theme-toggle-btn" title="Toggle Theme">
             <i data-lucide="moon" class="theme-icon-dark"></i>
-            <i data-lucideSun="sun" class="theme-icon-light hidden"></i>
+            <i data-lucide="sun" class="theme-icon-light hidden"></i>
         </button>
         <button class="header-icon-btn" id="logout-btn" title="Logout">
             <i data-lucide="log-out"></i>
@@ -490,6 +490,37 @@
                     </div>
                 </div>
                 <div id="monthly-report-container" style="margin-top:1rem;"></div>
+            </div>
+        </div>
+
+        <!-- Daily Attendance Card -->
+        <div class="section-card card-full" style="margin-bottom: 2rem;">
+            <div class="table-card-header" style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white;">
+                <h3><i data-lucide="clipboard-list" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Daily Attendance Report</h3>
+            </div>
+            <div style="padding:1.25rem;">
+                <div class="filter-bar">
+                    <div class="filter-item">
+                        <label>Date</label>
+                        <input type="date" id="report-daily-date" class="form-input">
+                    </div>
+                    <div class="filter-item">
+                        <label>Class</label>
+                        <select id="report-daily-class" class="form-select"></select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Section</label>
+                        <select id="report-daily-section" class="form-select">
+                            <option value="">All</option>
+                            <option>A</option><option>B</option><option>C</option><option>D</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                        <button id="report-daily-load-btn" class="btn btn-primary"><i data-lucide="search"></i> Generate View</button>
+                        <button id="report-daily-excel-btn" class="btn btn-success"><i data-lucide="download"></i> Download Excel</button>
+                    </div>
+                </div>
+                <div id="daily-report-container" style="margin-top:1rem;"></div>
             </div>
         </div>
 
@@ -774,13 +805,14 @@
                                 <th>Books Fee (₹)</th>
                                 <th>Dresses Fee (₹)</th>
                                 <th>Extra Fee (₹)</th>
+                                <th>Total Fee (₹)</th>
                                 <th>Paid Amount (₹)</th>
                                 <th>Due Balance (₹)</th>
                                 <th class="admin-only-cell">Action</th>
                             </tr>
                         </thead>
                         <tbody id="fees-table-body">
-                            <tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:2rem;">Select class/section and click Load.</td></tr>
+                            <tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:2rem;">Select class/section and click Load.</td></tr>
                         </tbody>
                     </table>
                 </div>
