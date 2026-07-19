@@ -201,6 +201,8 @@ def set_holiday_status():
     settings["custom_working_days"] = sorted(list(custom_working_days))
     
     if save_settings(settings):
+        role, u_name = get_log_identity()
+        log_activity(role, u_name, f"Set day status: {date_str} -> {status}")
         return jsonify({"success": True, "message": "Holiday status updated."})
     return jsonify({"success": False, "message": "Failed to save settings."}), 500
 
@@ -478,16 +480,50 @@ def update_teacher(tid):
     teachers = load_teachers()
     for t in teachers:
         if t["id"] == tid:
-            if data.get("name"): t["name"] = data["name"].strip()
-            if data.get("phone"): t["phone"] = clean_phone(data["phone"])
-            if "subjects" in data: t["subjects"] = data["subjects"]
-            if "classes" in data: t["classes"] = data["classes"]
-            if "email" in data: t["email"] = data["email"]
-            if "attendance_status" in data: t["attendance_status"] = data["attendance_status"]
-            t["can_edit_timetable"] = data.get("can_edit_timetable", False)
+            role, u_name = get_log_identity()
+            changes = []
+            
+            if data.get("name") and t["name"] != data["name"].strip():
+                changes.append(f"name ({t['name']} -> {data['name'].strip()})")
+                t["name"] = data["name"].strip()
+                
+            new_phone = clean_phone(data.get("phone", ""))
+            if new_phone and t["phone"] != new_phone:
+                changes.append(f"phone ({t['phone']} -> {new_phone})")
+                t["phone"] = new_phone
+                
+            if "subjects" in data:
+                old_subs = t.get("subjects", [])
+                new_subs = data["subjects"]
+                if old_subs != new_subs:
+                    changes.append(f"subjects ({', '.join(old_subs)} -> {', '.join(new_subs)})")
+                    t["subjects"] = new_subs
+                    
+            if "classes" in data:
+                old_classes = t.get("classes", [])
+                new_classes = data["classes"]
+                if old_classes != new_classes:
+                    changes.append(f"classes assigned ({', '.join(old_classes)} -> {', '.join(new_classes)})")
+                    t["classes"] = new_classes
+                    
+            if "email" in data and t.get("email") != data["email"]:
+                changes.append(f"email ({t.get('email')} -> {data['email']})")
+                t["email"] = data["email"]
+                
+            if "attendance_status" in data and t.get("attendance_status") != data["attendance_status"]:
+                changes.append(f"attendance ({t.get('attendance_status')} -> {data['attendance_status']})")
+                t["attendance_status"] = data["attendance_status"]
+                
+            new_edit_tt = data.get("can_edit_timetable", False)
+            if t.get("can_edit_timetable", False) != new_edit_tt:
+                changes.append(f"can_edit_timetable ({t.get('can_edit_timetable')} -> {new_edit_tt})")
+                t["can_edit_timetable"] = new_edit_tt
+                
             if save_teachers(teachers):
-                role, u_name = get_log_identity()
-                log_activity(role, u_name, f"Edited teacher staff profile: {t['name']}")
+                desc = f"Edited Teacher {t['name']}"
+                if changes:
+                    desc += f": {', '.join(changes)}"
+                log_activity(role, u_name, desc)
                 return jsonify({"success": True})
             return jsonify({"success": False}), 500
     return jsonify({"success": False}), 404
@@ -511,8 +547,12 @@ def update_teacher_attendance():
     teachers = load_teachers()
     for t in teachers:
         if t["id"] == data.get("teacher_id",""):
-            t["attendance_status"] = data.get("status","Present")
+            old_status = t.get("attendance_status", "Present")
+            new_status = data.get("status","Present")
+            t["attendance_status"] = new_status
             if save_teachers(teachers):
+                role, u_name = get_log_identity()
+                log_activity(role, u_name, f"Updated Teacher Attendance for {t['name']}: {old_status} -> {new_status}")
                 return jsonify({"success": True})
             return jsonify({"success": False}), 500
     return jsonify({"success": False}), 404
@@ -534,6 +574,8 @@ def save_timetable():
     timetables = load_timetables()
     timetables[class_key] = timetable
     if save_timetables(timetables):
+        role, u_name = get_log_identity()
+        log_activity(role, u_name, f"Updated Timetable for Class {class_key}")
         # Propagate to students in this class-section
         parts = class_key.split("-",1)
         if len(parts) == 2:
@@ -576,11 +618,26 @@ def save_attendance():
     date = data.get("date","")
     records = data.get("records",[])
     students = load_db()
+    
+    role, name = get_log_identity()
+    changed_records = []
+    target_class_sec = "Unknown"
+    
     for rec in records:
         for s in students:
             if s["id"] == rec["student_id"]:
+                if target_class_sec == "Unknown":
+                    target_class_sec = f"Class {s.get('class','')}-{s.get('section','')}"
+                
                 if "attendance_records" not in s: s["attendance_records"] = []
                 existing = next((r for r in s["attendance_records"] if r["date"]==date), None)
+                
+                old_status = existing["status"] if existing else "None"
+                new_status = rec["status"]
+                
+                if old_status != new_status:
+                    changed_records.append(f"{s['name']} ({old_status} -> {new_status})")
+                
                 if existing: existing["status"] = rec["status"]
                 else: s["attendance_records"].append({"date": date, "status": rec["status"]})
                 s["attendance_status"] = "Absent" if rec["status"]=="Absent" else "Present"
@@ -598,6 +655,9 @@ def save_attendance():
                     s['current_status']['attendance_percentage'] = 100.0
 
     if save_db(students):
+        if changed_records:
+            desc = f"Saved Attendance for {target_class_sec} on {date}: {', '.join(changed_records)}"
+            log_activity(role, name, desc)
         return jsonify({"success": True, "updated": len(records)})
     return jsonify({"success": False}), 500
 
@@ -656,11 +716,13 @@ def save_meeting():
     data = request.get_json() or {}
     meetings = load_meetings()
     meeting_id = data.get("id","")
+    role, name = get_log_identity()
     if meeting_id:
         for m in meetings:
             if m["id"] == meeting_id:
                 m.update({k: data[k] for k in ["title","date","time","venue","classes","notes"] if k in data})
                 if save_meetings(meetings):
+                    log_activity(role, name, f"Edited parent meeting: '{m.get('title')}' on {m.get('date')}")
                     return jsonify({"success": True})
                 return jsonify({"success": False}), 500
     else:
@@ -675,14 +737,22 @@ def save_meeting():
         }
         meetings.append(new_m)
         if save_meetings(meetings):
+            log_activity(role, name, f"Scheduled parent meeting: '{new_m['title']}' on {new_m['date']}")
             return jsonify({"success": True, "id": new_m["id"]})
         return jsonify({"success": False}), 500
 
 @app.route('/api/meetings/delete/<mid>', methods=['POST','DELETE'])
 def delete_meeting(mid):
     meetings = load_meetings()
+    deleted_title = "Meeting"
+    for m in meetings:
+        if m["id"] == mid:
+            deleted_title = m.get("title", "Meeting")
+            break
     new_list = [m for m in meetings if m["id"] != mid]
     if save_meetings(new_list):
+        role, name = get_log_identity()
+        log_activity(role, name, f"Deleted parent meeting: '{deleted_title}'")
         return jsonify({"success": True})
     return jsonify({"success": False}), 500
 
@@ -745,6 +815,8 @@ def admin_create_student():
     }
     students.append(new_student)
     if save_db(students):
+        user_role, user_name = get_log_identity()
+        log_activity(user_role, user_name, f"Registered new Student: {name} (Class {s_class}-{s_section})")
         return jsonify({"success": True, "student_id": student_id})
     return jsonify({"success": False}), 500
 
@@ -754,19 +826,72 @@ def admin_update_student(student_id):
     students = load_db()
     for s in students:
         if s["id"] == student_id:
+            user_role, user_name = get_log_identity()
+            changes = []
+            
+            # Simple fields
+            fields_to_check = ["name", "roll_no", "admission_no", "dob", "academic_year", "parent_name", "performance_trend", "attendance_status"]
+            for field in fields_to_check:
+                if field in data:
+                    old_val = s.get(field, "")
+                    new_val = data[field]
+                    if str(old_val) != str(new_val):
+                        changes.append(f"{field} ({old_val} -> {new_val})")
+                        s[field] = new_val
+
+            # Class / section
+            new_class = str(data.get("class", s["class"]))
+            if str(s["class"]) != new_class:
+                changes.append(f"class ({s['class']} -> {new_class})")
+                s["class"] = new_class
+                
+            new_section = data.get("section", s["section"])
+            if s["section"] != new_section:
+                changes.append(f"section ({s['section']} -> {new_section})")
+                s["section"] = new_section
+
+            # Contacts
+            pc = clean_phone(data.get("parent_contact",""))
+            if not pc: return jsonify({"success": False, "message": "Parent contact required!"}), 400
+            if s.get("parent_contact") != pc:
+                changes.append(f"parent_contact ({s.get('parent_contact')} -> {pc})")
+                s["parent_contact"] = pc
+                
+            alt = clean_phone(data.get("parent_alt_contact",""))
+            if s.get("parent_alt_contact") != alt:
+                changes.append(f"parent_alt_contact ({s.get('parent_alt_contact')} -> {alt})")
+                s["parent_alt_contact"] = alt
+
+            # Check exam marks updates
+            if "examination_progress" in data:
+                old_progress = s.get("examination_progress", [])
+                new_progress = data["examination_progress"]
+                for new_ex in new_progress:
+                    exam_name = new_ex.get("exam_name") or new_ex.get("exam")
+                    old_ex = next((e for e in old_progress if (e.get("exam_name") or e.get("exam")) == exam_name), None)
+                    if not old_ex:
+                        changes.append(f"added marks for exam '{exam_name}'")
+                    else:
+                        sub_changes = []
+                        for sub in new_ex.get("subjects", []):
+                            old_sub = next((sb for sb in old_ex.get("subjects", []) if sb.get("name") == sub.get("name")), None)
+                            if not old_sub or old_sub.get("obtained") != sub.get("obtained"):
+                                old_obt = old_sub.get("obtained") if old_sub else "None"
+                                sub_changes.append(f"{sub.get('name')}: {old_obt} -> {sub.get('obtained')}")
+                        if sub_changes:
+                            changes.append(f"updated '{exam_name}' marks: {', '.join(sub_changes)}")
+
+            # Principal reply
             old_pwd = s.get("parent_password","")
             old_fb = s.get("parent_feedback","")
             old_reply = s.get("principal_reply","")
-
-            for field in ["name","roll_no","admission_no","dob","academic_year","parent_name","performance_trend","attendance_status"]:
-                if field in data: s[field] = data[field]
-            s["class"] = str(data.get("class", s["class"]))
-            s["section"] = data.get("section", s["section"])
-
-            pc = clean_phone(data.get("parent_contact",""))
-            if not pc: return jsonify({"success": False, "message": "Parent contact required!"}), 400
-            s["parent_contact"] = pc
-            s["parent_alt_contact"] = clean_phone(data.get("parent_alt_contact",""))
+            
+            new_reply = data.get("principal_reply", old_reply)
+            if old_reply != new_reply:
+                changes.append(f"principal_reply ({old_reply} -> {new_reply})")
+                s["principal_reply"] = new_reply
+            else:
+                s["principal_reply"] = old_reply
 
             if "current_status" not in s: s["current_status"] = {}
             s["current_status"]["standard"] = f"Class {s['class']}"
@@ -781,9 +906,12 @@ def admin_update_student(student_id):
 
             s["parent_password"] = old_pwd
             s["parent_feedback"] = old_fb
-            s["principal_reply"] = data.get("principal_reply", old_reply)
 
             if save_db(students):
+                desc = f"Updated Student: {s['name']} (Class {s['class']}-{s['section']})"
+                if changes:
+                    desc += f": {', '.join(changes)}"
+                log_activity(user_role, user_name, desc)
                 return jsonify({"success": True})
             return jsonify({"success": False}), 500
     return jsonify({"success": False, "message": "Not found"}), 404
@@ -791,9 +919,16 @@ def admin_update_student(student_id):
 @app.route('/api/admin/student/delete/<student_id>', methods=['POST','DELETE'])
 def admin_delete_student(student_id):
     students = load_db()
+    deleted_student = None
+    for s in students:
+        if s["id"] == student_id:
+            deleted_student = s
+            break
+    if not deleted_student: return jsonify({"success": False}), 404
     new_s = [s for s in students if s["id"] != student_id]
-    if len(new_s) == len(students): return jsonify({"success": False}), 404
     if save_db(new_s):
+        user_role, user_name = get_log_identity()
+        log_activity(user_role, user_name, f"Deleted Student: {deleted_student['name']} (Class {deleted_student.get('class','')}-{deleted_student.get('section','')})")
         return jsonify({"success": True})
     return jsonify({"success": False}), 500
 
@@ -895,9 +1030,12 @@ def get_subjects_from_timetable(cls, sec):
     timetables = load_timetables()
     timetable = timetables.get(class_key, {})
     subjects = set()
-    non_subjects = ["free", "lunch", "break", "recess", "interval", "games", "sports", "pt", "lib", "library", "breakfast", "play", "assembly", "prayer", "leisure", "zero"]
+    non_subjects = ["free", "lunch", "break", "recess", "interval", "games", "sports", "pt", "lib", "library", "breakfast", "play", "assembly", "prayer", "leisure", "zero", "time", "period", "hour", "gap", "snack", "snacks", "tea", "recreation", "club", "pe", "moral", "value", "values", "activity", "activities", "house", "test", "exam", "revision", "gk", "general knowledge", "drawing", "art", "craft", "music", "dance", "games/play", "drill"]
     for day, periods in timetable.items():
         for p in periods:
+            status = p.get("status", "Class In Progress")
+            if status != "Class In Progress":
+                continue
             sub = p.get("subject", "").strip()
             sub_lower = sub.lower()
             if sub and not any(ns in sub_lower for ns in non_subjects):
@@ -1607,7 +1745,11 @@ def download_sample_register():
         return jsonify({'error': 'openpyxl not installed'}), 500
 
     cls = request.args.get('class', '10')
+    if not cls or cls.lower() == 'all':
+        cls = '10'
     sec = request.args.get('section', 'A')
+    if not sec or sec.lower() == 'all':
+        sec = 'A'
     subjects = request.args.get('subjects', 'Telugu,Hindi,Mathematics,Science,Social,English').split(',')
     subjects = [s.strip() for s in subjects if s.strip()]
 
@@ -1911,6 +2053,7 @@ def confirm_import():
     students = load_db()
     student_map = {s['roll_no']: s for s in students}
     updated = 0
+    role, name = get_log_identity()
 
     if import_type == 'register':
         import time
@@ -1941,6 +2084,7 @@ def confirm_import():
             added_records.append({'name': r['name'], 'roll_no': roll, 'class': s_class, 'section': s_sec})
         
         if save_db(students):
+            log_activity(role, name, f"Imported and Registered {updated} Students via Excel")
             return jsonify({'success': True, 'updated': updated, 'results': added_records})
 
     elif import_type == 'marks':
@@ -2014,6 +2158,7 @@ def confirm_import():
                     exam_entry['rank'] = rank_idx
 
         if save_db(students):
+            log_activity(role, name, f"Imported Marks for {updated} Students via Excel (Exam: {records[0].get('exam') if records else 'Unknown'})")
             return jsonify({'success': True, 'updated': updated, 'results': results_summary})
 
     elif import_type == 'attendance':
@@ -2042,6 +2187,7 @@ def confirm_import():
             updated += 1
             
         if save_db(students):
+            log_activity(role, name, f"Imported Attendance for {updated} Students via Excel")
             return jsonify({'success': True, 'updated': updated})
 
     return jsonify({'success': False, 'message': 'Import failed'}), 500

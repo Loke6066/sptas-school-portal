@@ -14,22 +14,18 @@ document.addEventListener("DOMContentLoaded", function () {
         return html;
     }
 
-    function populateAllClassSelects() {
-        document.querySelectorAll('[data-class-select="all"]').forEach(sel => { sel.innerHTML = buildClassOptions(true, false); });
-        document.querySelectorAll('[data-class-select="basic"]').forEach(sel => { sel.innerHTML = buildClassOptions(false, false); });
-        document.querySelectorAll('[data-class-select="custom"]').forEach(sel => { sel.innerHTML = buildClassOptions(false, true); });
+    function resetAllClassSelects() {
+        const classSelectIds = ['filter-class','att-class-filter','tt-class-select','report-class','tf-class-pick','excel-dl-class','excel-rep-class','excel-reg-dl-class','excel-att-dl-class'];
+        classSelectIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const isAll = ['filter-class','report-class','excel-rep-class','excel-reg-dl-class'].includes(id);
+            el.innerHTML = buildClassOptions(isAll, id === 'tf-class-pick');
+        });
+        const formClass = document.getElementById('form-class');
+        if (formClass) formClass.innerHTML = buildClassOptions(false, false);
     }
-
-    // Manually populate all class selects
-    const classSelectIds = ['filter-class','att-class-filter','tt-class-select','report-class','tf-class-pick','excel-dl-class','excel-rep-class','excel-reg-dl-class','excel-att-dl-class'];
-    classSelectIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        const isAll = ['filter-class','report-class','excel-rep-class'].includes(id);
-        el.innerHTML = buildClassOptions(isAll, id === 'tf-class-pick');
-    });
-    const formClass = document.getElementById('form-class');
-    if (formClass) formClass.innerHTML = buildClassOptions(false, false);
+    resetAllClassSelects();
 
 
     // Meeting class checkboxes
@@ -116,6 +112,17 @@ document.addEventListener("DOMContentLoaded", function () {
         catch { return d; }
     }
     function debounce(fn, ms) { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+    
+    function getAuthHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        const role = localStorage.getItem('sptas_role') || 'Unknown';
+        const name = localStorage.getItem('sptas_user_name') || 'Unknown';
+        headers['X-User-Role'] = role;
+        headers['X-User-Name'] = name;
+        const tid = localStorage.getItem('sptas_teacher_id');
+        if (tid) headers['X-Teacher-Id'] = tid;
+        return headers;
+    }
     
     function refilterTeacherDropdowns() {
         if (currentRole !== 'teacher' || !activeTeacherProfile) return;
@@ -206,6 +213,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
         } else {
             activeTeacherProfile = null;
+            resetAllClassSelects();
             loadAdminDashboard();
         }
     }
@@ -376,6 +384,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
             } else {
                 activeTeacherProfile = null;
+                resetAllClassSelects();
                 loadAdminDashboard();
             }
         }
@@ -631,6 +640,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (tabId==='tab-meetings') loadMeetingsAdmin();
             if (tabId==='tab-attendance') loadHolidaysManager();
             if (tabId==='tab-activities-log') loadActivitiesLog();
+            if (tabId==='tab-reports') loadExcelReportsExamDropdown();
             if (tabId==='tab-excel') {
                 const cls = document.getElementById('excel-dl-class')?.value || '10';
                 const sec = document.getElementById('excel-dl-section')?.value || 'A';
@@ -762,12 +772,12 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('confirm-delete-ok')?.addEventListener('click', async function() {
         hideModal('confirm-delete-overlay');
         if (pendingDeleteType==='student') {
-            const res = await fetch(`/api/admin/student/delete/${pendingDeleteId}`,{method:'POST'});
+            const res = await fetch(`/api/admin/student/delete/${pendingDeleteId}`,{method:'POST',headers:getAuthHeaders()});
             const d = await res.json();
             if(d.success){showToast('Student deleted.','success');loadStudentTable();}
             else showToast(d.message||'Error.','error');
         } else if (pendingDeleteType==='teacher') {
-            const res = await fetch(`/api/teacher/delete/${pendingDeleteId}`,{method:'POST'});
+            const res = await fetch(`/api/teacher/delete/${pendingDeleteId}`,{method:'POST',headers:getAuthHeaders()});
             const d = await res.json();
             if(d.success){showToast('Teacher removed.','success');loadTeachersTable();}
             else showToast(d.message||'Error.','error');
@@ -983,7 +993,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const idx=existing.findIndex(e=>(e.exam_name||e.exam)===examName);
         const entry={exam_name:examName,exam:examName,year:examYear,subjects};
         if(idx>=0) existing[idx]=entry; else existing.push(entry);
-        const res=await fetch(`/api/admin/student/update/${activeModalStudent.id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...activeModalStudent,examination_progress:existing})});
+        const res=await fetch(`/api/admin/student/update/${activeModalStudent.id}`,{method:'POST',headers:getAuthHeaders(),body:JSON.stringify({...activeModalStudent,examination_progress:existing})});
         const d=await res.json();
         if(d.success){showToast('Exam saved.','success');activeModalStudent.examination_progress=existing;}
         else showToast('Error.','error');
@@ -1032,7 +1042,7 @@ document.addEventListener("DOMContentLoaded", function () {
         };
         const isEdit=!!activeModalStudent;
         const url=isEdit?`/api/admin/student/update/${activeModalStudent.id}`:'/api/admin/student/create';
-        const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const res=await fetch(url,{method:'POST',headers:getAuthHeaders(),body:JSON.stringify(body)});
         const d=await res.json();
         if(d.success){hideModal('student-modal');showToast(isEdit?'Student updated!':'Student added!','success');loadStudentTable();}
         else showToast(d.message||'Error.','error');
@@ -1352,34 +1362,48 @@ document.addEventListener("DOMContentLoaded", function () {
                 `;
                 lucide.createIcons();
             } else {
-                ec.innerHTML = filteredProg.length ? filteredProg.map(exam => `
+                ec.innerHTML = filteredProg.length ? filteredProg.map(exam => {
+                    const isExamUngraded = !exam.subjects || exam.subjects.length === 0 || exam.subjects.every(sub => sub.obtained === null || sub.obtained === undefined || sub.obtained === '');
+                    
+                    const totalTxt = isExamUngraded ? '—' : (exam.total || 0);
+                    const maxTxt = isExamUngraded ? '—' : (exam.total_max || 0);
+                    const pctTxt = isExamUngraded ? '—' : (exam.percentage || 0);
+                    const rankTxt = isExamUngraded ? '—' : (exam.rank || '—');
+                    const gradeTxt = isExamUngraded ? 'Pending' : (exam.grade || 'F');
+                    const gradeBadgeClass = isExamUngraded ? 'badge-info' : (exam.percentage >= 35 ? 'badge-success' : 'badge-danger');
+                    
+                    return `
                     <div style="margin-bottom:1.5rem; background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
                             <h4 style="font-weight:700; font-size:1.05rem; margin:0; color:var(--text-main);">${exam.exam_name||exam.exam||'Exam'}</h4>
                             <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                                <span class="badge badge-primary">Total: ${exam.total || 0}/${exam.total_max || 0}</span>
-                                <span class="badge badge-info">Percentage: ${exam.percentage || 0}%</span>
-                                <span class="badge badge-success">Rank: #${exam.rank || '—'}</span>
-                                <span class="badge ${exam.percentage >= 35 ? 'badge-success':'badge-danger'}">Grade: ${exam.grade || 'F'}</span>
+                                <span class="badge badge-primary">Total: ${totalTxt}/${maxTxt}</span>
+                                <span class="badge badge-info">Percentage: ${pctTxt}%</span>
+                                <span class="badge badge-success">Rank: #${rankTxt}</span>
+                                <span class="badge ${gradeBadgeClass}">Grade: ${gradeTxt}</span>
                             </div>
                         </div>
                         <div class="table-container"><table class="data-table"><thead><tr>
                             <th>Subject</th><th>Obtained Marks</th><th>Max Marks</th><th>Grade</th><th>Result</th>
                         </tr></thead><tbody>
                             ${(exam.subjects||[]).map(sub => {
-                                const pct = Math.round((sub.obtained/sub.max)*100);
-                                const g = pct>=90?'A+':pct>=80?'A':pct>=70?'B+':pct>=60?'B':pct>=50?'C':pct>=35?'D':'F';
-                                const resultTxt = pct>=35 ? '<span style="color:var(--accent-success);font-weight:700;">PASS</span>':'<span style="color:var(--accent-danger);font-weight:700;">FAIL</span>';
+                                const isSubUngraded = sub.obtained === null || sub.obtained === undefined || sub.obtained === '';
+                                const pct = isSubUngraded ? 0 : Math.round((sub.obtained/sub.max)*100);
+                                const g = isSubUngraded ? '—' : (pct>=90?'A+':pct>=80?'A':pct>=70?'B+':pct>=60?'B':pct>=50?'C':pct>=35?'D':'F');
+                                const resultTxt = isSubUngraded ? '<span style="color:var(--text-muted);font-weight:500;">—</span>' : (pct>=35 ? '<span style="color:var(--accent-success);font-weight:700;">PASS</span>':'<span style="color:var(--accent-danger);font-weight:700;">FAIL</span>');
+                                const scoreTxt = isSubUngraded ? '—' : sub.obtained;
+                                
                                 return `<tr>
                                     <td><strong>${sub.name}</strong></td>
-                                    <td><strong>${sub.obtained}</strong></td>
+                                    <td><strong>${scoreTxt}</strong></td>
                                     <td>${sub.max}</td>
-                                    <td><span class="badge ${pct>=35?'badge-success':'badge-danger'}">${g}</span></td>
+                                    <td><span class="badge ${isSubUngraded?'badge-info':(pct>=35?'badge-success':'badge-danger')}">${g}</span></td>
                                     <td>${resultTxt}</td>
                                 </tr>`;
                             }).join('')}
                         </tbody></table></div>
-                    </div>`).join('') : `<div style="padding:2rem; text-align:center; color:var(--text-muted); background:var(--bg-card); border-radius:var(--radius-md); border:1px solid var(--border-color);">⚠️ No exam records found for the selected view.</div>`;
+                    </div>`;
+                }).join('') : `<div style="padding:2rem; text-align:center; color:var(--text-muted); background:var(--bg-card); border-radius:var(--radius-md); border:1px solid var(--border-color);">⚠️ No exam records found for the selected view.</div>`;
             }
         }
     }
@@ -1627,7 +1651,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     window.toggleTeacherAtt=async function(id,status){
-        const res=await fetch('/api/teacher/attendance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teacher_id:id,status})});
+        const res=await fetch('/api/teacher/attendance',{method:'POST',headers:getAuthHeaders(),body:JSON.stringify({teacher_id:id,status})});
         const d=await res.json(); if(d.success) loadTeachersTable();
     };
 
@@ -1701,7 +1725,7 @@ document.addEventListener("DOMContentLoaded", function () {
             can_edit_timetable: document.getElementById('tf-can-edit-timetable')?.checked || false
         };
         const url=id?`/api/teacher/update/${id}`:'/api/teacher/create';
-        const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const res=await fetch(url,{method:'POST',headers:getAuthHeaders(),body:JSON.stringify(body)});
         const d=await res.json();
         if(d.success){hideModal('teacher-modal-overlay');showToast(id?'Teacher updated.':'Teacher added.','success');loadTeachersTable();}
         else{errEl.textContent=d.message||'Error.';errEl.classList.remove('hidden');}
@@ -1717,6 +1741,25 @@ document.addEventListener("DOMContentLoaded", function () {
         const date=document.getElementById('att-date-filter').value;
         if(!cls){showToast('Select a class.','error');return;}
         if(!date){showToast('Select a date.','error');return;}
+        
+        if (currentRole === 'teacher' && activeTeacherProfile) {
+            const assigned = activeTeacherProfile.classes || [];
+            const targetClassSec = sec ? `${cls}-${sec}` : null;
+            let hasAccess = false;
+            if (targetClassSec) {
+                hasAccess = assigned.includes(targetClassSec);
+            } else {
+                hasAccess = assigned.some(c => c.split('-')[0] === cls);
+            }
+            if (!hasAccess) {
+                const container = document.getElementById('attendance-list-container');
+                const saveBtn = document.getElementById('att-save-btn');
+                container.innerHTML = `<div style="text-align:center;padding:3rem 2rem;color:var(--accent-danger);font-weight:700;font-size:1.1rem;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">This is Not your class</div>`;
+                saveBtn.style.display = 'none';
+                return;
+            }
+        }
+
         const res=await fetch(`/api/attendance/class?class=${cls}&section=${sec}&date=${date}`);
         const students=await res.json();
         const container=document.getElementById('attendance-list-container');
@@ -1764,7 +1807,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if(checked) records.push({student_id:sid,status:checked.value});
         });
         if(!records.length){showToast('No attendance data.','error');return;}
-        const res=await fetch('/api/attendance/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,records})});
+        const res=await fetch('/api/attendance/save',{method:'POST',headers:getAuthHeaders(),body:JSON.stringify({date,records})});
         const d=await res.json();
         if(d.success) showToast(`Saved for ${d.updated} students.`,'success');
         else showToast('Failed.','error');
@@ -1916,7 +1959,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.getElementById('tt-save-btn')?.addEventListener('click',async function(){
         saveTTDayToMemory();
-        const res=await fetch('/api/timetable/save',{method:'POST',headers:{'Content-Type':'application/json'},
+        const res=await fetch('/api/timetable/save',{method:'POST',headers:getAuthHeaders(),
             body:JSON.stringify({class_key:currentTimetableKey,timetable:currentTimetableData})});
         const d=await res.json();
         if(d.success) showToast(`Timetable saved for ${currentTimetableKey}!`,'success');
@@ -1960,7 +2003,7 @@ document.addEventListener("DOMContentLoaded", function () {
             title,date,time,venue:document.getElementById('mtg-venue').value.trim(),
             classes,notes:document.getElementById('mtg-notes').value.trim()
         };
-        const res=await fetch('/api/meetings/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const res=await fetch('/api/meetings/save',{method:'POST',headers:getAuthHeaders(),body:JSON.stringify(body)});
         const d=await res.json();
         if(d.success){hideModal('meeting-modal-overlay');showToast('Meeting saved!','success');loadMeetingsAdmin();}
         else showToast('Error.','error');
@@ -1995,7 +2038,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     window.deleteMeeting=async function(id){
-        const res=await fetch(`/api/meetings/delete/${id}`,{method:'POST'});
+        const res=await fetch(`/api/meetings/delete/${id}`,{method:'POST',headers:getAuthHeaders()});
         const d=await res.json();
         if(d.success){showToast('Meeting deleted.','success');loadMeetingsAdmin();}
     };
@@ -2798,7 +2841,7 @@ document.addEventListener("DOMContentLoaded", function () {
     window.deleteHolidayOverride = async function(date) {
         const res = await fetch('/api/holidays/set', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: getAuthHeaders(),
             body: JSON.stringify({ date: date, status: 'clear' })
         });
         const data = await res.json();
@@ -2817,7 +2860,7 @@ document.addEventListener("DOMContentLoaded", function () {
         
         const res = await fetch('/api/holidays/set', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: getAuthHeaders(),
             body: JSON.stringify({ date: dateVal, status: statusVal })
         });
         const data = await res.json();
