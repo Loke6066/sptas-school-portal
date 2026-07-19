@@ -189,6 +189,7 @@ def get_holidays():
         "custom_holidays": settings.get("custom_holidays", []),
         "custom_working_days": settings.get("custom_working_days", []),
         "holiday_reasons": settings.get("holiday_reasons", {}),
+        "holiday_messages": settings.get("holiday_messages", {}),
         "sundays": get_sundays_of_current_month()
     })
 
@@ -198,7 +199,10 @@ def check_holiday():
     if not date_str:
         date_str = datetime.now().strftime("%Y-%m-%d")
     is_h, reason = is_school_holiday(date_str)
-    return jsonify({"is_holiday": is_h, "reason": reason})
+    settings = load_settings()
+    holiday_messages = settings.get("holiday_messages", {})
+    msg = holiday_messages.get(date_str, "")
+    return jsonify({"is_holiday": is_h, "reason": reason, "message": msg})
 
 @app.route('/api/holidays/set', methods=['POST'])
 def set_holiday_status():
@@ -206,6 +210,7 @@ def set_holiday_status():
     date_str = data.get("date", "").strip()
     status = data.get("status", "").strip() # "holiday", "working", or "clear"
     reason = data.get("reason", "").strip() or "School Holiday"
+    message = data.get("message", "").strip()
     if not date_str:
         return jsonify({"success": False, "message": "Date is required."}), 400
         
@@ -213,22 +218,28 @@ def set_holiday_status():
     custom_holidays = set(settings.get("custom_holidays", []))
     custom_working_days = set(settings.get("custom_working_days", []))
     holiday_reasons = settings.get("holiday_reasons", {})
+    holiday_messages = settings.get("holiday_messages", {})
     
     # Reset existing
     custom_holidays.discard(date_str)
     custom_working_days.discard(date_str)
     if date_str in holiday_reasons:
         del holiday_reasons[date_str]
+    if date_str in holiday_messages:
+        del holiday_messages[date_str]
     
     if status == "holiday":
         custom_holidays.add(date_str)
         holiday_reasons[date_str] = reason
+        if message:
+            holiday_messages[date_str] = message
     elif status == "working":
         custom_working_days.add(date_str)
         
     settings["custom_holidays"] = sorted(list(custom_holidays))
     settings["custom_working_days"] = sorted(list(custom_working_days))
     settings["holiday_reasons"] = holiday_reasons
+    settings["holiday_messages"] = holiday_messages
     
     if save_settings(settings):
         role, u_name = get_log_identity()

@@ -89,10 +89,15 @@ document.addEventListener("DOMContentLoaded", function () {
             
             const banner = document.getElementById('school-holiday-banner');
             const bannerTxt = document.getElementById('holiday-banner-text');
+            const subMsg = document.getElementById('holiday-banner-custom-msg');
             
             if (data.is_holiday) {
                 if (banner && bannerTxt) {
                     bannerTxt.textContent = `Today is Holiday: ${data.reason}`;
+                    if (subMsg) {
+                        subMsg.textContent = data.message || '';
+                        subMsg.style.display = data.message ? 'block' : 'none';
+                    }
                     banner.style.display = 'flex';
                     banner.classList.remove('hidden');
                 }
@@ -2913,13 +2918,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     hList.innerHTML = allHolidays.map(d => {
                         const isSun = sundays.includes(d);
                         const reason = reasons[d] || (isSun ? "Sunday Holiday" : "School Holiday");
+                        const msg = data.holiday_messages?.[d] || "";
+                        const reasonDisplay = msg ? `${reason} (${msg})` : reason;
                         const showDelete = custom.includes(d);
                         const deleteBtn = showDelete ? 
                             `<button type="button" class="btn-action btn-delete" onclick="deleteHolidayOverride('${d}')" style="box-shadow:none;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>` : 
                             `<span style="color:var(--text-muted); font-size:0.75rem; font-style:italic;">Default</span>`;
                         return `
                             <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-body); padding:0.35rem 0.5rem; border-radius:4px; border:1px solid var(--border-color);">
-                                <span>📅 <strong>${d}</strong> - <span style="color:var(--text-muted);">${reason}</span></span>
+                                <span>📅 <strong>${d}</strong> - <span style="color:var(--text-muted);">${reasonDisplay}</span></span>
                                 ${deleteBtn}
                             </div>
                         `;
@@ -2968,18 +2975,21 @@ document.addEventListener("DOMContentLoaded", function () {
         const dateVal = document.getElementById('holiday-mgr-date').value;
         const statusVal = document.getElementById('holiday-mgr-status').value;
         const reasonVal = document.getElementById('holiday-mgr-reason')?.value || '';
+        const messageVal = document.getElementById('holiday-mgr-message')?.value || '';
         if (!dateVal) { showToast('Please select a date.', 'error'); return; }
         
         const res = await fetch('/api/holidays/set', {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ date: dateVal, status: statusVal, reason: reasonVal })
+            body: JSON.stringify({ date: dateVal, status: statusVal, reason: reasonVal, message: messageVal })
         });
         const data = await res.json();
         if (data.success) {
             showToast('School holiday/working day status updated!', 'success');
             const reasonInput = document.getElementById('holiday-mgr-reason');
             if (reasonInput) reasonInput.value = '';
+            const messageInput = document.getElementById('holiday-mgr-message');
+            if (messageInput) messageInput.value = '';
             await fetchHolidaysData();
             checkTodayHolidayStatus();
             loadHolidaysManager();

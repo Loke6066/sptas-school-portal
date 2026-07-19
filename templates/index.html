@@ -15,6 +15,15 @@
 <body>
 <div class="app-container">
 
+<div id="school-holiday-banner" class="no-print" style="display:none; flex-direction:column; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; text-align: center; padding: 0.75rem 1rem; border-bottom: 3px solid #b91c1c; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); justify-content: center; align-items: center; gap: 0.25rem; z-index: 9999;">
+    <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem; font-weight:700; font-size:1.1rem; text-transform:uppercase; letter-spacing:0.05em;">
+        <i data-lucide="party-popper" style="width:18px;height:18px;"></i>
+        <span id="holiday-banner-text">Today is Holiday</span>
+        <i data-lucide="party-popper" style="width:18px;height:18px;"></i>
+    </div>
+    <div id="holiday-banner-custom-msg" style="font-size:0.95rem; font-weight:600; opacity:0.95; padding-top:0.15rem; font-style:italic;"></div>
+</div>
+
 <!-- =====================================================
      AUTH VIEW
      ===================================================== -->
@@ -190,13 +199,7 @@
     </div>
 </header>
 
-<div id="school-holiday-banner" class="hidden no-print" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; text-align: center; padding: 0.75rem; font-weight: 700; font-size: 1.1rem; border-bottom: 2px solid #b91c1c; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); text-transform: uppercase; letter-spacing: 0.05em; display: none; align-items: center; justify-content: center; gap: 0.5rem;">
-    <i data-lucide="party-popper"></i>
-    <span id="holiday-banner-text">Today is Holiday</span>
-    <i data-lucide="party-popper"></i>
-</div>
-     ADMIN DASHBOARD VIEW
-     ===================================================== -->
+
 <main id="admin-dashboard-view" class="container no-print hidden">
     <div class="admin-hero">
         <div class="admin-hero-content">
@@ -346,6 +349,10 @@
                         <label>Holiday Purpose / Reason</label>
                         <input type="text" id="holiday-mgr-reason" class="form-input" placeholder="e.g. Independence Day" style="width:200px;">
                     </div>
+                    <div class="filter-item" id="holiday-mgr-message-container">
+                        <label>Popup Message / Greeting</label>
+                        <input type="text" id="holiday-mgr-message" class="form-input" placeholder="e.g. Happy Independence Day To all" style="width:250px;">
+                    </div>
                     <div class="filter-actions">
                         <button type="button" id="holiday-mgr-save-btn" class="btn btn-primary">
                             <i data-lucide="check"></i> Apply Status
@@ -440,7 +447,6 @@
         <div class="section-card card-full" style="margin-bottom: 2rem;">
             <div class="table-card-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white;">
                 <h3><i data-lucide="bar-chart-2" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Monthly Attendance Report</h3>
-                <button onclick="window.print()" class="btn btn-secondary btn-sm" style="border-color: rgba(255,255,255,0.25); color: white;"><i data-lucide="printer"></i> Print</button>
             </div>
             <div style="padding:1.25rem;">
                 <div class="filter-bar">
@@ -733,9 +739,6 @@
         <div class="toolbar-right">
             <button id="parent-settings-btn" class="btn btn-secondary btn-sm hidden">
                 <i data-lucide="key"></i> Reset Password
-            </button>
-            <button id="print-pdf-btn" class="btn btn-primary btn-sm">
-                <i data-lucide="printer"></i> Print Report
             </button>
         </div>
     </div>
