@@ -208,7 +208,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 .then(res => res.json())
                 .then(profile => {
                     activeTeacherProfile = profile;
-                    refilterTeacherDropdowns();
+                    resetAllClassSelects();
                     loadAdminDashboard();
                 });
         } else {
@@ -379,7 +379,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     .then(res => res.json())
                     .then(profile => {
                         activeTeacherProfile = profile;
-                        refilterTeacherDropdowns();
+                        resetAllClassSelects();
                         loadAdminDashboard();
                     });
             } else {
