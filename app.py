@@ -439,13 +439,22 @@ def principal_reply():
 @app.route('/api/teachers', methods=['GET'])
 def get_teachers():
     teachers = load_teachers()
-    return jsonify([{
-        "id": t["id"], "name": t["name"], "phone": t["phone"],
-        "subjects": t.get("subjects",[]), "classes": t.get("classes",[]),
-        "attendance_status": t.get("attendance_status","Present"),
-        "email": t.get("email",""), "has_password": bool(t.get("password","")),
-        "can_edit_timetable": t.get("can_edit_timetable", False)
-    } for t in teachers])
+    res = []
+    for t in teachers:
+        classes = t.get("classes")
+        if not classes and t.get("class") and t.get("section"):
+            classes = [f"{t['class']}-{t['section']}"]
+        elif not classes:
+            classes = []
+            
+        res.append({
+            "id": t["id"], "name": t["name"], "phone": t["phone"],
+            "subjects": t.get("subjects",[]), "classes": classes,
+            "attendance_status": t.get("attendance_status","Present"),
+            "email": t.get("email",""), "has_password": bool(t.get("password","")),
+            "can_edit_timetable": t.get("can_edit_timetable", False)
+        })
+    return jsonify(res)
 
 @app.route('/api/teacher/create', methods=['POST'])
 def create_teacher():
@@ -937,7 +946,10 @@ def get_teacher_classes(teacher_id):
         return None
     for t in load_teachers():
         if t["id"] == teacher_id:
-            return t.get("classes", [])
+            classes = t.get("classes")
+            if not classes and t.get("class") and t.get("section"):
+                return [f"{t['class']}-{t['section']}"]
+            return classes or []
     return []
 
 @app.route('/api/search', methods=['GET'])
@@ -1732,7 +1744,13 @@ def download_attendance_report():
 def get_teacher_profile(tid):
     for t in load_teachers():
         if t["id"] == tid:
-            return jsonify(t)
+            profile = dict(t)
+            classes = profile.get("classes")
+            if not classes and profile.get("class") and profile.get("section"):
+                profile["classes"] = [f"{profile['class']}-{profile['section']}"]
+            elif not classes:
+                profile["classes"] = []
+            return jsonify(profile)
     return jsonify({"error": "Not found"}), 404
 
 
