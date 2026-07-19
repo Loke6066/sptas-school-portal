@@ -54,13 +54,6 @@
             Select your portal to log in
         </p>
         <div class="portal-cards-grid">
-            <!-- 0. Administration Portal Card -->
-            <div class="portal-select-card" data-role="admin">
-                <div class="portal-card-icon color-admin"><i data-lucide="key-round"></i></div>
-                <div class="portal-card-info">
-                    <h3>Administration Portal</h3>
-                </div>
-            </div>
             <!-- 1. Principal Portal Card -->
             <div class="portal-select-card" data-role="principal">
                 <div class="portal-card-icon color-principal"><i data-lucide="shield"></i></div>
@@ -80,6 +73,13 @@
                 <div class="portal-card-icon color-parent"><i data-lucide="users"></i></div>
                 <div class="portal-card-info">
                     <h3>Parent Portal</h3>
+                </div>
+            </div>
+            <!-- 4. Administration Portal Card -->
+            <div class="portal-select-card" data-role="admin">
+                <div class="portal-card-icon color-admin"><i data-lucide="key-round"></i></div>
+                <div class="portal-card-info">
+                    <h3>Administration Portal</h3>
                 </div>
             </div>
         </div>
@@ -162,6 +162,7 @@
                 <button type="button" class="btn btn-primary full-width" id="principal-login-btn">
                     <i data-lucide="log-in"></i> Login to Principal Portal
                 </button>
+            </div>
             <!-- ADMINISTRATION LOGIN -->
             <div id="admin-login-form" class="login-form hidden">
                 <div class="form-group">
