@@ -2859,14 +2859,13 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('excel-reg-dl-btn')?.addEventListener('click', function() {
         const cls = document.getElementById('excel-reg-dl-class')?.value || '';
         const sec = document.getElementById('excel-reg-dl-section')?.value || '';
-        const subjects = document.getElementById('excel-reg-dl-subjects')?.value || '';
         
         if (!cls) {
             showToast('Please select a class to download registration template.', 'error');
             return;
         }
         
-        const url = `/api/excel/sample-register?class=${encodeURIComponent(cls)}&section=${encodeURIComponent(sec)}&subjects=${encodeURIComponent(subjects)}`;
+        const url = `/api/excel/sample-register?class=${encodeURIComponent(cls)}&section=${encodeURIComponent(sec)}`;
         showToast('Generating student registration template...', 'info');
         const a = document.createElement('a');
         a.href = url;

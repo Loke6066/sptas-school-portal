@@ -1824,16 +1824,13 @@ def download_sample_register():
     sec = request.args.get('section', 'A')
     if not sec or sec.lower() == 'all':
         sec = 'A'
-    subjects = request.args.get('subjects', 'Telugu,Hindi,Mathematics,Science,Social,English').split(',')
-    subjects = [s.strip() for s in subjects if s.strip()]
-
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = 'Student Registration'
     ws.freeze_panes = 'C3'
 
     # Title Banner
-    total_cols = 13 + len(subjects)
+    total_cols = 11
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
     title_cell = ws.cell(row=1, column=1)
     title_cell.value = f'SPTAS — Bulk Student Registration Template'
@@ -1846,22 +1843,17 @@ def download_sample_register():
     headers = [
         'S.No', 'Student Name', 'Roll No', 'Admission No', 'Class', 'Section',
         'Parent Name', 'Parent Contact', 'Parent Alt Contact', 'DOB',
-        'Academic Year', 'Class Teacher', 'Attendance %'
-    ] + subjects
+        'Academic Year'
+    ]
     
     for col_idx, h in enumerate(headers, 1):
         ws.cell(row=2, column=col_idx).value = h
     style_header(ws, 2, len(headers), fill_hex='1E3A5F')
 
-    # Color subject columns (different style)
-    for col_idx in range(14, 14 + len(subjects)):
-        ws.cell(row=2, column=col_idx).fill = PatternFill(start_color='1D6A3A', end_color='1D6A3A', fill_type='solid')
-        ws.cell(row=2, column=col_idx).font = Font(bold=True, color='FFFFFF', size=11)
-
     # Let's add 2 example rows
     examples = [
-        (1, 'Rahul Kumar', '101', 'ADM001', cls, sec, 'Srinivasa Rao', '7013029211', '9876543211', '2015-05-15', '2025-26', 'Mrs. Priya Sen', 92.5) + tuple([85]*len(subjects)),
-        (2, 'Aditya Vardhan', '102', 'ADM002', cls, sec, 'Kalyan Rao', '9876543220', '', '2015-08-20', '2025-26', 'Mrs. Priya Sen', 95.0) + tuple([90]*len(subjects))
+        (1, 'Rahul Kumar', '101', 'ADM001', cls, sec, 'Srinivasa Rao', '7013029211', '9876543211', '2015-05-15', '2025-26'),
+        (2, 'Aditya Vardhan', '102', 'ADM002', cls, sec, 'Kalyan Rao', '9876543220', '', '2015-08-20', '2025-26')
     ]
     
     data_fill = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
@@ -1876,7 +1868,7 @@ def download_sample_register():
             cell.fill = data_fill
 
     # Set column widths
-    col_widths = [6, 22, 10, 15, 8, 10, 20, 15, 18, 12, 14, 16, 14] + [12]*len(subjects)
+    col_widths = [6, 22, 10, 15, 8, 10, 20, 15, 18, 12, 14]
     for c_idx, w in enumerate(col_widths, 1):
         ws.column_dimensions[get_column_letter(c_idx)].width = w
 
@@ -1965,17 +1957,25 @@ def upload_register_excel():
     errors = []
     imported_students_summary = []
 
+    # Helper to retrieve value safely from col_map
+    def get_cell_val(row_idx, field_name, default=""):
+        col_idx = col_map.get(field_name)
+        if col_idx is None:
+            return default
+        val = ws.cell(row=row_idx, column=col_idx).value
+        return val if val is not None else default
+
     for row in range(3, ws.max_row + 1):
-        # Verify if row is empty by checking if name or roll number is empty
-        name_val = ws.cell(row=row, column=col_map['student name']).value
+        # Verify if row is empty by checking if name is empty
+        name_val = get_cell_val(row, 'student name', None)
         if not name_val:
             continue
         
         name = str(name_val).strip()
-        roll_no = str(ws.cell(row=row, column=col_map['roll no']).value or '').strip()
-        s_class = str(ws.cell(row=row, column=col_map['class']).value or '10').strip()
-        s_section = str(ws.cell(row=row, column=col_map['section']).value or 'A').strip().upper()
-        parent_contact = clean_phone(ws.cell(row=row, column=col_map['parent contact']).value)
+        roll_no = str(get_cell_val(row, 'roll no', '')).strip()
+        s_class = str(get_cell_val(row, 'class', '10')).strip()
+        s_section = str(get_cell_val(row, 'section', 'A')).strip().upper()
+        parent_contact = clean_phone(get_cell_val(row, 'parent contact', ''))
 
         # Basic validations
         if not name or not roll_no or not s_class or not s_section or not parent_contact:
@@ -1988,7 +1988,7 @@ def upload_register_excel():
             continue
 
         # Parse dob
-        dob_val = ws.cell(row=row, column=col_map['dob']).value
+        dob_val = get_cell_val(row, 'dob', None)
         dob_str = ""
         if dob_val:
             if isinstance(dob_val, datetime):
@@ -1997,13 +1997,13 @@ def upload_register_excel():
                 dob_str = str(dob_val).strip()
 
         # Parse other info
-        admission_no = str(ws.cell(row=row, column=col_map['admission no']).value or '').strip()
-        parent_name = str(ws.cell(row=row, column=col_map['parent name']).value or '').strip()
-        parent_alt_contact = clean_phone(ws.cell(row=row, column=col_map['parent alt contact']).value)
-        academic_year = str(ws.cell(row=row, column=col_map['academic year']).value or '2025-26').strip()
-        class_teacher = str(ws.cell(row=row, column=col_map['class teacher']).value or 'Class Teacher').strip()
+        admission_no = str(get_cell_val(row, 'admission no', '')).strip()
+        parent_name = str(get_cell_val(row, 'parent name', '')).strip()
+        parent_alt_contact = clean_phone(get_cell_val(row, 'parent alt contact', ''))
+        academic_year = str(get_cell_val(row, 'academic year', '2025-26')).strip()
+        class_teacher = str(get_cell_val(row, 'class teacher', 'Class Teacher')).strip()
         
-        att_pct_val = ws.cell(row=row, column=col_map['attendance percentage']).value
+        att_pct_val = get_cell_val(row, 'attendance percentage', None)
         try: att_pct = float(att_pct_val) if att_pct_val is not None else 90.0
         except: att_pct = 90.0
 
@@ -2043,7 +2043,6 @@ def upload_register_excel():
         
         examination_progress = []
         if subject_cols:
-            # Only create baseline entry if subjects exist
             examination_progress.append({
                 'exam_name': 'Baseline Test',
                 'exam': 'Baseline Test',
@@ -2082,6 +2081,13 @@ def upload_register_excel():
             "principal_reply": "",
             "attendance_status": "Present",
             "attendance_records": [],
+            "fees": {
+                "tuition": 30000,
+                "books": 5000,
+                "dresses": 3000,
+                "extra": 0,
+                "paid": 0
+            },
             "current_status": {
                 "standard": f"Class {s_class}",
                 "section": f"Section {s_section}",
