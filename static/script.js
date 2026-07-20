@@ -3270,8 +3270,15 @@ document.addEventListener("DOMContentLoaded", function () {
         
         students.forEach(s => {
             const fees = s.fees || { school: 10000, tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
-            const total = (fees.school || 0) + (fees.tuition || 0) + (fees.books || 0) + (fees.dresses || 0) + (fees.extra || 0);
-            const due = total - (fees.paid || 0);
+            const school = Number(fees.school || 0);
+            const tuition = Number(fees.tuition || 0);
+            const books = Number(fees.books || 0);
+            const dresses = Number(fees.dresses || 0);
+            const extra = Number(fees.extra || 0);
+            const paid = Number(fees.paid || 0);
+            
+            const total = school + tuition + books + dresses + extra;
+            const due = total - paid;
             
             let actionHtml = '—';
             if (currentRole === 'admin') {
@@ -3310,8 +3317,15 @@ document.addEventListener("DOMContentLoaded", function () {
         if (s.error) { showToast('Student not found.', 'error'); return; }
         
         const fees = s.fees || { school: 10000, tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
-        const total = (fees.school || 0) + (fees.tuition || 0) + (fees.books || 0) + (fees.dresses || 0) + (fees.extra || 0);
-        const due = total - (fees.paid || 0);
+        const school = Number(fees.school || 0);
+        const tuition = Number(fees.tuition || 0);
+        const books = Number(fees.books || 0);
+        const dresses = Number(fees.dresses || 0);
+        const extra = Number(fees.extra || 0);
+        const paid = Number(fees.paid || 0);
+        
+        const total = school + tuition + books + dresses + extra;
+        const due = total - paid;
         
         document.getElementById('history-modal-student-name').textContent = s.name;
         document.getElementById('history-modal-total-fee').textContent = `₹${total}`;
@@ -3514,8 +3528,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function renderParentFees(student) {
         const fees = student.fees || { school: 10000, tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
-        const total = (fees.school || 0) + (fees.tuition || 0) + (fees.books || 0) + (fees.dresses || 0) + (fees.extra || 0);
-        const due = total - (fees.paid || 0);
+        const school = Number(fees.school || 0);
+        const tuition = Number(fees.tuition || 0);
+        const books = Number(fees.books || 0);
+        const dresses = Number(fees.dresses || 0);
+        const extra = Number(fees.extra || 0);
+        const paid = Number(fees.paid || 0);
+        
+        const total = school + tuition + books + dresses + extra;
+        const due = total - paid;
         
         setEl('parent-fee-school', `₹${fees.school || 0}`);
         setEl('parent-fee-tuition', `₹${fees.tuition || 0}`);

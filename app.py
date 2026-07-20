@@ -2496,14 +2496,22 @@ def update_student_fees():
         return jsonify({"success": False, "message": "Student not found."}), 404
         
     fees = student.get("fees", {})
-    fees["school"] = int(data.get("school", fees.get("school", 10000)))
-    fees["tuition"] = int(data.get("tuition", fees.get("tuition", 30000)))
-    fees["books"] = int(data.get("books", fees.get("books", 5000)))
-    fees["dresses"] = int(data.get("dresses", fees.get("dresses", 3000)))
-    fees["extra"] = int(data.get("extra", fees.get("extra", 0)))
     
-    old_paid = fees.get("paid", 0)
-    new_payment = int(data.get("new_payment", 0))
+    db_school = int(fees.get("school", 10000) or 10000)
+    db_tuition = int(fees.get("tuition", 30000) or 30000)
+    db_books = int(fees.get("books", 5000) or 5000)
+    db_dresses = int(fees.get("dresses", 3000) or 3000)
+    db_extra = int(fees.get("extra", 0) or 0)
+    db_paid = int(fees.get("paid", 0) or 0)
+    
+    fees["school"] = int(data.get("school", db_school))
+    fees["tuition"] = int(data.get("tuition", db_tuition))
+    fees["books"] = int(data.get("books", db_books))
+    fees["dresses"] = int(data.get("dresses", db_dresses))
+    fees["extra"] = int(data.get("extra", db_extra))
+    
+    old_paid = db_paid
+    new_payment = int(data.get("new_payment") or 0)
     current_paid = int(data.get("paid", old_paid))
     
     if new_payment > 0:
