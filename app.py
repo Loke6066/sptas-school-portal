@@ -779,6 +779,8 @@ def save_attendance():
                 half_days = sum(1 for item in recs if item.get('status') == 'Half Day')
                 effective_present = present_days + (half_days / 2.0)
                 
+                if 'current_status' not in s:
+                    s['current_status'] = {}
                 if workdays > 0:
                     s['current_status']['attendance_percentage'] = round((effective_present / workdays) * 100, 1)
                 else:
@@ -1094,7 +1096,7 @@ def search_students():
         return {"id": s["id"], "name": s["name"], "admission_no": s.get("admission_no",""),
                 "roll_no": s["roll_no"], "class": s["class"], "section": s["section"],
                 "parent_name": s.get("parent_name",""), "parent_contact": s.get("parent_contact",""),
-                "attendance": s["current_status"]["attendance_percentage"],
+                "attendance": s.get("current_status", {}).get("attendance_percentage", 0.0),
                 "trend": s.get("performance_trend","Stable"),
                 "parent_feedback": s.get("parent_feedback",""),
                 "principal_reply": s.get("principal_reply",""),
@@ -2437,6 +2439,8 @@ def confirm_import():
             half_days = sum(1 for item in recs if item.get('status') == 'Half Day')
             effective_present = present_days + (half_days / 2.0)
             
+            if 'current_status' not in s:
+                s['current_status'] = {}
             if workdays > 0:
                 s['current_status']['attendance_percentage'] = round((effective_present / workdays) * 100, 1)
             else:
@@ -2497,12 +2501,38 @@ def update_student_fees():
     fees["books"] = int(data.get("books", fees.get("books", 5000)))
     fees["dresses"] = int(data.get("dresses", fees.get("dresses", 3000)))
     fees["extra"] = int(data.get("extra", fees.get("extra", 0)))
-    fees["paid"] = int(data.get("paid", fees.get("paid", 0)))
+    
+    old_paid = fees.get("paid", 0)
+    new_payment = int(data.get("new_payment", 0))
+    current_paid = int(data.get("paid", old_paid))
+    
+    if new_payment > 0:
+        current_paid = old_paid + new_payment
+        if "fees_history" not in student:
+            student["fees_history"] = []
+        now = datetime.now()
+        student["fees_history"].append({
+            "amount": new_payment,
+            "date": now.strftime("%Y-%m-%d"),
+            "time": now.strftime("%I:%M %p")
+        })
+    elif current_paid > old_paid:
+        diff = current_paid - old_paid
+        if "fees_history" not in student:
+            student["fees_history"] = []
+        now = datetime.now()
+        student["fees_history"].append({
+            "amount": diff,
+            "date": now.strftime("%Y-%m-%d"),
+            "time": now.strftime("%I:%M %p")
+        })
+        
+    fees["paid"] = current_paid
     student["fees"] = fees
     
     if save_db(students):
         log_activity(role, name, f"Updated fees for student {student['name']} ({student_id})")
-        return jsonify({"success": True, "message": "Fees updated successfully."})
+        return jsonify({"success": True, "message": "Fees updated successfully.", "fees": fees, "fees_history": student.get("fees_history", [])})
     return jsonify({"success": False, "message": "Failed to save to database."}), 500
 
 

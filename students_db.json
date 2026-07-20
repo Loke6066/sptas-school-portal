@@ -1,1 +1,93 @@
-[]
+[
+  {
+    "id": "s001",
+    "roll_no": "101",
+    "admission_no": "ADM-2026-0001",
+    "name": "Sai Kumar",
+    "class": "10",
+    "section": "A",
+    "parent_name": "Ramesh Kumar",
+    "parent_contact": "9999888877",
+    "parent_alt_contact": "",
+    "parent_password": "123",
+    "dob": "2011-05-15",
+    "academic_year": "2026-2027",
+    "attendance_records": [
+      {
+        "date": "2026-07-19",
+        "status": "Present"
+      }
+    ],
+    "fees": {
+      "school": 10000,
+      "tuition": 20000,
+      "books": 5000,
+      "dresses": 3000,
+      "extra": 2000,
+      "paid": 10000
+    },
+    "fees_history": [
+      {
+        "amount": 10000,
+        "date": "2026-07-19",
+        "time": "08:15 AM"
+      }
+    ]
+  },
+  {
+    "id": "1784483034",
+    "name": "Test Student",
+    "roll_no": "101",
+    "admission_no": "",
+    "class": "10",
+    "section": "B",
+    "academic_year": "2025-26",
+    "dob": "",
+    "parent_name": "Test Parent",
+    "parent_contact": "9999999999",
+    "parent_alt_contact": "",
+    "parent_password": "",
+    "parent_feedback": "",
+    "principal_reply": "",
+    "attendance_status": "Present",
+    "attendance_records": [],
+    "fees": {
+      "school": 10000,
+      "tuition": 30000,
+      "books": 5000,
+      "dresses": 3000,
+      "extra": 0,
+      "paid": 0
+    },
+    "current_status": {
+      "standard": "Class 10",
+      "section": "Section B",
+      "class_teacher": "",
+      "attendance_percentage": 90.0,
+      "subjects": [
+        "Mathematics",
+        "Science",
+        "English",
+        "Hindi",
+        "Social Studies"
+      ]
+    },
+    "timetable": {},
+    "examination_progress": [],
+    "subject_performance": [],
+    "progress_comparison": [],
+    "performance_trend": "Stable",
+    "teacher_term_remarks": [],
+    "behavioral_observation": {
+      "discipline": 4,
+      "leadership": 4,
+      "participation": 4,
+      "communication": 4,
+      "teamwork": 4,
+      "confidence": 4
+    },
+    "co_curricular_activities": [],
+    "awards": [],
+    "parent_meetings": []
+  }
+]

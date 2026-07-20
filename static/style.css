@@ -78,6 +78,44 @@
     --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
 }
 
+[data-theme="light"] select,
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] .form-input,
+[data-theme="light"] .form-select,
+[data-theme="light"] .form-input-dark {
+    background-color: var(--bg-card) !important;
+    color: var(--text-main) !important;
+    border-color: rgba(15, 23, 42, 0.15) !important;
+}
+[data-theme="light"] select option,
+[data-theme="light"] option {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+}
+[data-theme="light"] .form-group label {
+    color: var(--text-muted) !important;
+}
+[data-theme="light"] .form-input::placeholder {
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] select,
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .form-input-dark {
+    color: var(--text-main) !important;
+    background-color: var(--bg-input) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+[data-theme="dark"] select option,
+[data-theme="dark"] option {
+    background-color: #141c2e !important;
+    color: #f1f5f9 !important;
+}
+
 [data-theme="dark"] {
     --bg-app: #0a0f1e;
     --bg-card: #141c2e;

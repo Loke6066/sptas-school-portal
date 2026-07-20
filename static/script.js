@@ -1292,6 +1292,7 @@ document.addEventListener("DOMContentLoaded", function () {
         renderActivitiesList(student);
         renderMeetingsList(student);
         renderFeedback(student, isParent);
+        renderParentFees(student);
 
         if (isParent) {
             // Check scheduled meetings counts
@@ -3272,9 +3273,17 @@ document.addEventListener("DOMContentLoaded", function () {
             const total = (fees.school || 0) + (fees.tuition || 0) + (fees.books || 0) + (fees.dresses || 0) + (fees.extra || 0);
             const due = total - (fees.paid || 0);
             
-            const actionHtml = currentRole === 'admin' 
-                ? `<button class="btn-action btn-edit" onclick="openEditFees('${s.id}')" title="Edit Fees"><i data-lucide="pencil"></i></button>`
-                : `—`;
+            let actionHtml = '—';
+            if (currentRole === 'admin') {
+                actionHtml = `
+                    <button class="btn-action btn-edit" onclick="openEditFees('${s.id}')" title="Edit Fees"><i data-lucide="pencil"></i></button>
+                    <button class="btn-action btn-info" onclick="openFeesHistory('${s.id}')" title="Payment History" style="margin-left:0.35rem;background:var(--accent-info);color:white;"><i data-lucide="history"></i></button>
+                `;
+            } else if (currentRole === 'principal') {
+                actionHtml = `
+                    <button class="btn-action btn-info" onclick="openFeesHistory('${s.id}')" title="Payment History" style="background:var(--accent-info);color:white;"><i data-lucide="history"></i></button>
+                `;
+            }
                  
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -3288,17 +3297,48 @@ document.addEventListener("DOMContentLoaded", function () {
                 <td style="font-weight:600;">₹${total}</td>
                 <td style="color:var(--accent-success);font-weight:600;">₹${fees.paid || 0}</td>
                 <td style="color:${due <= 0 ? 'var(--accent-success)' : 'var(--accent-danger)'};font-weight:700;">₹${due}</td>
-                <td class="admin-only-cell">${actionHtml}</td>
+                <td>${actionHtml}</td>
             `;
             tbody.appendChild(tr);
         });
         lucide.createIcons();
-        
-        const actionCells = document.querySelectorAll('.admin-only-cell');
-        actionCells.forEach(cell => {
-            cell.style.display = (currentRole === 'admin') ? '' : 'none';
-        });
     }
+
+    window.openFeesHistory = async function(id) {
+        const res = await fetch(`/api/student/${id}`);
+        const s = await res.json();
+        if (s.error) { showToast('Student not found.', 'error'); return; }
+        
+        const fees = s.fees || { school: 10000, tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
+        const total = (fees.school || 0) + (fees.tuition || 0) + (fees.books || 0) + (fees.dresses || 0) + (fees.extra || 0);
+        const due = total - (fees.paid || 0);
+        
+        document.getElementById('history-modal-student-name').textContent = s.name;
+        document.getElementById('history-modal-total-fee').textContent = `₹${total}`;
+        document.getElementById('history-modal-paid').textContent = `₹${fees.paid || 0}`;
+        
+        const dueSpan = document.getElementById('history-modal-due');
+        if (dueSpan) {
+            dueSpan.textContent = `₹${due}`;
+            dueSpan.style.color = (due <= 0) ? 'var(--accent-success)' : 'var(--accent-danger)';
+        }
+        
+        const historyBody = document.getElementById('history-modal-list');
+        if (historyBody) {
+            const history = s.fees_history || [];
+            if (!history.length) {
+                historyBody.innerHTML = `<tr><td colspan="2" style="text-align:center;color:var(--text-muted);padding:1rem;">No payment history found.</td></tr>`;
+            } else {
+                historyBody.innerHTML = history.map(h => `
+                    <tr>
+                        <td><strong>${h.date}</strong> at <span style="color:var(--text-light);">${h.time}</span></td>
+                        <td style="color:var(--accent-success);font-weight:600;">+ ₹${h.amount}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+        showModal('fees-history-modal');
+    };
 
     window.openEditFees = async function(id) {
         const res = await fetch(`/api/student/${id}`);
@@ -3313,6 +3353,22 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById('edit-fees-dresses').value = fees.dresses || 0;
         document.getElementById('edit-fees-extra').value = fees.extra || 0;
         document.getElementById('edit-fees-paid').value = fees.paid || 0;
+        document.getElementById('edit-fees-new-payment').value = '';
+        
+        const historyList = document.getElementById('edit-fees-history-list');
+        if (historyList) {
+            const history = s.fees_history || [];
+            if (!history.length) {
+                historyList.innerHTML = 'No logged payments.';
+            } else {
+                historyList.innerHTML = history.map(h => `
+                    <div style="display:flex;justify-content:space-between;padding:0.25rem 0;border-bottom:1px solid var(--border-color);">
+                        <span>${h.date} at ${h.time}</span>
+                        <strong style="color:var(--accent-success);">+ ₹${h.amount}</strong>
+                    </div>
+                `).join('');
+            }
+        }
         showModal('edit-fees-modal');
     };
 
@@ -3324,11 +3380,12 @@ document.addEventListener("DOMContentLoaded", function () {
         const dresses = parseInt(document.getElementById('edit-fees-dresses').value) || 0;
         const extra = parseInt(document.getElementById('edit-fees-extra').value) || 0;
         const paid = parseInt(document.getElementById('edit-fees-paid').value) || 0;
+        const new_payment = parseInt(document.getElementById('edit-fees-new-payment').value) || 0;
         
         const res = await fetch('/api/students/fees', {
             method: 'PUT',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ student_id: id, school, tuition, books, dresses, extra, paid })
+            body: JSON.stringify({ student_id: id, school, tuition, books, dresses, extra, paid, new_payment })
         });
         const data = await res.json();
         if (data.success) {
@@ -3454,5 +3511,40 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
     };
+
+    function renderParentFees(student) {
+        const fees = student.fees || { school: 10000, tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
+        const total = (fees.school || 0) + (fees.tuition || 0) + (fees.books || 0) + (fees.dresses || 0) + (fees.extra || 0);
+        const due = total - (fees.paid || 0);
+        
+        setEl('parent-fee-school', `₹${fees.school || 0}`);
+        setEl('parent-fee-tuition', `₹${fees.tuition || 0}`);
+        setEl('parent-fee-books', `₹${fees.books || 0}`);
+        setEl('parent-fee-dresses', `₹${fees.dresses || 0}`);
+        setEl('parent-fee-extra', `₹${fees.extra || 0}`);
+        setEl('parent-fee-total', `₹${total}`);
+        setEl('parent-fee-paid', `₹${fees.paid || 0}`);
+        setEl('parent-fee-due', `₹${due}`);
+        
+        const dueContainer = document.getElementById('parent-fee-due-container');
+        if (dueContainer) {
+            dueContainer.style.color = (due <= 0) ? 'var(--accent-success)' : 'var(--accent-danger)';
+        }
+        
+        const historyBody = document.getElementById('parent-fee-history-body');
+        if (historyBody) {
+            const history = student.fees_history || [];
+            if (!history.length) {
+                historyBody.innerHTML = `<tr><td colspan="2" style="text-align:center;color:var(--text-muted);padding:1rem;">No payment history.</td></tr>`;
+            } else {
+                historyBody.innerHTML = history.map(h => `
+                    <tr>
+                        <td><strong>${h.date}</strong> at <span style="color:var(--text-light);">${h.time}</span></td>
+                        <td style="color:var(--accent-success);font-weight:600;">+ ₹${h.amount}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+    }
 
 }); // end DOMContentLoaded
