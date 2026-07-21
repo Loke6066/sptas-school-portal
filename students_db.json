@@ -24,13 +24,23 @@
       "books": 5000,
       "dresses": 3000,
       "extra": 2000,
-      "paid": 10000
+      "paid": 23400
     },
     "fees_history": [
       {
         "amount": 10000,
         "date": "2026-07-19",
         "time": "08:15 AM"
+      },
+      {
+        "amount": 10000,
+        "date": "2026-07-20",
+        "time": "11:25 AM"
+      },
+      {
+        "amount": 3400,
+        "date": "2026-07-21",
+        "time": "01:18 PM"
       }
     ]
   },
@@ -52,10 +62,10 @@
     "attendance_status": "Present",
     "attendance_records": [],
     "fees": {
-      "school": 10000,
-      "tuition": 30000,
-      "books": 5000,
-      "dresses": 3000,
+      "school": 0,
+      "tuition": 0,
+      "books": 0,
+      "dresses": 0,
       "extra": 0,
       "paid": 0
     },

@@ -1659,12 +1659,12 @@
                 <input type="number" id="edit-fees-extra" class="form-input" min="0">
             </div>
             <div class="form-group">
-                <label>Total Paid Amount (₹)</label>
-                <input type="number" id="edit-fees-paid" class="form-input" min="0">
+                <label>Total Paid Amount So Far (₹) (Read-only)</label>
+                <input type="number" id="edit-fees-paid" class="form-input" readonly style="background-color: var(--bg-app); opacity: 0.7; cursor: not-allowed;" min="0">
             </div>
             <div class="form-group">
-                <label style="color:var(--accent-success);font-weight:600;">Record New Payment (₹) — *Logs Term to History*</label>
-                <input type="number" id="edit-fees-new-payment" class="form-input" min="0" placeholder="e.g. 10000">
+                <label style="color:var(--accent-success);font-weight:600;">Record New Payment Received Today (₹)</label>
+                <input type="number" id="edit-fees-new-payment" class="form-input" min="0" placeholder="e.g. 3400">
             </div>
             <div style="margin-top:1rem;border-top:1px solid var(--border-color);padding-top:1rem;">
                 <h4 style="font-size:0.9rem;margin-bottom:0.5rem;"><i data-lucide="history"></i> Payment History (Terms)</h4>

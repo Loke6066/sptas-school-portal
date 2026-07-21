@@ -928,10 +928,10 @@ def admin_create_student():
         "attendance_status": data.get("attendance_status","Present"),
         "attendance_records": [],
         "fees": {
-            "school": 10000,
-            "tuition": 30000,
-            "books": 5000,
-            "dresses": 3000,
+            "school": 0,
+            "tuition": 0,
+            "books": 0,
+            "dresses": 0,
             "extra": 0,
             "paid": 0
         },
@@ -2262,10 +2262,10 @@ def upload_register_excel():
             "attendance_status": "Present",
             "attendance_records": [],
             "fees": {
-                "school": 10000,
-                "tuition": 30000,
-                "books": 5000,
-                "dresses": 3000,
+                "school": 0,
+                "tuition": 0,
+                "books": 0,
+                "dresses": 0,
                 "extra": 0,
                 "paid": 0
             },
@@ -2499,10 +2499,10 @@ def update_student_fees():
         
     fees = student.get("fees", {})
     
-    db_school = int(fees.get("school", 10000) or 10000)
-    db_tuition = int(fees.get("tuition", 30000) or 30000)
-    db_books = int(fees.get("books", 5000) or 5000)
-    db_dresses = int(fees.get("dresses", 3000) or 3000)
+    db_school = int(fees.get("school", 0) or 0)
+    db_tuition = int(fees.get("tuition", 0) or 0)
+    db_books = int(fees.get("books", 0) or 0)
+    db_dresses = int(fees.get("dresses", 0) or 0)
     db_extra = int(fees.get("extra", 0) or 0)
     db_paid = int(fees.get("paid", 0) or 0)
     

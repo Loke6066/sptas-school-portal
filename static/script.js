@@ -3282,7 +3282,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         
         students.forEach(s => {
-            const fees = s.fees || { school: 10000, tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
+            const fees = s.fees || { school: 0, tuition: 0, books: 0, dresses: 0, extra: 0, paid: 0 };
             const school = Number(fees.school || 0);
             const tuition = Number(fees.tuition || 0);
             const books = Number(fees.books || 0);
@@ -3329,7 +3329,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const s = await res.json();
         if (s.error) { showToast('Student not found.', 'error'); return; }
         
-        const fees = s.fees || { school: 10000, tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
+        const fees = s.fees || { school: 0, tuition: 0, books: 0, dresses: 0, extra: 0, paid: 0 };
         const school = Number(fees.school || 0);
         const tuition = Number(fees.tuition || 0);
         const books = Number(fees.books || 0);
@@ -3372,7 +3372,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const s = await res.json();
         if (s.error) { showToast('Student not found.', 'error'); return; }
         
-        const fees = s.fees || { school: 10000, tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
+        const fees = s.fees || { school: 0, tuition: 0, books: 0, dresses: 0, extra: 0, paid: 0 };
         document.getElementById('edit-fees-student-id').value = id;
         document.getElementById('edit-fees-school').value = fees.school || 0;
         document.getElementById('edit-fees-tuition').value = fees.tuition || 0;
@@ -3540,7 +3540,7 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     function renderParentFees(student) {
-        const fees = student.fees || { school: 10000, tuition: 30000, books: 5000, dresses: 3000, extra: 0, paid: 0 };
+        const fees = student.fees || { school: 0, tuition: 0, books: 0, dresses: 0, extra: 0, paid: 0 };
         const school = Number(fees.school || 0);
         const tuition = Number(fees.tuition || 0);
         const books = Number(fees.books || 0);
