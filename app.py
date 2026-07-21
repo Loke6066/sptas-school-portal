@@ -1100,7 +1100,9 @@ def search_students():
                 "trend": s.get("performance_trend","Stable"),
                 "parent_feedback": s.get("parent_feedback",""),
                 "principal_reply": s.get("principal_reply",""),
-                "attendance_status": s.get("attendance_status","Present")}
+                "attendance_status": s.get("attendance_status","Present"),
+                "fees": s.get("fees", {}),
+                "fees_history": s.get("fees_history", [])}
     results = []
     for s in students:
         s_key = f"{s['class']}-{s['section']}"

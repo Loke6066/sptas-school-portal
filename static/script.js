@@ -1770,6 +1770,19 @@ document.addEventListener("DOMContentLoaded", function () {
             const tc=document.getElementById(btn.dataset.tab);
             if(tc){tc.classList.add('active');tc.classList.remove('hidden');}
 
+            if (btn.dataset.tab === 'tab-parent-fees' && currentRole === 'parent') {
+                const sid = localStorage.getItem('sptas_student_id');
+                if (sid) {
+                    fetch(`/api/student/${sid}`)
+                        .then(res => res.json())
+                        .then(student => {
+                            if (!student.error) {
+                                renderParentFees(student);
+                            }
+                        });
+                }
+            }
+
             // Clear notification badges
             if (btn.dataset.tab === 'parent-tab-meetings') {
                 const badge = document.getElementById('badge-meetings');
