@@ -2605,7 +2605,92 @@ def delete_service(sid):
     return jsonify({"success": False, "message": "Failed to save."}), 500
 
 
+@app.route('/api/homework', methods=['GET'])
+def get_homework():
+    class_param = request.args.get('class', '').strip()
+    section_param = request.args.get('section', '').strip()
+    student_id = request.args.get('student_id', '').strip()
+    
+    hw_list = load_json('homework_db.json', [])
+    
+    if student_id:
+        students = load_db()
+        student = next((s for s in students if s["id"] == student_id), None)
+        if student:
+            class_param = student.get("class", "")
+            section_param = student.get("section", "")
+        else:
+            return jsonify([])
 
+    if class_param:
+        hw_list = [h for h in hw_list if str(h.get("class", "")) == str(class_param)]
+    if section_param:
+        hw_list = [h for h in hw_list if h.get("section", "").upper() == section_param.upper()]
+        
+    hw_list.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    return jsonify(hw_list)
+
+
+@app.route('/api/homework/save', methods=['POST'])
+def save_homework_endpoint():
+    role, name = get_log_identity()
+    teacher_id = request.headers.get('X-Teacher-Id', '')
+    
+    if role.lower() not in ["admin", "principal", "teacher"]:
+        return jsonify({"success": False, "message": "Access denied."}), 403
+        
+    data = request.get_json() or {}
+    cls = data.get("class", "").strip()
+    sec = data.get("section", "").strip()
+    subj = data.get("subject", "").strip()
+    hw_text = data.get("homework_text", "").strip()
+    
+    if not cls or not sec or not subj or not hw_text:
+        return jsonify({"success": False, "message": "Class, Section, Subject, and Homework text are all required."}), 400
+        
+    hw_list = load_json('homework_db.json', [])
+    now = datetime.now()
+    
+    new_hw = {
+        "id": f"hw-{int(now.timestamp())}-{random.randint(1000, 9999)}",
+        "class": cls,
+        "section": sec,
+        "subject": subj,
+        "teacher_id": teacher_id,
+        "teacher_name": name if role.lower() == "teacher" else "Administrator",
+        "homework_text": hw_text,
+        "date": now.strftime("%Y-%m-%d"),
+        "created_at": now.isoformat()
+    }
+    
+    hw_list.append(new_hw)
+    if save_json('homework_db.json', hw_list):
+        log_activity(role, name, f"Assigned homework to Class {cls}-{sec} for subject {subj}")
+        return jsonify({"success": True, "message": "Homework assigned successfully.", "homework": new_hw})
+    return jsonify({"success": False, "message": "Failed to save homework database."}), 500
+
+
+@app.route('/api/homework/delete/<hw_id>', methods=['POST', 'DELETE'])
+def delete_homework_endpoint(hw_id):
+    role, name = get_log_identity()
+    teacher_id = request.headers.get('X-Teacher-Id', '')
+    
+    if role.lower() not in ["admin", "principal", "teacher"]:
+        return jsonify({"success": False, "message": "Access denied."}), 403
+        
+    hw_list = load_json('homework_db.json', [])
+    hw_item = next((h for h in hw_list if h["id"] == hw_id), None)
+    if not hw_item:
+        return jsonify({"success": False, "message": "Homework not found."}), 404
+        
+    if role.lower() == "teacher" and hw_item.get("teacher_id") != teacher_id:
+        return jsonify({"success": False, "message": "You can only delete homework assigned by you."}), 403
+        
+    hw_list = [h for h in hw_list if h["id"] != hw_id]
+    if save_json('homework_db.json', hw_list):
+        log_activity(role, name, f"Deleted homework ID {hw_id}")
+        return jsonify({"success": True, "message": "Homework deleted successfully."})
+    return jsonify({"success": False, "message": "Failed to update homework database."}), 500
 
 
 if __name__ == '__main__':

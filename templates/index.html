@@ -272,6 +272,7 @@
         <button class="admin-tab-pill" id="admin-reports-tab-btn" data-admin-tab="tab-reports"><i data-lucide="bar-chart-2"></i> <span>Reports</span></button>
         <button class="admin-tab-pill" id="admin-activities-tab-btn" data-admin-tab="tab-activities-log"><i data-lucide="activity"></i> <span>Activity Log</span></button>
         <button class="admin-tab-pill" id="admin-excel-tab-btn" data-admin-tab="tab-excel"><i data-lucide="file-spreadsheet"></i> <span>Import/Export</span></button>
+        <button class="admin-tab-pill" id="admin-homework-tab-btn" data-admin-tab="tab-homework"><i data-lucide="book-check"></i> <span>Homework</span></button>
         <button class="admin-tab-pill" id="admin-fees-tab-btn" data-admin-tab="tab-fees"><i data-lucide="indian-rupee"></i> <span>Fees Info</span></button>
         <button class="admin-tab-pill" id="admin-services-tab-btn" data-admin-tab="tab-services"><i data-lucide="wrench"></i> <span>Services Info</span></button>
     </div>
@@ -786,6 +787,77 @@
 
     </div>
 
+    <!-- ===== HOMEWORK TAB ===== -->
+    <div class="admin-tab-content hidden" id="tab-homework">
+        <!-- 1. Assign Today's Homework Form Card -->
+        <div class="section-card card-full" style="margin-bottom: 2rem;">
+            <div class="table-card-header" style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white;">
+                <h3><i data-lucide="book-check" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Assign Today's Homework</h3>
+            </div>
+            <div style="padding:1.25rem;">
+                <form id="homework-assign-form" style="display:flex; flex-direction:column; gap:1rem;">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
+                        <div class="form-group">
+                            <label style="font-weight:600;"><i data-lucide="graduation-cap" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i> Select Class</label>
+                            <select id="hw-class-select" class="form-select" required>
+                                <option value="">Select Class</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight:600;"><i data-lucide="layers" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i> Select Section</label>
+                            <select id="hw-section-select" class="form-select" required>
+                                <option value="">Select Section</option>
+                                <option>A</option>
+                                <option>B</option>
+                                <option>C</option>
+                                <option>D</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight:600;"><i data-lucide="book-open" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i> Select Subject</label>
+                            <select id="hw-subject-select" class="form-select" required>
+                                <option value="">Select Subject</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:600;"><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i> Homework Description</label>
+                        <textarea id="hw-description-input" class="form-input" rows="4" placeholder="Enter today's homework assignments clearly..." required style="resize:vertical;"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="align-self:flex-start;">
+                        <i data-lucide="save"></i> Save &amp; Assign Homework
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 2. Assigned Homework History Card -->
+        <div class="section-card card-full">
+            <div class="table-card-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white;">
+                <h3><i data-lucide="history" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Assigned Homework History</h3>
+            </div>
+            <div style="padding:1.25rem;">
+                <div class="table-responsive">
+                    <table class="data-table" id="hw-history-table">
+                        <thead>
+                            <tr>
+                                <th>Class &amp; Section</th>
+                                <th>Subject</th>
+                                <th>Assigned By</th>
+                                <th>Homework Details</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hw-history-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== FEES TAB ===== -->
     <div class="admin-tab-content hidden" id="tab-fees">
         <div class="section-card card-full">
@@ -970,6 +1042,7 @@
         <button class="tab-btn" data-tab="tab-parent-fees"><i data-lucide="indian-rupee"></i> <span>Fees Details</span></button>
         <button class="tab-btn" data-tab="parent-tab-meetings"><i data-lucide="calendar-days"></i> <span>Meetings</span><span class="nav-badge hidden" id="badge-meetings">1</span></button>
         <button class="tab-btn" data-tab="parent-tab-feedback"><i data-lucide="message-square"></i> <span>Feedback</span><span class="nav-badge hidden" id="badge-feedback">1</span></button>
+        <button class="tab-btn" data-tab="tab-parent-homework"><i data-lucide="book-check"></i> <span>Homework</span></button>
     </div>
 
     <!-- OVERVIEW TAB -->
@@ -1146,6 +1219,32 @@
                 <button id="save-principal-reply-btn" class="btn btn-primary" style="margin-top:0.5rem;">
                     <i data-lucide="save"></i> Save Principal Reply
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HOMEWORK TAB -->
+    <div class="tab-content hidden" id="tab-parent-homework">
+        <div class="section-card card-full">
+            <div class="table-card-header" style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white;">
+                <h3><i data-lucide="book-check" style="width:16px;vertical-align:middle;margin-right:6px;"></i>Today's Homework</h3>
+            </div>
+            <div style="padding: 1.25rem;">
+                <div class="table-responsive">
+                    <table class="data-table" id="parent-homework-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">Subject</th>
+                                <th style="width: 25%;">Teacher Name</th>
+                                <th style="width: 40%;">Homework Description</th>
+                                <th style="width: 15%;">Assigned Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="parent-homework-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

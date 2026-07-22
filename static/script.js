@@ -453,6 +453,7 @@ document.addEventListener("DOMContentLoaded", function () {
             showTab('admin-reports-tab-btn', true);
             showTab('admin-activities-tab-btn', true);
             showTab('admin-excel-tab-btn', true);
+            showTab('admin-homework-tab-btn', true);
             showTab('admin-fees-tab-btn', true);
             showTab('admin-services-tab-btn', true);
         } else if (isPrincipal) {
@@ -464,6 +465,7 @@ document.addEventListener("DOMContentLoaded", function () {
             showTab('admin-reports-tab-btn', true);
             showTab('admin-activities-tab-btn', true);
             showTab('admin-excel-tab-btn', false); // No import/export
+            showTab('admin-homework-tab-btn', true);
             showTab('admin-fees-tab-btn', true);
             showTab('admin-services-tab-btn', true);
         } else if (isTeacher) {
@@ -475,6 +477,7 @@ document.addEventListener("DOMContentLoaded", function () {
             showTab('admin-reports-tab-btn', true);
             showTab('admin-activities-tab-btn', false);
             showTab('admin-excel-tab-btn', false);
+            showTab('admin-homework-tab-btn', true);
             showTab('admin-fees-tab-btn', false);
             showTab('admin-services-tab-btn', false);
         }
@@ -797,6 +800,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (tabId==='tab-meetings') loadMeetingsAdmin();
             if (tabId==='tab-attendance') loadHolidaysManager();
             if (tabId==='tab-activities-log') loadActivitiesLog();
+            if (tabId==='tab-homework') loadHomeworkTab();
             if (tabId==='tab-reports') loadExcelReportsExamDropdown();
             if (tabId==='tab-excel') {
                 const cls = document.getElementById('excel-dl-class')?.value || '10';
@@ -1786,6 +1790,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                 renderParentFees(student);
                             }
                         });
+                }
+            }
+
+            if (btn.dataset.tab === 'tab-parent-homework') {
+                const sid = currentStudentId || localStorage.getItem('sptas_student_id');
+                if (sid) {
+                    loadParentHomework(sid);
                 }
             }
 
@@ -3629,5 +3640,198 @@ document.addEventListener("DOMContentLoaded", function () {
             showToast('An error occurred during deletion.', 'error');
         }
     });
+
+    function loadHomeworkTab() {
+        const classSelect = document.getElementById('hw-class-select');
+        const sectionSelect = document.getElementById('hw-section-select');
+        const subjectSelect = document.getElementById('hw-subject-select');
+        
+        if (!classSelect || !sectionSelect || !subjectSelect) return;
+        
+        classSelect.innerHTML = '<option value="">Select Class</option>';
+        sectionSelect.innerHTML = '<option value="">Select Section</option>';
+        subjectSelect.innerHTML = '<option value="">Select Subject</option>';
+        
+        if (currentRole === 'teacher' && activeTeacherProfile) {
+            const teacherClasses = activeTeacherProfile.classes || [];
+            const uniqueClasses = [...new Set(teacherClasses.map(c => c.split('-')[0]))];
+            
+            uniqueClasses.forEach(c => {
+                const label = ['Nursery','LKG','UKG'].includes(c) ? c : (c === '0' ? 'Class 0 (Kindergarten)' : `Class ${c}`);
+                classSelect.innerHTML += `<option value="${c}">${label}</option>`;
+            });
+            
+            classSelect.onchange = function() {
+                const selectedClass = this.value;
+                sectionSelect.innerHTML = '<option value="">Select Section</option>';
+                if (!selectedClass) return;
+                
+                const sections = teacherClasses
+                    .filter(c => c.startsWith(selectedClass + '-'))
+                    .map(c => c.split('-')[1]);
+                    
+                sections.forEach(s => {
+                    sectionSelect.innerHTML += `<option value="${s}">${s}</option>`;
+                });
+            };
+            
+            const teacherSubjects = activeTeacherProfile.subjects || [];
+            teacherSubjects.forEach(sub => {
+                subjectSelect.innerHTML += `<option value="${sub}">${sub}</option>`;
+            });
+        } else {
+            classSelect.innerHTML = buildClassOptions(false, false);
+            
+            classSelect.onchange = function() {
+                sectionSelect.innerHTML = `
+                    <option value="">Select Section</option>
+                    <option>A</option>
+                    <option>B</option>
+                    <option>C</option>
+                    <option>D</option>
+                `;
+            };
+            
+            const stdSubs = ['Telugu', 'Hindi', 'English', 'Mathematics', 'Science', 'Social Studies'];
+            stdSubs.forEach(sub => {
+                subjectSelect.innerHTML += `<option value="${sub}">${sub}</option>`;
+            });
+        }
+        
+        loadHomeworkHistory();
+    }
+
+    async function loadHomeworkHistory() {
+        const tbody = document.getElementById('hw-history-tbody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1rem;color:var(--text-muted);">Loading homework...</td></tr>';
+        
+        try {
+            const res = await fetch('/api/homework', { headers: getAuthHeaders() });
+            const list = await res.json();
+            
+            tbody.innerHTML = '';
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">No homework assigned yet.</td></tr>';
+                return;
+            }
+            
+            const tid = localStorage.getItem('sptas_teacher_id');
+            const canDeleteAll = ['admin', 'principal'].includes(currentRole);
+            
+            list.forEach(h => {
+                const tr = document.createElement('tr');
+                const label = ['Nursery','LKG','UKG'].includes(h.class) ? h.class : (h.class === '0' ? 'Class 0' : `Class ${h.class}`);
+                const canDelete = canDeleteAll || (currentRole === 'teacher' && h.teacher_id === tid);
+                const deleteBtnHtml = canDelete
+                    ? `<button class="btn-action btn-delete" onclick="deleteHomework('${h.id}')" title="Delete"><i data-lucide="trash-2"></i></button>`
+                    : `—`;
+                    
+                tr.innerHTML = `
+                    <td><strong>${label}-${h.section}</strong></td>
+                    <td><span class="badge badge-info">${h.subject}</span></td>
+                    <td>${h.teacher_name || 'Teacher'}</td>
+                    <td style="white-space: pre-wrap; font-size: 0.85rem;">${h.homework_text}</td>
+                    <td>${h.date}</td>
+                    <td>${deleteBtnHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        } catch (e) {
+            console.error("Error loading homework history:", e);
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1rem;color:var(--text-muted);">Error loading homework history.</td></tr>';
+        }
+    }
+
+    window.deleteHomework = async function(id) {
+        if (!confirm('Are you sure you want to delete this homework assignment?')) return;
+        
+        try {
+            const res = await fetch(`/api/homework/delete/${id}`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+            const d = await res.json();
+            if (d.success) {
+                alert('Homework deleted successfully!');
+                location.reload();
+            } else {
+                showToast(d.message || 'Failed to delete homework.', 'error');
+            }
+        } catch (e) {
+            console.error("Error deleting homework:", e);
+            showToast('Error deleting homework.', 'error');
+        }
+    };
+
+    document.getElementById('homework-assign-form')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const cls = document.getElementById('hw-class-select').value;
+        const sec = document.getElementById('hw-section-select').value;
+        const subject = document.getElementById('hw-subject-select').value;
+        const hwText = document.getElementById('hw-description-input').value.trim();
+        
+        if (!cls || !sec || !subject || !hwText) {
+            showToast('Please fill in all homework details.', 'error');
+            return;
+        }
+        
+        try {
+            const res = await fetch('/api/homework/save', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    class: cls,
+                    section: sec,
+                    subject: subject,
+                    homework_text: hwText
+                })
+            });
+            const d = await res.json();
+            if (d.success) {
+                alert('Homework assigned and saved successfully!');
+                location.reload();
+            } else {
+                showToast(d.message || 'Failed to save homework.', 'error');
+            }
+        } catch (e) {
+            console.error("Error saving homework:", e);
+            showToast('Error saving homework.', 'error');
+        }
+    });
+
+    async function loadParentHomework(sid) {
+        const tbody = document.getElementById('parent-homework-tbody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1rem;color:var(--text-muted);">Loading homework...</td></tr>';
+        
+        try {
+            const res = await fetch(`/api/homework?student_id=${sid}`, { headers: getAuthHeaders() });
+            const list = await res.json();
+            
+            tbody.innerHTML = '';
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">No homework assigned for today.</td></tr>';
+                return;
+            }
+            
+            list.forEach(h => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${h.subject}</strong></td>
+                    <td style="color:var(--text-light);">${h.teacher_name || 'Teacher'}</td>
+                    <td style="white-space: pre-wrap; font-size: 0.85rem; color:var(--text-light);">${h.homework_text}</td>
+                    <td>${h.date}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error("Error loading parent homework:", e);
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1rem;color:var(--text-muted);">Error loading homework.</td></tr>';
+        }
+    }
 
 }); // end DOMContentLoaded
