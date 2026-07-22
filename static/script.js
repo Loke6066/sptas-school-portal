@@ -509,12 +509,31 @@ document.addEventListener("DOMContentLoaded", function () {
                     .then(profile => {
                         activeTeacherProfile = profile;
                         resetAllClassSelects();
-                        loadAdminDashboard();
+                        loadAdminDashboard().then(restoreStateAfterLoad);
                     });
             } else {
                 activeTeacherProfile = null;
                 resetAllClassSelects();
-                loadAdminDashboard();
+                loadAdminDashboard().then(restoreStateAfterLoad);
+            }
+        }
+    }
+
+    function restoreStateAfterLoad() {
+        const activeStudentId = sessionStorage.getItem('sptas_active_student_id');
+        if (activeStudentId && currentRole !== 'parent') {
+            viewStudent(activeStudentId).then(() => {
+                const activeSubTab = sessionStorage.getItem('sptas_active_sub_tab');
+                if (activeSubTab) {
+                    const subBtn = document.querySelector(`.tab-btn[data-tab="${activeSubTab}"]`);
+                    if (subBtn) subBtn.click();
+                }
+            });
+        } else {
+            const lastTab = sessionStorage.getItem('sptas_active_tab');
+            if (lastTab) {
+                const btn = document.querySelector(`.admin-tab-pill[data-admin-tab="${lastTab}"]`);
+                if (btn) btn.click();
             }
         }
     }
@@ -671,6 +690,9 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('logout-btn')?.addEventListener('click', function() {
         if (liveTickerInterval) clearInterval(liveTickerInterval);
         ['sptas_role','sptas_student_id','sptas_user_name','sptas_teacher_id'].forEach(k=>localStorage.removeItem(k));
+        sessionStorage.removeItem('sptas_active_student_id');
+        sessionStorage.removeItem('sptas_active_sub_tab');
+        sessionStorage.removeItem('sptas_active_tab');
         currentRole=null;
         showAuthView();
         loginErrorMsg.classList.add('hidden');
@@ -769,6 +791,7 @@ document.addEventListener("DOMContentLoaded", function () {
             document.querySelectorAll('.admin-tab-content').forEach(c=>c.classList.add('hidden'));
             btn.classList.add('active');
             const tabId = btn.dataset.adminTab;
+            sessionStorage.setItem('sptas_active_tab', tabId);
             document.getElementById(tabId)?.classList.remove('hidden');
             if (tabId==='tab-teachers') loadTeachersTable();
             if (tabId==='tab-meetings') loadMeetingsAdmin();
@@ -1202,6 +1225,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const res=await fetch(`/api/student/${id}`, { headers });
         const s=await res.json();
         if(s.error){showToast('Student not found.','error');return;}
+        sessionStorage.setItem('sptas_active_student_id', id);
         activeStudentObject=s; currentStudentId=id;
         renderStudentDashboard(s, false);
     };
@@ -1750,6 +1774,7 @@ document.addEventListener("DOMContentLoaded", function () {
             btn.classList.add('active');
             const tc=document.getElementById(btn.dataset.tab);
             if(tc){tc.classList.add('active');tc.classList.remove('hidden');}
+            sessionStorage.setItem('sptas_active_sub_tab', btn.dataset.tab);
 
             if (btn.dataset.tab === 'tab-parent-fees' && currentRole === 'parent') {
                 const sid = localStorage.getItem('sptas_student_id');
@@ -1786,6 +1811,8 @@ document.addEventListener("DOMContentLoaded", function () {
         if(currentRole==='parent') return;
         reportView.classList.add('hidden');
         adminView.classList.remove('hidden');
+        sessionStorage.removeItem('sptas_active_student_id');
+        sessionStorage.removeItem('sptas_active_sub_tab');
         loadStudentTable();
     });
     document.getElementById('print-pdf-btn')?.addEventListener('click',()=>window.print());
