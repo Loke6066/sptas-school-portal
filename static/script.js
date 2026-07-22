@@ -465,7 +465,7 @@ document.addEventListener("DOMContentLoaded", function () {
             showTab('admin-reports-tab-btn', true);
             showTab('admin-activities-tab-btn', true);
             showTab('admin-excel-tab-btn', false);
-            showTab('admin-homework-tab-btn', false);
+            showTab('admin-homework-tab-btn', true);
             showTab('admin-fees-tab-btn', true);
             showTab('admin-services-tab-btn', true);
         } else if (isTeacher) {
@@ -1249,6 +1249,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function renderStudentDashboard(student, isParent) {
         if(liveTickerInterval) clearInterval(liveTickerInterval);
+        
+        if (!teachersCache.length) {
+            fetch('/api/teachers')
+                .then(res => res.json())
+                .then(list => {
+                    teachersCache = list;
+                    updateLiveClassroom(student.timetable || {});
+                })
+                .catch(() => {});
+        }
+
         adminView.classList.add('hidden');
         reportView.classList.remove('hidden');
         document.getElementById('back-to-search-btn')?.classList.toggle('hidden', isParent);
@@ -1308,7 +1319,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const hwTabBtn = document.querySelector('.tab-btn[data-tab="tab-parent-homework"]');
         if (hwTabBtn) {
-            const showHwTab = (currentRole === 'teacher' || currentRole === 'parent');
+            const showHwTab = (currentRole === 'teacher' || currentRole === 'parent' || currentRole === 'principal');
             hwTabBtn.classList.toggle('hidden', !showHwTab);
         }
 
@@ -1422,7 +1433,18 @@ document.addEventListener("DOMContentLoaded", function () {
         if(current){
             setEl('live-status',current.status||'Class In Progress');
             setEl('live-period',current.period||'—'); setEl('live-subject',current.subject||'—');
-            setEl('live-teacher',current.teacher||'—'); setEl('live-room',current.room||'—');
+            setEl('live-room',current.room||'—');
+            
+            const teacherName = current.teacher || '';
+            let displayTeacher = teacherName || '—';
+            if (teacherName && teacherName !== '—') {
+                const tObj = teachersCache.find(t => t.name.trim().toLowerCase() === teacherName.trim().toLowerCase());
+                if (tObj && tObj.attendance_status === 'Absent') {
+                    displayTeacher = `${teacherName} <span style="color:var(--accent-danger); font-weight:bold;">(Absent)</span>`;
+                }
+            }
+            const teacherEl = document.getElementById('live-teacher');
+            if (teacherEl) teacherEl.innerHTML = displayTeacher;
         } else {
             setEl('live-status','No Active Period');
             setEl('live-period','—'); setEl('live-subject','School hours not started or over');
@@ -1855,7 +1877,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
         teachersCache.forEach(t=>{
-            const isClickable = (currentRole === 'admin');
+            const isClickable = (currentRole === 'admin' || currentRole === 'principal');
             const attBadge = t.attendance_status==='Present'
                 ? (isClickable 
                     ? `<span class="badge badge-success" style="cursor:pointer;" onclick="toggleTeacherAtt('${t.id}','Absent')">🟢 Present</span>`
@@ -3655,6 +3677,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const classSelect = document.getElementById('hw-class-select');
         const sectionSelect = document.getElementById('hw-section-select');
         const subjectSelect = document.getElementById('hw-subject-select');
+        
+        const assignCard = document.getElementById('homework-assign-card');
+        if (assignCard) {
+            assignCard.style.display = (currentRole === 'teacher') ? 'block' : 'none';
+        }
         
         if (!classSelect || !sectionSelect || !subjectSelect) return;
         
