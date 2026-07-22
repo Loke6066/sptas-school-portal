@@ -259,41 +259,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // ============================================================
     function checkAuthSession() {
         const role = localStorage.getItem('sptas_role');
-        currentRole = role;
         if (!role) { showAuthView(); return; }
-        const name = localStorage.getItem('sptas_user_name');
-        authView.classList.add('hidden');
-        appNavHeader.classList.remove('hidden');
-        if (role === 'teacher') {
-            userGreetingLabel.textContent = `Teacher: ${name||role}`;
-        } else {
-            userGreetingLabel.textContent = `Logged in as: ${name||role}`;
-        }
-        
-        const isPrincipal = role === 'principal';
-        const isTeacher = role === 'teacher';
-        document.getElementById('edit-principal-name-btn')?.classList.toggle('hidden', !isPrincipal);
-        document.querySelectorAll('.principal-only').forEach(el=>el.classList.toggle('hidden', !isPrincipal));
-        document.getElementById('admin-meetings-tab-btn')?.classList.toggle('hidden', !(isPrincipal || isTeacher));
-        document.getElementById('admin-reports-tab-btn')?.classList.toggle('hidden', !(isPrincipal || isTeacher));
-        document.querySelectorAll('[data-admin-tab="tab-activities-log"]').forEach(el => el.classList.toggle('hidden', !isPrincipal));
-
-        if (role === 'parent') {
-            loadParentDashboard(localStorage.getItem('sptas_student_id'));
-        } else if (role === 'teacher') {
-            const tid = localStorage.getItem('sptas_teacher_id');
-            fetch(`/api/teacher/profile/${tid}`)
-                .then(res => res.json())
-                .then(profile => {
-                    activeTeacherProfile = profile;
-                    resetAllClassSelects();
-                    loadAdminDashboard();
-                });
-        } else {
-            activeTeacherProfile = null;
-            resetAllClassSelects();
-            loadAdminDashboard();
-        }
+        const name = localStorage.getItem('sptas_user_name') || 'Unknown';
+        proceedToPortal(role, name);
     }
 
     function showAuthView() {
@@ -531,7 +499,9 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById('dashboard-card-classes')?.classList.toggle('hidden', isTeacher);
         document.getElementById('dashboard-card-teachers')?.classList.toggle('hidden', isTeacher);
 
-        if (role !== 'parent') {
+        if (role === 'parent') {
+            loadParentDashboard(localStorage.getItem('sptas_student_id'));
+        } else {
             if (role === 'teacher') {
                 const tid = localStorage.getItem('sptas_teacher_id');
                 fetch(`/api/teacher/profile/${tid}`)
@@ -938,12 +908,18 @@ document.addEventListener("DOMContentLoaded", function () {
         if (pendingDeleteType==='student') {
             const res = await fetch(`/api/admin/student/delete/${pendingDeleteId}`,{method:'POST',headers:getAuthHeaders()});
             const d = await res.json();
-            if(d.success){showToast('Student deleted.','success');loadStudentTable();}
+            if(d.success){
+                alert('Student deleted successfully!');
+                location.reload();
+            }
             else showToast(d.message||'Error.','error');
         } else if (pendingDeleteType==='teacher') {
             const res = await fetch(`/api/teacher/delete/${pendingDeleteId}`,{method:'POST',headers:getAuthHeaders()});
             const d = await res.json();
-            if(d.success){showToast('Teacher removed.','success');loadTeachersTable();}
+            if(d.success){
+                alert('Teacher removed successfully!');
+                location.reload();
+            }
             else showToast(d.message||'Error.','error');
         }
         pendingDeleteId=null; pendingDeleteType=null;
@@ -1208,7 +1184,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const url=isEdit?`/api/admin/student/update/${activeModalStudent.id}`:'/api/admin/student/create';
         const res=await fetch(url,{method:'POST',headers:getAuthHeaders(),body:JSON.stringify(body)});
         const d=await res.json();
-        if(d.success){hideModal('student-modal');showToast(isEdit?'Student updated!':'Student added!','success');loadStudentTable();}
+        if(d.success){
+            hideModal('student-modal');
+            alert(isEdit?'Student record updated successfully!':'New student added successfully!');
+            location.reload();
+        }
         else showToast(d.message||'Error.','error');
     });
 
@@ -1937,7 +1917,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const url=id?`/api/teacher/update/${id}`:'/api/teacher/create';
         const res=await fetch(url,{method:'POST',headers:getAuthHeaders(),body:JSON.stringify(body)});
         const d=await res.json();
-        if(d.success){hideModal('teacher-modal-overlay');showToast(id?'Teacher updated.':'Teacher added.','success');loadTeachersTable();}
+        if(d.success){
+            hideModal('teacher-modal-overlay');
+            alert(id?'Teacher record updated successfully!':'New teacher added successfully!');
+            location.reload();
+        }
         else{errEl.textContent=d.message||'Error.';errEl.classList.remove('hidden');}
     });
 
@@ -2192,7 +2176,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const res=await fetch('/api/timetable/save',{method:'POST',headers:getAuthHeaders(),
             body:JSON.stringify({class_key:currentTimetableKey,timetable:currentTimetableData})});
         const d=await res.json();
-        if(d.success) showToast(`Timetable saved for ${currentTimetableKey}!`,'success');
+        if(d.success) {
+            alert(`Timetable saved successfully for ${currentTimetableKey}!`);
+            location.reload();
+        }
         else showToast('Failed.','error');
     });
 
@@ -2235,7 +2222,11 @@ document.addEventListener("DOMContentLoaded", function () {
         };
         const res=await fetch('/api/meetings/save',{method:'POST',headers:getAuthHeaders(),body:JSON.stringify(body)});
         const d=await res.json();
-        if(d.success){hideModal('meeting-modal-overlay');showToast('Meeting saved!','success');loadMeetingsAdmin();}
+        if(d.success){
+            hideModal('meeting-modal-overlay');
+            alert('Meeting scheduled successfully!');
+            location.reload();
+        }
         else showToast('Error.','error');
     });
 
@@ -2270,7 +2261,10 @@ document.addEventListener("DOMContentLoaded", function () {
     window.deleteMeeting=async function(id){
         const res=await fetch(`/api/meetings/delete/${id}`,{method:'POST',headers:getAuthHeaders()});
         const d=await res.json();
-        if(d.success){showToast('Meeting deleted.','success');loadMeetingsAdmin();}
+        if(d.success){
+            alert('Meeting deleted successfully!');
+            location.reload();
+        }
     };
 
     // ============================================================
@@ -3417,9 +3411,9 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         const data = await res.json();
         if (data.success) {
-            showToast('Fees updated successfully!', 'success');
             hideModal('edit-fees-modal');
-            loadFeesManager();
+            alert('Student fees updated successfully!');
+            location.reload();
         } else {
             showToast(data.message || 'Error updating fees.', 'error');
         }
@@ -3598,17 +3592,8 @@ document.addEventListener("DOMContentLoaded", function () {
             });
             const data = await res.json();
             if (data.success) {
-                showToast('All student records deleted successfully!', 'success');
-                loadAdminDashboard();
-                // Reload any active table states
-                const studentsTab = document.getElementById('tab-students');
-                if (studentsTab && studentsTab.classList.contains('active')) {
-                    loadStudentsTable();
-                }
-                const feesTab = document.getElementById('tab-fees');
-                if (feesTab && feesTab.classList.contains('active')) {
-                    loadFeesManager();
-                }
+                alert('All student records deleted successfully!');
+                location.reload();
             } else {
                 showToast(data.message || 'Failed to delete student records.', 'error');
             }
