@@ -568,6 +568,22 @@
                 </div>
             </div>
         </div>
+
+        <!-- System Data Management Card -->
+        <div class="section-card card-full" id="admin-data-management-card" style="margin-top: 2rem; border: 1px solid var(--accent-danger);">
+            <div class="table-card-header" style="background: linear-gradient(135deg, #7f1d1d, #b91c1c); color: white;">
+                <h3><i data-lucide="trash-2" style="width:16px;vertical-align:middle;margin-right:6px;"></i>System Data Management</h3>
+                <span class="badge badge-info" style="background:#ffffff; color:#7f1d1d; font-weight:700;">Administrator Only</span>
+            </div>
+            <div style="padding: 1.25rem;">
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.25rem;">
+                    <strong>Danger Zone:</strong> Clearing all data will permanently remove all registered students, attendance records, exam results, and fee transactions from the database. This action is irreversible.
+                </p>
+                <button type="button" class="btn btn-danger" id="admin-delete-all-btn" style="background:#b91c1c; border-color:#b91c1c; font-weight: 600;">
+                    <i data-lucide="trash-2"></i> Delete All Student Data
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- ===== ACTIVITY LOG TAB (PRINCIPAL ONLY) ===== -->

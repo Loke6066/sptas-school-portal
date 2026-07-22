@@ -1,77 +1,32 @@
 [
   {
-    "id": "s001",
+    "id": "1784625119",
+    "name": "Raj",
     "roll_no": "101",
-    "admission_no": "ADM-2026-0001",
-    "name": "Sai Kumar",
+    "admission_no": "ADM001",
     "class": "10",
     "section": "A",
-    "parent_name": "Ramesh Kumar",
-    "parent_contact": "9999888877",
-    "parent_alt_contact": "",
-    "parent_password": "123",
-    "dob": "2011-05-15",
-    "academic_year": "2026-2027",
-    "attendance_records": [
-      {
-        "date": "2026-07-19",
-        "status": "Present"
-      }
-    ],
-    "fees": {
-      "school": 10000,
-      "tuition": 20000,
-      "books": 5000,
-      "dresses": 3000,
-      "extra": 2000,
-      "paid": 23400
-    },
-    "fees_history": [
-      {
-        "amount": 10000,
-        "date": "2026-07-19",
-        "time": "08:15 AM"
-      },
-      {
-        "amount": 10000,
-        "date": "2026-07-20",
-        "time": "11:25 AM"
-      },
-      {
-        "amount": 3400,
-        "date": "2026-07-21",
-        "time": "01:18 PM"
-      }
-    ]
-  },
-  {
-    "id": "1784483034",
-    "name": "Test Student",
-    "roll_no": "101",
-    "admission_no": "",
-    "class": "10",
-    "section": "B",
     "academic_year": "2025-26",
-    "dob": "",
-    "parent_name": "Test Parent",
-    "parent_contact": "9999999999",
+    "dob": "1998-03-14",
+    "parent_name": "Rajesh",
+    "parent_contact": "7013029211",
     "parent_alt_contact": "",
-    "parent_password": "",
+    "parent_password": "123456",
     "parent_feedback": "",
     "principal_reply": "",
     "attendance_status": "Present",
     "attendance_records": [],
     "fees": {
-      "school": 0,
-      "tuition": 0,
-      "books": 0,
-      "dresses": 0,
+      "school": 10000,
+      "tuition": 30000,
+      "books": 5000,
+      "dresses": 3000,
       "extra": 0,
-      "paid": 0
+      "paid": 50000
     },
     "current_status": {
       "standard": "Class 10",
-      "section": "Section B",
+      "section": "Section A",
       "class_teacher": "",
       "attendance_percentage": 90.0,
       "subjects": [
@@ -82,7 +37,338 @@
         "Social Studies"
       ]
     },
-    "timetable": {},
+    "timetable": {
+      "Monday": [
+        {
+          "period": "1",
+          "time": "08:30 AM - 09:30 AM",
+          "subject": "Mathematics",
+          "teacher": "Mrs. Priya Sen",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "2",
+          "time": "09:30 AM - 10:30 AM",
+          "subject": "Science",
+          "teacher": "Mr. Amit Verma",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "Recess",
+          "time": "10:30 AM - 10:45 AM",
+          "subject": "Break Time",
+          "teacher": "-",
+          "room": "Courtyard",
+          "status": "Recess"
+        },
+        {
+          "period": "3",
+          "time": "10:45 AM - 11:45 AM",
+          "subject": "English",
+          "teacher": "Mrs. Anjali Roy",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "4",
+          "time": "11:45 AM - 12:45 PM",
+          "subject": "Computer Science",
+          "teacher": "Mr. Vikram Dev",
+          "room": "Lab 2",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "Lunch",
+          "time": "12:45 PM - 01:30 PM",
+          "subject": "Lunch Break",
+          "teacher": "-",
+          "room": "Cafeteria",
+          "status": "Break"
+        },
+        {
+          "period": "5",
+          "time": "01:30 PM - 02:30 PM",
+          "subject": "Social Studies",
+          "teacher": "Mr. Rohan Gupta",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "6",
+          "time": "02:30 PM - 03:30 PM",
+          "subject": "Hindi",
+          "teacher": "Mrs. Kavita Joshi",
+          "room": "302",
+          "status": "Class In Progress"
+        }
+      ],
+      "Tuesday": [
+        {
+          "period": "1",
+          "time": "08:30 AM - 09:30 AM",
+          "subject": "Science",
+          "teacher": "Mr. Amit Verma",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "2",
+          "time": "09:30 AM - 10:30 AM",
+          "subject": "Mathematics",
+          "teacher": "Mrs. Priya Sen",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "Recess",
+          "time": "10:30 AM - 10:45 AM",
+          "subject": "Break Time",
+          "teacher": "-",
+          "room": "Courtyard",
+          "status": "Recess"
+        },
+        {
+          "period": "3",
+          "time": "10:45 AM - 11:45 AM",
+          "subject": "Hindi",
+          "teacher": "Mrs. Kavita Joshi",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "4",
+          "time": "11:45 AM - 12:45 PM",
+          "subject": "Social Studies",
+          "teacher": "Mr. Rohan Gupta",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "Lunch",
+          "time": "12:45 PM - 01:30 PM",
+          "subject": "Lunch Break",
+          "teacher": "-",
+          "room": "Cafeteria",
+          "status": "Break"
+        },
+        {
+          "period": "5",
+          "time": "01:30 PM - 02:30 PM",
+          "subject": "English",
+          "teacher": "Mrs. Anjali Roy",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "6",
+          "time": "02:30 PM - 03:30 PM",
+          "subject": "Computer Science",
+          "teacher": "Mr. Vikram Dev",
+          "room": "Lab 2",
+          "status": "Class In Progress"
+        }
+      ],
+      "Wednesday": [
+        {
+          "period": "1",
+          "time": "08:30 AM - 09:30 AM",
+          "subject": "Mathematics",
+          "teacher": "Mrs. Priya Sen",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "2",
+          "time": "09:30 AM - 10:30 AM",
+          "subject": "English",
+          "teacher": "Mrs. Anjali Roy",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "Recess",
+          "time": "10:30 AM - 10:45 AM",
+          "subject": "Break Time",
+          "teacher": "-",
+          "room": "Courtyard",
+          "status": "Recess"
+        },
+        {
+          "period": "3",
+          "time": "10:45 AM - 11:45 AM",
+          "subject": "Science",
+          "teacher": "Mr. Amit Verma",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "4",
+          "time": "11:45 AM - 12:45 PM",
+          "subject": "Computer Science",
+          "teacher": "Mr. Vikram Dev",
+          "room": "Lab 2",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "Lunch",
+          "time": "12:45 PM - 01:30 PM",
+          "subject": "Lunch Break",
+          "teacher": "-",
+          "room": "Cafeteria",
+          "status": "Break"
+        },
+        {
+          "period": "5",
+          "time": "01:30 PM - 02:30 PM",
+          "subject": "Social Studies",
+          "teacher": "Mr. Rohan Gupta",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "6",
+          "time": "02:30 PM - 03:30 PM",
+          "subject": "Hindi",
+          "teacher": "Mrs. Kavita Joshi",
+          "room": "302",
+          "status": "Class In Progress"
+        }
+      ],
+      "Thursday": [
+        {
+          "period": "1",
+          "time": "08:30 AM - 09:30 AM",
+          "subject": "Social Studies",
+          "teacher": "Mr. Rohan Gupta",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "2",
+          "time": "09:30 AM - 10:30 AM",
+          "subject": "Science",
+          "teacher": "Mr. Amit Verma",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "Recess",
+          "time": "10:30 AM - 10:45 AM",
+          "subject": "Break Time",
+          "teacher": "-",
+          "room": "Courtyard",
+          "status": "Recess"
+        },
+        {
+          "period": "3",
+          "time": "10:45 AM - 11:45 AM",
+          "subject": "Mathematics",
+          "teacher": "Mrs. Priya Sen",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "4",
+          "time": "11:45 AM - 12:45 PM",
+          "subject": "English",
+          "teacher": "Mrs. Anjali Roy",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "Lunch",
+          "time": "12:45 PM - 01:30 PM",
+          "subject": "Lunch Break",
+          "teacher": "-",
+          "room": "Cafeteria",
+          "status": "Break"
+        },
+        {
+          "period": "5",
+          "time": "01:30 PM - 02:30 PM",
+          "subject": "Hindi",
+          "teacher": "Mrs. Kavita Joshi",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "6",
+          "time": "02:30 PM - 03:30 PM",
+          "subject": "Computer Science",
+          "teacher": "Mr. Vikram Dev",
+          "room": "Lab 2",
+          "status": "Class In Progress"
+        }
+      ],
+      "Friday": [
+        {
+          "period": "1",
+          "time": "08:30 AM - 09:30 AM",
+          "subject": "English",
+          "teacher": "Mrs. Anjali Roy",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "2",
+          "time": "09:30 AM - 10:30 AM",
+          "subject": "Mathematics",
+          "teacher": "Mrs. Priya Sen",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "Recess",
+          "time": "10:30 AM - 10:45 AM",
+          "subject": "Break Time",
+          "teacher": "-",
+          "room": "Courtyard",
+          "status": "Recess"
+        },
+        {
+          "period": "3",
+          "time": "10:45 AM - 11:45 AM",
+          "subject": "Social Studies",
+          "teacher": "Mr. Rohan Gupta",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "4",
+          "time": "11:45 AM - 12:45 PM",
+          "subject": "Science",
+          "teacher": "Mr. Amit Verma",
+          "room": "302",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "Lunch",
+          "time": "12:45 PM - 01:30 PM",
+          "subject": "Lunch Break",
+          "teacher": "-",
+          "room": "Cafeteria",
+          "status": "Break"
+        },
+        {
+          "period": "5",
+          "time": "01:30 PM - 02:30 PM",
+          "subject": "Computer Science",
+          "teacher": "Mr. Vikram Dev",
+          "room": "Lab 2",
+          "status": "Class In Progress"
+        },
+        {
+          "period": "6",
+          "time": "02:30 PM - 03:30 PM",
+          "subject": "Hindi",
+          "teacher": "Mrs. Kavita Joshi",
+          "room": "302",
+          "status": "Class In Progress"
+        }
+      ]
+    },
     "examination_progress": [],
     "subject_performance": [],
     "progress_comparison": [],
@@ -98,6 +384,13 @@
     },
     "co_curricular_activities": [],
     "awards": [],
-    "parent_meetings": []
+    "parent_meetings": [],
+    "fees_history": [
+      {
+        "amount": 50000,
+        "date": "2026-07-21",
+        "time": "02:42 PM"
+      }
+    ]
   }
 ]

@@ -519,6 +519,7 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Hide add teacher button except for Admin
         document.getElementById('admin-add-teacher-btn')?.classList.toggle('hidden', !isAdmin);
+        document.getElementById('admin-data-management-card')?.classList.toggle('hidden', !isAdmin);
         
         // Hide holiday configuration block inside Attendance view unless Admin
         const holidayMgrCard = document.getElementById('holiday-mgr-section-card');
@@ -3580,5 +3581,41 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
     }
+
+    document.getElementById('admin-delete-all-btn')?.addEventListener('click', async function() {
+        if (currentRole !== 'admin') {
+            showToast('Access denied: Administrator role required.', 'error');
+            return;
+        }
+        
+        const confirmDelete = confirm('Are you sure you want to delete all student data?');
+        if (!confirmDelete) return;
+        
+        try {
+            const res = await fetch('/api/admin/students/delete-all', {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast('All student records deleted successfully!', 'success');
+                loadAdminDashboard();
+                // Reload any active table states
+                const studentsTab = document.getElementById('tab-students');
+                if (studentsTab && studentsTab.classList.contains('active')) {
+                    loadStudentsTable();
+                }
+                const feesTab = document.getElementById('tab-fees');
+                if (feesTab && feesTab.classList.contains('active')) {
+                    loadFeesManager();
+                }
+            } else {
+                showToast(data.message || 'Failed to delete student records.', 'error');
+            }
+        } catch (e) {
+            console.error("Error deleting all data:", e);
+            showToast('An error occurred during deletion.', 'error');
+        }
+    });
 
 }); // end DOMContentLoaded

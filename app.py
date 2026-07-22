@@ -2546,6 +2546,18 @@ def update_student_fees():
     return jsonify({"success": False, "message": "Failed to save to database."}), 500
 
 
+@app.route('/api/admin/students/delete-all', methods=['DELETE'])
+def delete_all_students():
+    role, name = get_log_identity()
+    if role.lower() != "admin":
+        return jsonify({"success": False, "message": "Access denied: Administrator role required."}), 403
+        
+    if save_db([]):
+        log_activity(role, name, "Deleted all student records from database")
+        return jsonify({"success": True, "message": "All student records deleted successfully."})
+    return jsonify({"success": False, "message": "Failed to reset database."}), 500
+
+
 @app.route('/api/services', methods=['GET'])
 def get_services():
     return jsonify(load_json('services_db.json', []))
